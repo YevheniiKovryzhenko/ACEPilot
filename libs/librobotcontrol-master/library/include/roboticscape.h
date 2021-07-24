@@ -7,7 +7,6 @@
  * @ingroup Deprecated
  * @{
  */
-
 #include <robotcontrol.h>
 
 

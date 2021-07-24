@@ -7,23 +7,6 @@
  * eolson@mit.edu, 2004
  */
 
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <termios.h>
-#include <unistd.h>
-
-#include <stdlib.h>
-
-#ifdef __linux__
-#include <linux/serial.h>
-#define SUPPORT_HISPEED 1
-#endif
-
-#include <stdio.h>
-
 #include "serial_com.h"
 
 static int serial_translate_baud(int inrate);

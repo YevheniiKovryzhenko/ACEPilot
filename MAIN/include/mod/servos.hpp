@@ -31,9 +31,9 @@
 #include "adafruit_servo_driver.hpp"
 
 #define MAX_SERVOS 16
-#define SERVO_MAX_US 2500.0		///< Default maximum pulse width in microseconds
+#define SERVO_MAX_US 2000.0		///< Default maximum pulse width in microseconds
 #define SERVO_NOM_US 1500.0		///< Default nominal pulse width in microseconds
-#define SERVO_MIN_US 500.0		///< Default minimum pulse width in microseconds
+#define SERVO_MIN_US 650.0		///< Default minimum pulse width in microseconds
 
 /*!
  *  @brief  Class that stores state and functions for interacting with servo motors
