@@ -18,6 +18,7 @@ if(DEFINED __RC_V0_3)
 		gpio/rc_gpio.c
 		gpio/rc_gpio_setup.c
 		math/rc_filter.c
+		math/kalman.c
 		math/rc_linear_algebra.c
 		math/rc_matrix.c
 		math/rc_neon_functions.c
@@ -51,6 +52,7 @@ else()
 		src/button.c
 		src/cpu.c
 		src/dsm.c
+		src/encoder.c
 		src/led.c
 		src/mavlink_udp.c
 		src/model.c
@@ -71,6 +73,7 @@ else()
 		src/math/algebra.c
 		src/math/algebra_common.c
 		src/math/filter.c
+		src/math/kalman.c
 		src/math/matrix.c
 		src/math/other.c
 		src/math/polynomial.c

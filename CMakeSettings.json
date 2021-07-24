@@ -6,8 +6,6 @@
       "configurationType": "Debug",
       "cmakeExecutable": "cmake",
       "remoteCopySourcesExclusionList": [ ".vs", ".git", "out" ],
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "linux_arm" ],
       "remoteMachineName": "${defaultRemoteMachineName}",
@@ -26,10 +24,26 @@
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeExecutable": "cmake",
-      "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "inheritEnvironments": [ "linux_x64" ],
-      "wslPath": "C:\\Users\\thesa\\AppData\\Local\\Microsoft\\WindowsApps\\debian.exe"
+      "wslPath": "C:\\Users\\thesa\\AppData\\Local\\Microsoft\\WindowsApps\\debian.exe",
+      "variables": [
+        {
+          "name": "ENABLE_THREADING",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "DISABLE_THREAD_LOCAL_STORAGE",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "CMAKE_EXPORT_COMPILE_COMMANDS",
+          "value": "True",
+          "type": "BOOL"
+        }
+      ]
     }
   ]
 }

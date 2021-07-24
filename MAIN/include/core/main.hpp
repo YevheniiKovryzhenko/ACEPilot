@@ -28,15 +28,29 @@
 
 #include <iostream>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <inttypes.h> // for PRIu64
-#include <rc/time.h> // for nanos
-#include <rc/led.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdio.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+
+
+#include <rc/pthread.h>
+#include <rc/time.h> // for nanos
+#include <rc/start_stop.h>
+#include <rc/adc.h>
+#include <rc/servo.h>
+#include <rc/mpu.h>
+#include <rc/dsm.h>
+#include <rc/bmp.h>
+#include <rc/button.h>
+#include <rc/led.h>
+#include <rc/cpu.h>
+#include <rc/encoder.h>
+#include <signal.h>
+
+
 
 #include "tools.h"
 #include "gps.h"
@@ -44,8 +58,15 @@
 #include "AdafruitGPS_cmds.hpp"
 #include "adafruit_servo_driver.hpp"
 #include "servos.hpp"
-
 #include "lwgps.h"
 #include "lwrb.h"
+#include "rc_pilot_defs.h"
+#include "input_manager.h"
+#include "settings.h"
+#include "state_estimator.h"
+#include "state_machine.h"
+#include "log_manager.h"
+#include "printf_manager.h"
+#include "xbee_receive.h"
 
 #endif //MAIN_HPP
