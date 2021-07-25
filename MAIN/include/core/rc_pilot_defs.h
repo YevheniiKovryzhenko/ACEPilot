@@ -1,7 +1,7 @@
 /**
  * <rc_pilot_defs.h>
  *
- * @brief constants and parameters
+ * @brief constants, parameters and global defines
  */
 
 #ifndef RC_PILOT_DEFS_H
@@ -15,9 +15,10 @@ typedef enum arm_state_t{
 	ARMED
 } arm_state_t;
 
+
 /**
-	 * @brief      determines how the dsm radio indicates an arm/disarm kill switch
-	 */
+ * @brief      determines how the dsm radio indicates an arm/disarm kill switch
+ */
 typedef enum dsm_kill_mode_t {
 	/**
 	 * A dedicated channel is used as a kill switch. Carefully set the
