@@ -1,6 +1,13 @@
 /**
  * @file waypoint.c
  **/
+#include <stddef.h>
+#include <fcntl.h>  // for F_OK
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>  // for access()
+
+#include "coordinates.h"
 
 #include "path.h"
 

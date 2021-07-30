@@ -2,6 +2,29 @@
  * @file state_estimator.c
  *
  */
+
+#include <stdint.h> // for uint64_t
+#include <stdio.h>
+#include <math.h>
+
+#include <rc/mpu.h>
+#include <rc/math/filter.h>
+#include <rc/math/kalman.h>
+#include <rc/math/quaternion.h>
+#include <rc/math/matrix.h>
+#include <rc/math/other.h>
+#include <rc/start_stop.h>
+#include <rc/led.h>
+#include <rc/adc.h>
+#include <rc/time.h>
+#include <rc/bmp.h>
+
+#include "rc_pilot_defs.h"
+#include "settings.h"
+ //#include "input_manager.h"	
+#include "xbee_receive.h"
+#include "gps.h"
+
 #include "state_estimator.h"
 //#include <rc/math/filter.h>
 //#include <rc/math/kalman.h>
@@ -9,10 +32,22 @@
 #define TWO_PI (M_PI*2.0)
 
 state_estimate_t state_estimate; // extern variable in state_estimator.h
+ext_mag_t ext_mag;
 
 // sensor data structs
 rc_mpu_data_t mpu_data;
+rc_vector_t accel_in = RC_VECTOR_INITIALIZER;
+rc_vector_t accel_out = RC_VECTOR_INITIALIZER;
+rc_matrix_t rot_matrix = RC_MATRIX_INITIALIZER;
 static rc_bmp_data_t bmp_data;
+
+// gyro filter
+static rc_filter_t gyro_roll_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t gyro_pitch_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t gyro_yaw_lpf = RC_FILTER_INITIALIZER;
+
+// z filter
+static rc_filter_t z_lpf = RC_FILTER_INITIALIZER;
 
 // battery filter
 static rc_filter_t batt_lp = RC_FILTER_INITIALIZER;
@@ -56,6 +91,48 @@ static void __batt_cleanup(void)
 	return;
 }
 
+static void __gyro_init(void)
+{
+    rc_filter_first_order_lowpass(&gyro_pitch_lpf, DT, 3*DT);
+    rc_filter_first_order_lowpass(&gyro_roll_lpf, DT, 3*DT);
+    rc_filter_first_order_lowpass(&gyro_yaw_lpf, DT, 3*DT);
+    return;
+}
+
+static void __gyro_march(void)
+{
+    state_estimate.roll_dot = rc_filter_march(&gyro_roll_lpf, state_estimate.gyro[0]);
+    state_estimate.pitch_dot = rc_filter_march(&gyro_pitch_lpf, state_estimate.gyro[1]);
+    state_estimate.yaw_dot = rc_filter_march(&gyro_yaw_lpf, state_estimate.gyro[2]);
+    return;
+}
+
+static void __gyro_cleanup(void)
+{
+    rc_filter_free(&gyro_pitch_lpf);
+    rc_filter_free(&gyro_roll_lpf);
+    rc_filter_free(&gyro_yaw_lpf);
+    return;
+}
+
+static void __z_init(void)
+{
+    rc_filter_first_order_lowpass(&z_lpf, DT, 300*DT);
+    return;
+}
+
+static void __z_march(void)
+{
+    // state_estimate.Z_ddot = rc_filter_march(&z_lpf, state_estimate.accel_ground_frame[2]);
+    state_estimate.Z_ddot = 0;
+    return;
+}
+
+static void __z_cleanup(void)
+{
+    rc_filter_free(&z_lpf);
+    return;
+}
 
 
 static void __imu_march(void)
@@ -69,19 +146,16 @@ static void __imu_march(void)
     double diff_mocap;
 
 	// gyro and accel require converting to NED coordinates
-	state_estimate.gyro[0] =  mpu_data.gyro[1];
-	state_estimate.gyro[1] =  mpu_data.gyro[0];
-	state_estimate.gyro[2] = -mpu_data.gyro[2];
-	state_estimate.accel[0] =  mpu_data.accel[1];
-	state_estimate.accel[1] =  mpu_data.accel[0];
-	state_estimate.accel[2] = -mpu_data.accel[2];
+	state_estimate.gyro[0] =  mpu_data.gyro[1] * DEG_TO_RAD;
+	state_estimate.gyro[1] =  mpu_data.gyro[0] * DEG_TO_RAD;
+	state_estimate.gyro[2] = -mpu_data.gyro[2] * DEG_TO_RAD;
 
 	// quaternion also needs coordinate transform
 	state_estimate.quat_imu[0] =  mpu_data.dmp_quat[0]; // W
 	state_estimate.quat_imu[1] =  mpu_data.dmp_quat[2]; // X (i)
 	state_estimate.quat_imu[2] =  mpu_data.dmp_quat[1]; // Y (j)
 	state_estimate.quat_imu[3] = -mpu_data.dmp_quat[3]; // Z (k)
-	if (settings.enable_xbee) {
+	if (settings.enable_mocap) {
 		state_estimate.quat_mocap[0] = xbeeMsg.qw; // W
 		state_estimate.quat_mocap[1] = xbeeMsg.qx; // X (i)
 		state_estimate.quat_mocap[2] = xbeeMsg.qy; // Y (j)
@@ -123,6 +197,21 @@ static void __imu_march(void)
 	// finally the new value can be written
 	state_estimate.imu_continuous_yaw = state_estimate.tb_imu[2] + (num_yaw_spins * TWO_PI);
 	last_yaw = state_estimate.imu_continuous_yaw;
+	
+	state_estimate.accel[0] =  mpu_data.accel[1];
+	state_estimate.accel[1] =  mpu_data.accel[0];
+	state_estimate.accel[2] = -mpu_data.accel[2];
+	
+	accel_in.d[0] = state_estimate.accel[0];
+    accel_in.d[1] = state_estimate.accel[1];
+    accel_in.d[2] = state_estimate.accel[2];
+
+    // rotate accel vector
+    rc_quaternion_rotate_vector_array(accel_in.d, state_estimate.quat_imu);
+
+    state_estimate.accel_ground_frame[0] = accel_in.d[0];
+    state_estimate.accel_ground_frame[1] = accel_in.d[1];
+    state_estimate.accel_ground_frame[2] = accel_in.d[2] + GRAVITY;
 	return;
 }
 
@@ -256,12 +345,15 @@ static void __altitude_march(void)
 	double accel_vec[3];
 	static rc_vector_t u = RC_VECTOR_INITIALIZER;
 	static rc_vector_t y = RC_VECTOR_INITIALIZER;
+	static double global_update;
 
 	// grab raw data
 	state_estimate.bmp_pressure_raw = bmp_data.pressure_pa;
 	state_estimate.alt_bmp_raw = bmp_data.alt_m;
 	state_estimate.bmp_temp = bmp_data.temp_c;
-
+	
+	// Set Global update variable
+    global_update = gps_data.lla.alt;
 
 
 	// make copy of acceleration reading before rotating
@@ -286,8 +378,16 @@ static void __altitude_march(void)
 	u.d[0] = acc_lp.newest_output;
 
 	// don't bother filtering Barometer, kalman will deal with that
-	y.d[0] = -bmp_data.alt_m;
-
+	if (settings.enable_gps)
+	{
+		 // Use gps for kalman update
+		y.d[0] = -global_update;
+	}
+	else
+	{
+		y.d[0] = -bmp_data.alt_m;
+	}
+	
 	rc_kalman_update_lin(&alt_kf, u, y);
 
 	// altitude estimate
@@ -304,18 +404,18 @@ static void __feedback_select(void)
 	state_estimate.yaw				= state_estimate.tb_imu[2];
 	state_estimate.continuous_yaw	= state_estimate.imu_continuous_yaw;
 
-	if (settings.enable_xbee) {
+	if (settings.enable_mocap) {
         state_estimate.X = xbeeMsg.x;
         state_estimate.Y = -xbeeMsg.y;
         state_estimate.Z = -xbeeMsg.z;
 		
-		if (settings.use_xbee_roll) {
+		if (settings.use_mocap_roll) {
 			state_estimate.roll 	= state_estimate.tb_mocap[0];
 		}
-		if (settings.use_xbee_pitch) {
+		if (settings.use_mocap_pitch) {
 			state_estimate.pitch 	= -state_estimate.tb_mocap[1];
 		}
-		if (settings.use_xbee_yaw) {
+		if (settings.use_mocap_yaw) {
 			state_estimate.yaw 		= -state_estimate.tb_mocap[2];
             state_estimate.continuous_yaw = -state_estimate.mocap_continuous_yaw;
 		}
@@ -355,8 +455,13 @@ static void __mocap_check_timeout(void)
 int state_estimator_init(void)
 {
 	__batt_init();
-	if(__altitude_init()) return -1;
-	state_estimate.initialized = 1;
+	__gyro_init();
+    __z_init();
+	if (__altitude_init() == -1) return -1;
+    if (rc_vector_zeros(&accel_in, 3) == -1) return -1;
+    if (rc_vector_zeros(&accel_out, 3) == -1) return -1;
+    if (rc_matrix_zeros(&rot_matrix, 3, 3) == -1) return -1;
+    state_estimate.initialized = 1;
 	return 0;
 }
 
@@ -368,12 +473,14 @@ int state_estimator_march(void)
 	}
 
 	// populate state_estimate struct one setion at a time, top to bottom
-	__batt_march();
-	__imu_march();
-	__mag_march();
-	__altitude_march();
-	__feedback_select();
-	__mocap_check_timeout();
+    __batt_march();
+    __imu_march();
+    __mag_march();
+    __altitude_march();
+    __gyro_march();
+    __z_march();
+    __feedback_select();
+    __mocap_check_timeout();
 	return 0;
 }
 
@@ -387,6 +494,7 @@ int state_estimator_jobs_after_feedback(void)
 		// perform the i2c reads to the sensor, on bad read just try later
 		if(rc_bmp_read(&bmp_data)) return -1;
 		bmp_sample_counter=0;
+		state_estimate.bmp_time_ns = rc_nanos_since_boot();
 	}
 	bmp_sample_counter++;
 	return 0;
@@ -396,6 +504,8 @@ int state_estimator_jobs_after_feedback(void)
 int state_estimator_cleanup(void)
 {
 	__batt_cleanup();
-	__altitude_cleanup();
+    __altitude_cleanup();
+    __gyro_cleanup();
+    __z_cleanup();
 	return 0;
 }

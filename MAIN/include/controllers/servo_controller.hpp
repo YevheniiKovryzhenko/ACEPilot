@@ -1,5 +1,5 @@
-﻿/*
- * main.hpp
+/*
+ * servo_controller.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -21,57 +21,38 @@
  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ *
+ * Last Edit:  07/28/2020 (MM/DD/YYYY)
  */
 
-#ifndef MAIN_HPP
-#define MAIN_HPP
+#ifndef SERVO_CONTROLLER_HPP
+#define SERVO_CONTROLLER_HPP
 
-#include <iostream>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <inttypes.h> // for PRIu64
-#include <string.h>
+#include <math.h>
 #include <stdio.h>
-#include <fcntl.h>
+#include <inttypes.h>
+#include <stdbool.h>
 
+#include <rc/math.h>
+#include <rc/time.h>
+#include <rc/math/filter.h>
 
-#include <rc/pthread.h>
-#include <rc/time.h> // for nanos
-#include <rc/start_stop.h>
-#include <rc/adc.h>
-#include <rc/servo.h>
-#include <rc/mpu.h>
-#include <rc/dsm.h>
-#include <rc/bmp.h>
-#include <rc/button.h>
-#include <rc/led.h>
-#include <rc/cpu.h>
-#include <rc/encoder.h>
-#include <signal.h>
-
-
-#include "state_estimator.h"
-#include "tools.h"
-#include "gps.h"
-#include "serial_com.h"
-#include "AdafruitGPS_cmds.hpp"
-#include "adafruit_servo_driver.hpp"
-#include "servos.hpp"
-#include "lwgps.h"
-#include "lwrb.h"
-#include "rc_pilot_defs.h"
-#include "input_manager.hpp"
-#include "settings.h"
-#include "state_machine.hpp"
-#include "log_manager.hpp"
-#include "printf_manager.hpp"
-#include "xbee_receive.h"
-#include "setpoint_manager.hpp"
-#include "benchmark.h"
-#include "feedback.hpp"
 #include "mix_servos.hpp"
 
-#endif //MAIN_HPP
+class feedback_servo_controller_t
+{
+private:
+	bool initialized;
+
+	int mix_all_control(double(&u)[MAX_SERVO_INPUTS], double(&mot)[MAX_SERVOS]);
+
+public:
+
+	int init(void);
+
+	int march(double(&u)[MAX_SERVO_INPUTS], double(&mot)[MAX_SERVOS]);
+
+	int reset(void);
+
+};
+#endif // SERVO_CONTROLLER_HPP

@@ -13,17 +13,6 @@
 #ifndef __STATE_MACHINE__
 #define __STATE_MACHINE__
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-
-#include <rc/time.h>
-
-#include "setpoint_manager.h"
-#include "settings.h"
-#include "trajectories_common.h"
-
 #ifdef __cplusplus
 extern "C"
 {

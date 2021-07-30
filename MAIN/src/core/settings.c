@@ -4,24 +4,24 @@
 * contains all the functions for io to the settings file, including default
 * values that can be written to disk if no file is present.
  **/
-
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>	// FOR str_cmp()
 #include <fcntl.h>	// for F_OK
 #include <unistd.h>	// for access()
-
-
-#include <rc/math/filter.h>
-
-#include <settings.h>
-#include <rc_pilot_defs.h>
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-//#include <json-c/json.h> //if unavailable run: sudo apt install libjson-c-dev libjson-c3
+ //#include <json-c/json.h> //if unavailable run: sudo apt install libjson-c-dev libjson-c3
 #include <json.h>
 
+#include <rc/math/filter.h>
+#include <rc/mpu.h>
+
+//#include "input_manager.h"
+#include "flight_mode.h"
+#include "thrust_map.h"
+#include "mix.h"
+#include "rc_pilot_defs.h"
+
+#include "settings.h"
 
 // json object respresentation of the whole settings file
 static json_object* jobj;
@@ -190,6 +190,35 @@ static int __parse_layout(void)
 	return 0;
 }
 
+/**
+ * @brief      pulls servo layout out of json object into settings struct
+ *
+ * @return     0 on success, -1 on failure
+ */
+static int __parse_servo_layout(void)
+{
+	struct json_object* tmp = NULL;
+	char* tmp_str = NULL;
+	if (json_object_object_get_ex(jobj, "servo_layout", &tmp) == 0) {
+		fprintf(stderr, "ERROR: can't find servo_layout in settings file\n");
+		return -1;
+	}
+	if (json_object_is_type(tmp, json_type_string) == 0) {
+		fprintf(stderr, "ERROR: layout should be a string\n");
+		return -1;
+	}
+	tmp_str = (char*)json_object_get_string(tmp);
+	if (strcmp(tmp_str, "LAYOUT_4xDIRECT_TEST") == 0) {
+		settings.num_rotors = 6;
+		settings.servo_layout = LAYOUT_4xDIRECT_TEST;
+	}
+	else {
+		fprintf(stderr, "ERROR: invalid layout string\n");
+		return -1;
+	}
+	return 0;
+}
+
 
 static int __parse_thrust_map(void)
 {
@@ -260,31 +289,39 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	else if(strcmp(tmp_str, "TEST_BENCH_6DOF")==0){
 		*mode = TEST_BENCH_6DOF;
 	}
-	else if(strcmp(tmp_str, "DIRECT_THROTTLE_4DOF")==0){
-		*mode = DIRECT_THROTTLE_4DOF;
+	else if(strcmp(tmp_str, "MANUAL_S")==0){
+		*mode = MANUAL_S;
+	}
+	else if (strcmp(tmp_str, "MANUAL_F") == 0) {
+		*mode = MANUAL_F;
 	}
 	else if(strcmp(tmp_str, "DIRECT_THROTTLE_6DOF")==0){
 		*mode = DIRECT_THROTTLE_6DOF;
 	}
-	else if(strcmp(tmp_str, "ALT_HOLD_4DOF")==0){
-		*mode = ALT_HOLD_4DOF;
+	else if(strcmp(tmp_str, "ALT_HOLD_SS")==0){
+		*mode = ALT_HOLD_SS;
 	}
-	else if(strcmp(tmp_str, "ALT_HOLD_6DOF")==0){
-		*mode = ALT_HOLD_6DOF;
+	else if (strcmp(tmp_str, "ALT_HOLD_FS") == 0) {
+		*mode = ALT_HOLD_FS;
 	}
-	else if(strcmp(tmp_str, "VELOCITY_CONTROL_4DOF")==0){
-		*mode = VELOCITY_CONTROL_4DOF;
+	else if (strcmp(tmp_str, "ALT_HOLD_FF") == 0) {
+		*mode = ALT_HOLD_FF;
 	}
-	else if(strcmp(tmp_str, "VELOCITY_CONTROL_6DOF")==0){
-		*mode = VELOCITY_CONTROL_6DOF;
+	else if (strcmp(tmp_str, "POSITION_CONTROL_SSS") == 0) {
+		*mode = POSITION_CONTROL_SSS;
 	}
-	else if(strcmp(tmp_str, "POSITION_CONTROL_4DOF")==0){
-		*mode = POSITION_CONTROL_4DOF;
+	else if (strcmp(tmp_str, "POSITION_CONTROL_FSS") == 0) {
+		*mode = POSITION_CONTROL_FSS;
 	}
-	else if(strcmp(tmp_str, "POSITION_CONTROL_6DOF")==0){
-		*mode = POSITION_CONTROL_6DOF;
+	else if (strcmp(tmp_str, "POSITION_CONTROL_FFS") == 0) {
+		*mode = POSITION_CONTROL_FFS;
 	}
-	// define autonomous
+	else if (strcmp(tmp_str, "POSITION_CONTROL_FFF") == 0) {
+		*mode = POSITION_CONTROL_FFF;
+	}
+	else if (strcmp(tmp_str, "EMERGENCY_LAND") == 0) {
+		*mode = EMERGENCY_LAND;
+	}
 	else if(strcmp(tmp_str, "AUTONOMOUS")==0){
 		*mode = AUTONOMOUS;
 	}
@@ -526,10 +563,10 @@ int settings_load_from_file(char* path)
 
 	was_load_successful = 0;
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"beginning of load_settings_from_file\n");
 	fprintf(stderr,"about to check access of fly settings file\n");
-	#endif
+#endif
 
 	// read in file contents
 	if(access(path, F_OK)!=0){
@@ -537,9 +574,9 @@ int settings_load_from_file(char* path)
 		return -1;
 	}
 	else{
-		#ifdef DEBUG
-		printf("about to read json from file\n");
-		#endif
+#ifdef DEBUG
+	printf("about to read json from file\n");
+#endif
 		jobj = json_object_from_file(path);
 		if(jobj==NULL){
 			fprintf(stderr,"ERROR, failed to read settings from disk\n");
@@ -547,148 +584,201 @@ int settings_load_from_file(char* path)
 		}
 	}
 
-	#ifdef DEBUG
+#ifdef DEBUG
 	settings_print();
-	#endif
+#endif
 
 	// START PARSING
 
-	PARSE_STRING(name)
-	#ifdef DEBUG
+	PARSE_STRING(name);
+#ifdef DEBUG
 	fprintf(stderr,"name: %s\n",settings.name);
-	#endif
-	PARSE_BOOL(warnings_en)
-	#ifdef DEBUG
+#endif
+	PARSE_BOOL(warnings_en);
+#ifdef DEBUG
 	fprintf(stderr,"warnings: %d\n",settings.warnings_en);
-	#endif
-    PARSE_BOOL(delay_warnings_en)
-    PARSE_BOOL(telem_warnings_en)
+#endif
+	PARSE_BOOL(delay_warnings_en);
+	PARSE_BOOL(telem_warnings_en);
 
 
 	// PHYSICAL PARAMETERS
 	// layout populates num_rotors, layout, and dof
 	if(__parse_layout()==-1) return -1; // parse_layout also fill in num_rotors and dof
-	#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"layout:%d,%d\n",settings.layout,settings.num_rotors);
-	#endif
+#endif
+	if (__parse_servo_layout() == -1) return -1;
 	if(__parse_thrust_map()==-1) return -1;
-	#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"thrust_map: %d\n",settings.thrust_map);
-	#endif
+#endif
 	PARSE_DOUBLE_MIN_MAX(v_nominal,7.0,18.0)
-	#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"v_nominal: %f\n",settings.v_nominal);
-	#endif
-	PARSE_BOOL(enable_magnetometer)
-	PARSE_BOOL(enable_xbee)
-	PARSE_BOOL(use_xbee_yaw)
-	PARSE_BOOL(use_xbee_pitch)
-	PARSE_BOOL(use_xbee_roll)
-	PARSE_BOOL(enable_encoders)
+#endif
+	PARSE_BOOL(enable_v_gain_scaling);
+	PARSE_BOOL(enable_magnetometer);
+	PARSE_BOOL(enable_mocap);
+	PARSE_BOOL(use_mocap_yaw);
+	PARSE_BOOL(use_mocap_pitch);
+	PARSE_BOOL(use_mocap_roll);
+	PARSE_BOOL(enable_dynamic_gains);
+	PARSE_BOOL(enable_encoders);
+	PARSE_BOOL(enable_gps);
+	PARSE_BOOL(enable_ext_mag);
 
+	//Servo settings
+	PARSE_BOOL(enable_servos);
+	PARSE_DOUBLE_MIN_MAX(servos_arm_time_s, 0.0, 120.0);
+
+	PARSE_DOUBLE_MIN_MAX(arm_time_s, 0.0, 120.0);
+
+	// EMERGENCY LANDING SETTINGS
+	PARSE_BOOL(enable_mocap_dropout_emergency_land);
+	PARSE_DOUBLE_MIN_MAX(mocap_dropout_timeout_ms, 0, 10000);
+	if (settings.enable_mocap_dropout_emergency_land)
+	{
+		printf("Mocap dropout emergency landing ENABLED.\tDropout timeout: %0.1lfms.\n",
+			settings.mocap_dropout_timeout_ms);
+	}
+#ifdef DEBUG
+	fprintf(stderr, "enable_mocap_dropout_emergency_land: %d\n", settings.enable_mocap_dropout_emergency_land);
+	fprintf(stderr, "mocap_dropout_timeout_ms: %lf\n", settings.mocap_dropout_timeout_ms);
+#endif   
 
 	// FLIGHT MODES
-	PARSE_INT_MIN_MAX(num_dsm_modes,1,3)
+	PARSE_INT_MIN_MAX(num_dsm_modes, 1, 3);
 	if(json_object_object_get_ex(jobj, "flight_mode_1", &tmp)==0){
 		fprintf(stderr,"ERROR: can't find flight_mode_1 in settings file\n");
 		return -1;
 	}
 	if(__parse_flight_mode(tmp, &settings.flight_mode_1)) return -1;
-	#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"flight_mode_1: %d\n",settings.flight_mode_1);
-	#endif
+#endif
 	if(json_object_object_get_ex(jobj, "flight_mode_2", &tmp)==0){
 		fprintf(stderr,"ERROR: can't find flight_mode_2 in settings file\n");
 		return -1;
 	}
 	if(__parse_flight_mode(tmp, &settings.flight_mode_2)) return -1;
-	#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"flight_mode_2: %d\n",settings.flight_mode_2);
-	#endif
+#endif
 	if(json_object_object_get_ex(jobj, "flight_mode_3", &tmp)==0){
 		fprintf(stderr,"ERROR: can't find flight_mode_3 in settings file\n");
 		return -1;
 	}
 	if(__parse_flight_mode(tmp, &settings.flight_mode_3)) return -1;
-	#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"flight_mode_3: %d\n",settings.flight_mode_3);
-	#endif
+#endif
+	printf("---\n"); // Just a visual break between above settings and the ones below
 
 	// DSM RADIO CONFIG
-	PARSE_INT_MIN_MAX(dsm_thr_ch,1,9)
-	PARSE_POLARITY(dsm_thr_pol)
-	PARSE_INT_MIN_MAX(dsm_roll_ch,1,9)
-	PARSE_POLARITY(dsm_roll_pol)
-	PARSE_INT_MIN_MAX(dsm_pitch_ch,1,9)
-	PARSE_POLARITY(dsm_pitch_pol)
-	PARSE_INT_MIN_MAX(dsm_yaw_ch,1,9)
-	PARSE_POLARITY(dsm_yaw_pol)
-	PARSE_INT_MIN_MAX(dsm_mode_ch,1,9)
-	PARSE_POLARITY(dsm_mode_pol)
+	PARSE_INT_MIN_MAX(dsm_thr_ch, 1, 9);
+	PARSE_POLARITY(dsm_thr_pol);
+	PARSE_INT_MIN_MAX(dsm_roll_ch, 1, 9);
+	PARSE_POLARITY(dsm_roll_pol);
+	PARSE_INT_MIN_MAX(dsm_pitch_ch, 1, 9);
+	PARSE_POLARITY(dsm_pitch_pol);
+	PARSE_INT_MIN_MAX(dsm_yaw_ch, 1, 9);
+	PARSE_POLARITY(dsm_yaw_pol);
+	PARSE_INT_MIN_MAX(dsm_mode_ch, 1, 9);
+	PARSE_POLARITY(dsm_mode_pol);
 	if(__parse_kill_mode()==-1) return -1;
-	#ifdef DEBUG
+#ifdef DEBUG
 	fprintf(stderr,"kill_mode: %d\n",settings.dsm_kill_mode);
-	#endif
-	PARSE_INT_MIN_MAX(dsm_kill_ch,1,9)
-	PARSE_POLARITY(dsm_kill_pol)
+#endif
+	PARSE_INT_MIN_MAX(dsm_kill_ch, 1, 9);
+	PARSE_POLARITY(dsm_kill_pol);
 
 	// PRINTF OPTIONS
-	PARSE_BOOL(printf_arm)
-	PARSE_BOOL(printf_altitude)
-	PARSE_BOOL(printf_rpy)
-	PARSE_BOOL(printf_sticks)
-	PARSE_BOOL(printf_setpoint)
-	PARSE_BOOL(printf_u)
-	PARSE_BOOL(printf_motors)
-	PARSE_BOOL(printf_mode)
-	PARSE_BOOL(printf_xbee)
-	PARSE_BOOL(printf_rev)
-	PARSE_BOOL(printf_counter)
+	PARSE_BOOL(printf_arm);
+	PARSE_BOOL(printf_altitude);
+	PARSE_BOOL(printf_battery);
+	PARSE_BOOL(printf_rpy);
+	PARSE_BOOL(printf_sticks);
+	PARSE_BOOL(printf_setpoint);
+	PARSE_BOOL(printf_u);
+	PARSE_BOOL(printf_motors);
+	PARSE_BOOL(printf_mode);
+	PARSE_BOOL(printf_mocap);
+	PARSE_BOOL(printf_tracking);
+	PARSE_BOOL(printf_gps);
+	PARSE_BOOL(printf_ext_mag);
+	PARSE_BOOL(printf_int_mag);
+	PARSE_BOOL(printf_rev);
+	PARSE_BOOL(printf_counter);
 
 
 	// LOGGING
-	PARSE_BOOL(enable_logging)
-	PARSE_BOOL(log_sensors)
-	PARSE_BOOL(log_state)
-	PARSE_BOOL(log_setpoint)
-	PARSE_BOOL(log_control_u)
-	PARSE_BOOL(log_motor_signals)
-	PARSE_BOOL(log_encoders)
+	PARSE_BOOL(enable_logging);
+	PARSE_BOOL(log_only_while_armed);
+	PARSE_BOOL(log_sensors);
+	PARSE_BOOL(log_state);
+	PARSE_BOOL(log_mocap);
+	PARSE_BOOL(log_gps);
+	PARSE_BOOL(log_attitude_setpoint);
+	PARSE_BOOL(log_position_setpoint);
+	PARSE_BOOL(log_throttles);
+	PARSE_BOOL(log_dsm);
+	PARSE_BOOL(log_flight_mode);
+	PARSE_BOOL(log_benchmark);
+	PARSE_BOOL(log_ext_mag);
+	PARSE_BOOL(log_control_u);
+	PARSE_BOOL(log_motor_signals);
+	PARSE_BOOL(log_encoders);
 
 	// MAVLINK
-	PARSE_STRING(dest_ip)
-	PARSE_INT(my_sys_id)
-	PARSE_INT(mav_port)
+	PARSE_STRING(dest_ip);
+	PARSE_INT(my_sys_id);
+	PARSE_INT(mav_port);
+
+	// DSM CONNECTION TIMER
+	PARSE_INT(dsm_timeout_ms)
 
 	// WAYPOINT FILES
-    PARSE_STRING(wp_folder)
-    PARSE_STRING(wp_takeoff_filename)
-    PARSE_STRING(wp_guided_filename)
-    PARSE_STRING(wp_landing_filename)
+	PARSE_STRING(wp_folder);
+	PARSE_STRING(wp_takeoff_filename);
+	PARSE_STRING(wp_guided_filename);
+	PARSE_STRING(wp_landing_filename);
 
 	// AUTOMATED FLIGHT
-    PARSE_DOUBLE_MIN_MAX(V_max_land, 0.0, 1000000)
-    PARSE_DOUBLE_MIN_MAX(height_takeoff, 0.0, 100000000)
-    PARSE_DOUBLE_MIN_MAX(t_takeoff, 0.0, 10000000)
+	PARSE_DOUBLE_MIN_MAX(V_max_land, 0.0, 1000000);
+	PARSE_DOUBLE_MIN_MAX(height_takeoff, 0.0, 100000000);
+	PARSE_DOUBLE_MIN_MAX(t_takeoff, 0.0, 10000000);
+	PARSE_DOUBLE_MIN_MAX(max_XY_velocity, 0.0, 100000000);
+	PARSE_DOUBLE_MIN_MAX(max_Z_velocity, 0.0, 10000000);
 
 	// SERIAL PORTS
-    PARSE_STRING(serial_port_1)
-    PARSE_INT(serial_baud_1)
-    PARSE_STRING(serial_port_2)
-    PARSE_INT(serial_baud_2)
+	PARSE_STRING(serial_port_1);
+	PARSE_INT(serial_baud_1);
+	PARSE_STRING(serial_port_2);
+	PARSE_INT(serial_baud_2);
+	PARSE_STRING(serial_port_gps);
+	PARSE_INT(serial_baud_gps);
 
 	// FEEDBACK CONTROLLERS
-	PARSE_CONTROLLER(roll_controller)
-	PARSE_CONTROLLER(pitch_controller)
-	PARSE_CONTROLLER(yaw_controller)
-	PARSE_CONTROLLER(altitude_controller)
-	PARSE_CONTROLLER(horiz_vel_ctrl_4dof)
-	PARSE_CONTROLLER(horiz_vel_ctrl_6dof)
-	PARSE_CONTROLLER(horiz_Xpos_ctrl_4dof)
-	PARSE_CONTROLLER(horiz_Ypos_ctrl_4dof)
-	PARSE_CONTROLLER(horiz_pos_ctrl_6dof)
-	PARSE_DOUBLE_MIN_MAX(max_XY_velocity, .1, 10)
-	PARSE_DOUBLE_MIN_MAX(max_Z_velocity, .1, 10)
+	PARSE_CONTROLLER(roll_rate_controller_pd);
+	PARSE_CONTROLLER(roll_rate_controller_i);
+	PARSE_CONTROLLER(pitch_rate_controller_pd);
+	PARSE_CONTROLLER(pitch_rate_controller_i);
+	PARSE_CONTROLLER(yaw_rate_controller_pd);
+	PARSE_CONTROLLER(yaw_rate_controller_i);
+	PARSE_CONTROLLER(roll_controller);
+	PARSE_CONTROLLER(pitch_controller);
+	PARSE_CONTROLLER(yaw_controller);
+	PARSE_CONTROLLER(altitude_rate_controller_pd);
+	PARSE_CONTROLLER(altitude_rate_controller_i);
+	PARSE_CONTROLLER(altitude_controller_pd);
+	PARSE_CONTROLLER(altitude_controller_i);
+	PARSE_CONTROLLER(horiz_vel_ctrl_pd_X);
+	PARSE_CONTROLLER(horiz_vel_ctrl_i_X);
+	PARSE_CONTROLLER(horiz_vel_ctrl_pd_Y);
+	PARSE_CONTROLLER(horiz_vel_ctrl_i_Y);
+	PARSE_CONTROLLER(horiz_pos_ctrl_X);
+	PARSE_CONTROLLER(horiz_pos_ctrl_Y);
 
 	json_object_put(jobj);	// free memory
 	was_load_successful = 1;
@@ -710,7 +800,3 @@ int settings_print(void)
 	printf("\n");
 	return 0;
 }
-
-#ifdef __cplusplus
-}
-#endif

@@ -1,20 +1,28 @@
 /**
- * <fly/settings.h>
+ * <settings.h>
  *
  * @brief      Functions to read the json settings file
  */
 
 #ifndef SETTINGS_H
 #define SETTINGS_H
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>	// FOR str_cmp()
+#include <fcntl.h>	// for F_OK
+#include <unistd.h>	// for access()
+ //#include <json-c/json.h> //if unavailable run: sudo apt install libjson-c-dev libjson-c3
+#include <json.h>
+
 #include <rc/math/filter.h>
 #include <rc/mpu.h>
 
-#include "input_manager.h"
-#include "flight_mode.h"
-#include "thrust_map.h"
 #include "mix.h"
+#include "flight_mode.h"
 #include "rc_pilot_defs.h"
-
+#include "thrust_map.h"
+//#include "mix_servos.hpp"
+#include "servo_mix_defs.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -34,25 +42,45 @@ typedef struct settings_t{
 
 	/**@name warings */
 	///@{
-	int warnings_en;
-    int delay_warnings_en;
-    int telem_warnings_en;
+	bool warnings_en;
+	bool delay_warnings_en;
+	bool telem_warnings_en;
 	///@}
 
 	/** @name physical parameters */
 	///@{
 	int num_rotors;
+	double arm_time_s;
 	rotor_layout_t layout;
+	servo_layout_t servo_layout;
 	int dof;
 	thrust_map_t thrust_map;
 	double v_nominal;
-	int enable_magnetometer; // we suggest leaving as 0 (mag OFF)
-	int enable_xbee;	//enable xbee serial link
-	int use_xbee_yaw;
-	int use_xbee_pitch;
-	int use_xbee_roll;
-	int enable_encoders;
+	bool enable_v_gain_scaling;
+	bool enable_magnetometer; // we suggest leaving as 0 (mag OFF)
+	bool enable_mocap;	//enable mocap serial link
+	bool use_mocap_yaw;
+	bool use_mocap_pitch;
+	bool use_mocap_roll;
+	bool enable_dynamic_gains;
+	bool enable_encoders;
+	bool enable_gps;
+	bool enable_ext_mag;
 	///@}
+
+	/** @name physical parameters */
+	///@{
+	bool enable_servos;
+	int num_servos;
+	double servos_arm_time_s;
+	///@}
+
+	//True if you want to automatically enter OPEN_LOOP_DESCENT if using a mode that
+	//requires MOCAP and mocap has been unavailable for 'mocap_dropout_timeout_ms' ms
+	//OPEN_LOOP_DESCENT commands 0 roll, 0 pitch, and throttle of 'dropout_z_throttle'
+	//One can exit this mode by switching to a controller mode that doesn't require MOCAP
+	bool enable_mocap_dropout_emergency_land;
+	double mocap_dropout_timeout_ms;
 
 	/** @name flight modes */
 	///@{
@@ -82,28 +110,42 @@ typedef struct settings_t{
 
 	/** @name printf settings */
 	///@{
-	int printf_arm;
-	int printf_altitude;
-	int printf_rpy;
-	int printf_sticks;
-	int printf_setpoint;
-	int printf_u;
-	int printf_motors;
-	int printf_mode;
-	int printf_xbee;
-	int printf_rev;
-	int printf_counter;
+	bool printf_arm;
+	bool printf_altitude;
+	bool printf_battery;
+	bool printf_rpy;
+	bool printf_sticks;
+	bool printf_setpoint;
+	bool printf_u;
+	bool printf_motors;
+	bool printf_mode;
+	bool printf_mocap;
+	bool printf_tracking;
+	bool printf_gps;
+	bool printf_int_mag;
+	bool printf_ext_mag;
+	bool printf_rev;
+	bool printf_counter;
 	///@}
 
 	/** @name log settings */
 	///@{
-	int enable_logging;
-	int log_sensors;
-	int log_state;
-	int log_setpoint;
-	int log_control_u;
-	int log_motor_signals;
-	int log_encoders;
+	bool enable_logging;
+	bool log_only_while_armed;
+	bool log_sensors;
+	bool log_state;
+	bool log_mocap;
+	bool log_gps;
+	bool log_attitude_setpoint;
+	bool log_position_setpoint;
+	bool log_throttles;
+	bool log_dsm;
+	bool log_flight_mode;
+	bool log_benchmark;
+	bool log_ext_mag;
+	bool log_control_u;
+	bool log_motor_signals;
+	bool log_encoders;
 	///@}
 
 	/** @name mavlink stuff */
@@ -114,17 +156,30 @@ typedef struct settings_t{
 
 	/** @name feedback controllers */
 	///@{
+	rc_filter_t roll_rate_controller_pd;
+	rc_filter_t roll_rate_controller_i;
+	rc_filter_t pitch_rate_controller_pd;
+	rc_filter_t pitch_rate_controller_i;
+	rc_filter_t yaw_rate_controller_pd;
+	rc_filter_t yaw_rate_controller_i;
 	rc_filter_t roll_controller;
 	rc_filter_t pitch_controller;
 	rc_filter_t yaw_controller;
-	rc_filter_t altitude_controller;
-	rc_filter_t horiz_vel_ctrl_4dof;
-	rc_filter_t horiz_vel_ctrl_6dof;
-	rc_filter_t horiz_Xpos_ctrl_4dof;
-	rc_filter_t horiz_Ypos_ctrl_4dof;
-	rc_filter_t horiz_pos_ctrl_6dof;
-	double max_XY_velocity;
-	double max_Z_velocity;
+	rc_filter_t altitude_rate_controller_pd;
+	rc_filter_t altitude_rate_controller_i;
+	rc_filter_t altitude_controller_pd;
+	rc_filter_t altitude_controller_i;
+	rc_filter_t horiz_vel_ctrl_pd_X;
+	rc_filter_t horiz_vel_ctrl_i_X;
+	rc_filter_t horiz_vel_ctrl_pd_Y;
+	rc_filter_t horiz_vel_ctrl_i_Y;
+	rc_filter_t horiz_pos_ctrl_X;
+	rc_filter_t horiz_pos_ctrl_Y;
+	///@}
+
+	/** @name dsm connection */
+	///@{
+	int dsm_timeout_ms;
 	///@}
 
 	/** @name waypoint folder name and path*/
@@ -146,13 +201,21 @@ typedef struct settings_t{
     double t_takeoff;
 	///@}
 
-    /** @name serial ports the Xbee and other hardware is connected to */
+    /** @name serial ports the Xbee and other hardware it is connected to */
     ///@{
     char serial_port_1[50];
     int serial_baud_1;
     char serial_port_2[50];
     int serial_baud_2;
+	char serial_port_gps[50];
+	int serial_baud_gps;
     ///@}
+
+	/** @name parameters for autonomous flight modes*/
+	///@{
+	double max_XY_velocity;
+	double max_Z_velocity;
+	///@}
 }settings_t;
 
 /**

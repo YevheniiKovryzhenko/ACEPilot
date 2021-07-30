@@ -10,32 +10,27 @@
 
 #ifndef STATE_ESTIMATOR_H
 #define STATE_ESTIMATOR_H
-
 #include <stdint.h> // for uint64_t
 #include <stdio.h>
 #include <math.h>
 
 #include <rc/mpu.h>
-#include <rc/math/filter.h>
-#include <rc/math/kalman.h>
-#include <rc/math/quaternion.h>
-#include <rc/math/matrix.h>
-#include <rc/math/other.h>
-#include <rc/start_stop.h>
-#include <rc/led.h>
-#include <rc/adc.h>
-#include <rc/time.h>
-#include <rc/bmp.h>
 
-#include "rc_pilot_defs.h"
-#include "settings.h"
-#include "input_manager.h"	
-#include "xbee_receive.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+	typedef struct ext_mag_t
+	{
+		double x;
+		double y;
+		double z;
+		double norm;
+	}ext_mag_t;
+
+	extern ext_mag_t ext_mag;
 
 	/**
 	 * This is the output from the state estimator. It contains raw sensor values
@@ -54,8 +49,10 @@ extern "C"
 	{
 
 		int initialized;
+		uint64_t imu_time_ns;
+		uint64_t bmp_time_ns;
 		int counter;
-		int rev[4]; //for encoders (we are not using them)
+		int rev[4]; //for encoders
 
 		/** @name IMU (accel gyro)
 		 * Normalized Quaternion is straight from the DMP but converted to NED
@@ -73,6 +70,7 @@ extern "C"
 		double quat_imu[4];	///< DMP normalized quaternion
 		double tb_imu[3];	///< tait bryan roll pitch yaw angle (rad)
 		double imu_continuous_yaw; ///< continuous yaw from imu only (multiple turns)
+		double accel_ground_frame[3]; ///< imu accel rotated with gravity subtracted off
 		///@}
 
 		/** @name IMU (magnetometer)
@@ -97,16 +95,16 @@ extern "C"
 		double pitch;
 		double yaw;
 		double continuous_yaw;	///<  keeps increasing/decreasing aboce +-2pi
+		double roll_dot;
+		double pitch_dot;
+		double yaw_dot;
 		double X; //Inertial
 		double Y; //Inertial
 		double Z; //Inertial
-		double x; //Body
-		double y; //Body
-		double z; //Body
-		// planed path
-		double xp;
-		double yp;
-		double zp;
+		double X_dot;
+		double Y_dot;
+		double Z_dot;
+		double Z_ddot; // transformed z accel
 		///@}
 
 
@@ -122,7 +120,6 @@ extern "C"
 		double alt_bmp;		///< altitude estimate using kalman filter (IMU & bmp)
 		double alt_bmp_vel;	///< z velocity estimate using kalman filter (IMU & bmp)
 		double alt_bmp_accel;	///< z accel estimate using kalman filter (IMU & bmp)
-		double lidar;
 		///@}
 
 		/** @name Motion Capture data
@@ -132,6 +129,7 @@ extern "C"
 		 ///@{
 		int mocap_running;	///< 1 if motion capture data is recent and valid
 		uint64_t mocap_timestamp_ns; ///< timestamp of last received packet in nanoseconds since boot
+		uint32_t mocap_time;	///< time receved from mocap
 		double pos_mocap[3];	///< position in mocap frame, converted to NED if necessary
 		double quat_mocap[4];	///< UAV orientation according to mocap
 		double tb_mocap[3];	///< Tait-Bryan angles according to mocap

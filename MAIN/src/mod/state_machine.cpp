@@ -5,7 +5,21 @@
 // NOTE: All functionality for LOITER will be added at a later time if at all.
 // LOITER was not used much in a previous version of this project
 
-#include <state_machine.h>
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#include <rc/time.h>
+
+#include "setpoint_manager.hpp"
+#include "settings.h"
+#include "trajectories_common.hpp"
+#include "input_manager.hpp"
+#include "state_estimator.h"
+
+#include "state_machine.hpp"
 
 
 static const char* sm_alph_strings[] = {
@@ -223,7 +237,11 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                 __build_waypoit_filename(
                     waypoint_filename, settings.wp_folder, settings.wp_guided_filename);
 
-                set_new_path(waypoint_filename);
+                if (setpoint.set_new_path(waypoint_filename) == -1)
+                {
+                    printf("\nERROR: failed to set new path");
+                    break;
+                }
 
                 setpoint.en_waypoint_update = 1;
                 sm->changedState = false;

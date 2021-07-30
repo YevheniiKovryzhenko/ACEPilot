@@ -1,7 +1,7 @@
 /*
  * i2c_driver.hpp
  *
- * Copyright Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
+ * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -21,6 +21,8 @@
  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * Last Edit:  07/26/2020 (MM/DD/YYYY)
  */
 
 /* Summary 

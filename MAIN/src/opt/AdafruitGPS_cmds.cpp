@@ -1,7 +1,7 @@
 /*
  * AdafruitGPS_cmds.hpp
  *
- * Copyright Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
+ * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
  *
  * Redistribution and use in source and binary forms, with or without modification,

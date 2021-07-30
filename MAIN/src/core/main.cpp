@@ -1,7 +1,7 @@
 ﻿/*
  * main.cpp
  *
- * Copyright Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
+ * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -21,6 +21,8 @@
  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * Last Edit:  07/29/2020 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -33,6 +35,9 @@ bool RUNNING_ON_BBB = (stat("/sys/devices/platform/leds/leds/", &buffer) == 0 &&
 
 //uint64_t t_init     = rc_nanos_since_boot(); //log start time
 
+/**
+ *  @brief      Prints main function commond line ussage (arguments)
+ */
 void print_usage()
 {
     printf("\n");
@@ -51,7 +56,6 @@ void print_usage()
 /**
  * temporary check for dsm calibration until I add this to librobotcontrol
  */
-
 int __rc_dsm_is_calibrated()
 {
     if (!access("/var/lib/robotcontrol/dsm.cal", F_OK)) return 1;
@@ -102,39 +106,66 @@ void on_pause_press()
 
 static void __imu_isr(void)
 {
-    static uint64_t temp_time;
-    static double temp_dt_s;
+    // record time of imu interupt
+    state_estimate.imu_time_ns = rc_nanos_since_boot();
+    if (settings.log_benchmark) benchmark_timers.tIMU = rc_nanos_since_boot();
 
-    int i = 0;
     //printf("imu interupt...\n");
-    setpoint_manager_update();
-    state_estimator_march();
-    if (settings.enable_xbee) {
+    //setpoint_manager_update();
+    //state_estimator_march();
+
+    //Get XBee data
+    if (settings.enable_mocap) {
         XBEE_getData();
+        if (settings.log_benchmark) benchmark_timers.tXBEE = rc_nanos_since_boot();
     }
     // Update the state machine
     if (user_input.flight_mode == AUTONOMOUS)
     {
         sm_transition(&waypoint_state_machine, (sm_alphabet)xbeeMsg.sm_event);
+        if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
     }
 
-    //printf("\n state = %d", xbeeMsg.sm_event);
-    feedback_march();
-
-    // we are not using encoders 
-    if (settings.enable_encoders) {
-        for (i = 1; i < 5; i++) {
-            state_estimate.rev[i - 1] = rc_encoder_read(i);
-        };
-    }
-    if (settings.enable_logging) log_manager_add_new();
-    state_estimator_jobs_after_feedback();
-
-    if (settings.delay_warnings_en)
+    //Read from GPS sensor
+    if (settings.enable_gps)
     {
-        temp_dt_s = (rc_nanos_since_boot() - temp_time) / (1e9); //calculate time since last successful reading
-        if (1 / temp_dt_s < 90) printf("\nWARNING, Low update frequency of __imu_isr %f (Hz)\n", 1 / temp_dt_s); //check the update frequency
-        temp_time = rc_nanos_since_boot();
+        gps_getData();
+        if (settings.log_benchmark) benchmark_timers.tGPS = rc_nanos_since_boot();
+    }
+
+    //Read encoders
+    if (settings.enable_encoders) {
+        for (int i = 1; i < 5; i++)
+        {
+            state_estimate.rev[i - 1] = rc_encoder_read(i);
+        }
+    }
+
+    //Navigation
+    state_estimator_march();
+    if (settings.log_benchmark) benchmark_timers.tNAV = rc_nanos_since_boot();
+
+    //Guidance
+    setpoint.update();
+    if (settings.log_benchmark) benchmark_timers.tGUI = rc_nanos_since_boot();
+
+    //Control
+    fstate.march();
+    if (settings.log_benchmark) benchmark_timers.tCTR = rc_nanos_since_boot();
+
+    //Save data to log file
+    if (settings.enable_logging) log_entry.add_new();
+    if (settings.log_benchmark) benchmark_timers.tLOG = rc_nanos_since_boot();
+
+    //Currently, this only reads from the BMP pressure sensor
+    state_estimator_jobs_after_feedback();
+    if (settings.log_benchmark) benchmark_timers.tIMU_END = rc_nanos_since_boot();
+
+    //Print warning if too slow
+    if (settings.delay_warnings_en)
+    {   //check the update frequency
+        if (1 / finddt_s(state_estimate.imu_time_ns) < 90)
+            printf("\nWARNING, Low update frequency of __imu_isr %f (Hz)\n", 1 / finddt_s(state_estimate.imu_time_ns));
     }
 }
 
@@ -240,8 +271,12 @@ int main(int argc, char** argv)
     if (mix_init(settings.layout) < 0) {
         FAIL("ERROR: failed to initialize mixing matrix\n")
     }
+    printf("initializing servo mixing matrix\n");
+    if (servo_mix.init(settings.servo_layout) < 0) {
+        FAIL("ERROR: failed to initialize mixing matrix for servos\n")
+    }
     printf("initializing setpoint_manager\n");
-    if (setpoint_manager_init() < 0) {
+    if (setpoint.init() < 0) {
         FAIL("ERROR: failed to initialize setpoint_manager\n")
     }
 
@@ -253,11 +288,14 @@ int main(int argc, char** argv)
             FAIL("ERROR: failed to initialize servos, probably need to run as root\n")
         }
 
-        if (ss.init(1, 0x40) == -1)
+        if (settings.enable_servos)
         {
-            printf("\nERROR: failed to initialize servos");
-            return -1;
-        }
+            if (sstate.init(1, 0x40) == -1)
+            {
+                printf("\nERROR: failed to initialize servos");
+                return -1;
+            }
+        }        
 
         printf("initializing adc\n");
         if (rc_adc_init() == -1) {
@@ -272,7 +310,7 @@ int main(int argc, char** argv)
 
         // start threads
         printf("initializing DSM and input_manager\n");
-        if (input_manager_init() < 0) {
+        if (user_input.input_manager_init() < 0) {
             FAIL("ERROR: failed to initialize input_manager\n")
         }
 
@@ -286,10 +324,35 @@ int main(int argc, char** argv)
     }
 
     // initialize log_manager if enabled in settings
-    if (settings.enable_logging) {
-        printf("initializing log manager\n");
-        if (log_manager_init() < 0) {
-            FAIL("ERROR: failed to initialize log manager\n")
+    if (settings.enable_logging)
+    {
+        if (!settings.log_only_while_armed)
+        {
+            printf("initializing log manager\n");
+            if (log_entry.init() < 0)
+            {
+                FAIL("ERROR: failed to initialize log manager\n")
+            }
+        }
+    }
+
+    if (settings.enable_gps)
+    {
+        /* Init GPS */
+        printf("\nInitializing gps serial link");
+        //int portID = gps_init("/dev/ttyS11", 57600);
+        if (gps_init(settings.serial_port_gps, settings.serial_baud_gps))
+        {
+            FAIL("\nERROR: Failed to initialize GPS");
+        }
+    }
+
+    // set up XBEE serial link
+    if (settings.enable_mocap) {
+        printf("initializing xbee serial link.\n");
+        if (XBEE_init(settings.serial_port_1, settings.serial_baud_1) < 0)
+        {
+            FAIL("ERROR: failed to init xbee serial link")
         }
     }
 
@@ -302,7 +365,7 @@ int main(int argc, char** argv)
         }
 
         if (settings.enable_encoders) {
-            //B: initializiation on counter
+            //initializiation on counter
             printf("initializing revolution counter\n");
             if (rc_encoder_init() < 0) {
                 FAIL("ERROR: failed to initialize encoder\n")
@@ -313,15 +376,6 @@ int main(int argc, char** argv)
         printf("initializing state_estimator\n");
         if (state_estimator_init() < 0) {
             FAIL("ERROR: failed to init state_estimator")
-        }
-    }
-
-    // set up XBEE serial link
-    if (settings.enable_xbee) {
-        printf("initializing xbee serial link.\n");
-        if (XBEE_init(settings.serial_port_1, settings.serial_baud_1) < 0)
-        {
-            FAIL("ERROR: failed to init xbee serial link")
         }
     }
 
@@ -336,7 +390,7 @@ int main(int argc, char** argv)
     {
         // set up feedback controller
         printf("initializing feedback controller\n");
-        if (feedback_init() < 0) {
+        if (fstate.init() < 0) {
             FAIL("ERROR: failed to init feedback controller")
         }
 
@@ -363,13 +417,7 @@ int main(int argc, char** argv)
         if (rc_mpu_initialize_dmp(&mpu_data, mpu_conf)) {
             fprintf(stderr, "ERROR: failed to start MPU DMP\n");
             return -1;
-        }
-
-        if (ss.test_min_max() == -1)
-        {
-            printf("\nERROR: failed to run servo test");
-            return -1;
-        }
+        }        
 
         // final setup
         if (rc_make_pid_file() != 0) {
@@ -377,7 +425,7 @@ int main(int argc, char** argv)
         }
 
         // make sure everything is disarmed them start the ISR
-        feedback_disarm();
+        fstate.disarm();
         printf("waiting for dmp to settle...\n");
         fflush(stdout);
         rc_usleep(3000000);
@@ -405,15 +453,15 @@ int main(int argc, char** argv)
     // some of these, like printf_manager and log_manager, have cleanup
     // functions that can be called even if not being used. So just call all
     // cleanup functions here.
-    printf("cleaning up\n");
+    printf("\ncleaning up");
     rc_mpu_power_off();
-    feedback_cleanup();
-    input_manager_cleanup();
-    setpoint_manager_cleanup();
+    fstate.cleanup();
+    user_input.input_manager_cleanup();
+    setpoint.cleanup();
     printf_cleanup();
-    log_manager_cleanup();
+    log_entry.cleanup();
     rc_encoder_cleanup();
-    ss.cleanup();
+    sstate.cleanup();
 
 
     if (RUNNING_ON_BBB)
@@ -423,54 +471,5 @@ int main(int argc, char** argv)
         rc_led_blink(RC_LED_GREEN, 8.0, 2.0);
     }
 
-    /* Init GPS */
-    /*
-    printf("\nInitializing gps serial link");
-    int portID = gps_init("/dev/ttyS11", 57600);
-    if (RUNNING_ON_BBB == 1)
-    {
-        if (portID == -1) FAIL("\nTerminating...");
-    }
-    else
-    {
-        if (portID == -1) return -1;
-    }
-
-    //GPS.init_GPS(portID);
-    //GPS.send_all();
-    */
-    /*
-    if (RUNNING_ON_BBB)
-    {
-        if (ss.init(1, 0x40) == -1)
-        {
-            printf("\nERROR: failed to initialize servos");
-            return -1;
-        }
-    }
-    
-    if (RUNNING_ON_BBB)
-    {
-        if (ss.test_min_max() == -1)
-        {
-            printf("\nERROR: failed to run servo test");
-            return -1;
-        }
-    }
-
-    
-    while (finddt_s(t_init) <= 20.0)
-    {
-        //gps_getData();
-        
-    }
-    */
-    /*
-    if (RUNNING_ON_BBB)
-    {
-        ss.cleanup();
-    }
-    */
-    //gps_cleanup();
     return 0;
 }

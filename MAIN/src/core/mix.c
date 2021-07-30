@@ -14,7 +14,7 @@
  * columns: X Y Z Roll Pitch Yaw
  * rows: motors 1-4
  */
-static double mix_4x[][6] = { \
+static double mix_4x[][MAX_INPUTS] = { \
 {0.0,   0.0,  -1.0,  -0.5,   0.5,   0.5},\
 {0.0,   0.0,  -1.0,  -0.5,  -0.5,  -0.5},\
 {0.0,   0.0,  -1.0,   0.5,  -0.5,   0.5},\
@@ -30,7 +30,7 @@ static double mix_4x[][6] = { \
  * columns: X Y Z Roll Pitch Yaw
  * rows: motors 1-4
  */
-static double mix_4plus[][6] = { \
+static double mix_4plus[][MAX_INPUTS] = { \
 {0.0,   0.0,  -1.0,   0.0,   0.5,   0.5},\
 {0.0,   0.0,  -1.0,  -0.5,   0.0,  -0.5},\
 {0.0,   0.0,  -1.0,   0.0,  -0.5,   0.5},\
@@ -46,7 +46,7 @@ static double mix_4plus[][6] = { \
  * columns: X Y Z Roll Pitch Yaw
  * rows: motors 1-4
  */
-static double mix_4H[][6] = { \
+static double mix_4H[][MAX_INPUTS] = { \
 {0.0,   0.0,  -1.0,  -0.5,   0.396,   0.5},\
 {0.0,   0.0,  -1.0,  -0.5,  -0.396,  -0.5},\
 {0.0,   0.0,  -1.0,   0.5,  -0.396,   0.5},\
@@ -63,7 +63,7 @@ static double mix_4H[][6] = { \
  * columns: X Y Z Roll Pitch Yaw
  * rows: motors 1-6
  */
-static double mix_6x[][6] = { \
+static double mix_6x[][MAX_INPUTS] = { \
 {0.0,   0.0,  -1.0,  -0.25,   0.5,   0.5},\
 {0.0,   0.0,  -1.0,  -0.50,   0.0,  -0.5},\
 {0.0,   0.0,  -1.0,  -0.25,  -0.5,   0.5},\
@@ -82,7 +82,7 @@ static double mix_6x[][6] = { \
  * columns: X Y Z Roll Pitch Yaw
  * rows: motors 1-8
  */
-static double mix_8x[][6] = { \
+static double mix_8x[][MAX_INPUTS] = { \
 {0.0,   0.0,  -1.0,  -0.21,   0.50,   0.5},\
 {0.0,   0.0,  -1.0,  -0.50,   0.21,  -0.5},\
 {0.0,   0.0,  -1.0,  -0.50,  -0.21,   0.5},\
@@ -102,7 +102,7 @@ static double mix_8x[][6] = { \
  * columns: X Y Z Roll Pitch Yaw
  * rows: motors 1-6
  */
-static double mix_6dof_rotorbits[][6] = { \
+static double mix_6dof_rotorbits[][MAX_INPUTS] = { \
 {-0.2736,    0.3638,   -1.0000,   -0.2293,    0.3921,    0.3443},\
 { 0.6362,    0.0186,   -1.0000,   -0.3638,   -0.0297,   -0.3638},\
 {-0.3382,   -0.3533,   -1.0000,   -0.3320,   -0.3638,    0.3546},\
@@ -121,7 +121,7 @@ static double mix_6dof_rotorbits[][6] = { \
  * columns: X Y Z Roll Pitch Yaw
  * rows: motors 1-6
  */
-static double mix_6dof_5inch_monocoque[][6] = { \
+static double mix_6dof_5inch_monocoque[][MAX_INPUTS] = { \
 {-0.2296,    0.2296,   -1.0000,   -0.2289,    0.2296,    0.2221},\
 { 0.4742,    0.0000,   -1.0000,   -0.2296,   -0.0000,   -0.2296},\
 {-0.2296,   -0.2296,   -1.0000,   -0.2289,   -0.2296,    0.2221},\
@@ -184,7 +184,7 @@ int mix_init(rotor_layout_t layout)
 }
 
 
-int mix_all_controls(double u[6], double* mot)
+int mix_all_controls(double u[MAX_INPUTS], double* mot)
 {
 	int i,j;
 	if(initialized!=1){

@@ -1,7 +1,7 @@
 /*
  * servos.hpp
  *
- * Copyright Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
+ * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -21,6 +21,8 @@
  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * Last Edit:  07/29/2020 (MM/DD/YYYY)
  */
 
 #ifndef SERVOS_HPP
@@ -29,8 +31,14 @@
 #include <stdio.h>
 #include "i2c_driver.hpp"
 #include "adafruit_servo_driver.hpp"
+#include "rc_pilot_defs.h"
+#include "mix_servos.hpp"
+#include "servo_controller.hpp"
 
+#ifndef MAX_SERVOS
 #define MAX_SERVOS 16
+#endif // !MAX_SERVOS
+
 #define SERVO_MAX_US 2000.0		///< Default maximum pulse width in microseconds
 #define SERVO_NOM_US 1500.0		///< Default nominal pulse width in microseconds
 #define SERVO_MIN_US 650.0		///< Default minimum pulse width in microseconds
@@ -38,12 +46,19 @@
 /*!
  *  @brief  Class that stores state and functions for interacting with servo motors
  */
-class servo_state
+class servo_state_t
 {
 private:
 	int initialized = 0;						///< set to 1 after servos_init(void)
 	i2c i2c_driver;								///< i2c driver interface
-	Adafruit_PWMServoDriver_mod servo_driver;	///< servo driver interface 
+	Adafruit_PWMServoDriver_mod servo_driver;	///< servo driver interface
+
+#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+	arm_state_t arm_state;						///< servo arm state
+	feedback_servo_controller_t controller;
+#endif // RC_PILOT_DEFS_H
+
+	uint64_t arm_time_ns;						///< arm time
 
 	/*
 	Min/nom/max defines operating range of each servo mottor.
@@ -125,8 +140,13 @@ public:
 	int init(int driver_bus_id);
 	int init(int driver_bus_id, uint8_t devAddr);
 
+#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+	int return_to_nominal(void);
 
-	//int servos_arm(void);
+	int arm(void);
+
+	int disarm(void);
+#endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
 	
 	/*
 	* This is how the user should march (apply)
@@ -183,6 +203,6 @@ public:
  *  @brief  Class that stores state and functions for interacting with PCA9685
  * PWM chip
  */
-extern servo_state ss;
+extern servo_state_t sstate;
 
 #endif //SERVOS_HPP

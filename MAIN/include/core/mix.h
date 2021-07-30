@@ -75,7 +75,7 @@ int mix_init(rotor_layout_t layout);
  *
  * @return     0 on success, -1 on failure
  */
-int mix_all_controls(double u[6], double* mot);
+int mix_all_controls(double u[MAX_INPUTS], double* mot);
 
 /**
  * @brief      Finds the min and max inputs u that can be applied to a current

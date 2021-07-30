@@ -70,15 +70,22 @@ typedef enum dsm_kill_mode_t {
 #define VEC_YAW			5
 
 // user control parameters
-#define MAX_YAW_RATE		2.5	// rad/s
-#define MAX_ROLL_SETPOINT	0.2	// rad
-#define MAX_PITCH_SETPOINT	0.2	// rad
-#define MAX_CLIMB_RATE		1.0	// m/s
 #define YAW_DEADZONE		0.02
 #define THROTTLE_DEADZONE	0.02
-#define SOFT_START_SECONDS	1.0	// controller soft start seconds
+#define SOFT_START_SECONDS	0.8		// controller soft start seconds
 #define ALT_CUTOFF_FREQ		2.0
-#define BMP_RATE_DIV		10	// optionally sample bmp less frequently than mpu
+#define BMP_RATE_DIV		10		// optionally sample bmp less frequently than mpu
+
+// Intermediate Controller Value Limits
+#define MAX_ROLL_RATE		1.5		// rad/s
+#define MAX_PITCH_RATE		1.5		// rad/s
+#define MAX_YAW_RATE		1.5		// rad/s
+#define MAX_ROLL_SETPOINT	0.75	// rad
+#define MAX_PITCH_SETPOINT	0.75	// rad
+#define MAX_XY_VELOCITY		2.0     // m/s
+#define MAX_Z_VELOCITY		2.0     // m/s
+#define MAX_XY_ACCELERATION 5.0		// m/s^2
+#define MAX_Z_ACCELERATION	5.0		// m/s^2
 
 // controller absolute limits
 #define MAX_ROLL_COMPONENT	0.4
@@ -115,5 +122,7 @@ typedef enum dsm_kill_mode_t {
 #define KCYN		"\x1B[36m"
 #define KWHT		"\x1B[37m"
 
+
+#define TWO_PI (M_PI*2.0)
 //#define DEBUG
 #endif // RC_PILOT_DEFS_H
