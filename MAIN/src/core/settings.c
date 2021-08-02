@@ -856,8 +856,10 @@ int settings_load_from_file(char* path)
 	PARSE_CONTROLLER(horiz_vel_ctrl_i_X);
 	PARSE_CONTROLLER(horiz_vel_ctrl_pd_Y);
 	PARSE_CONTROLLER(horiz_vel_ctrl_i_Y);
-	PARSE_CONTROLLER(horiz_pos_ctrl_X);
-	PARSE_CONTROLLER(horiz_pos_ctrl_Y);
+	PARSE_CONTROLLER(horiz_pos_ctrl_X_pd);
+	PARSE_CONTROLLER(horiz_pos_ctrl_Y_pd);
+	PARSE_CONTROLLER(horiz_pos_ctrl_X_i);
+	PARSE_CONTROLLER(horiz_pos_ctrl_Y_i);
 
 	json_object_put(jobj);	// free memory
 	was_load_successful = 1;

@@ -174,8 +174,10 @@ typedef struct settings_t{
 	rc_filter_t horiz_vel_ctrl_i_X;
 	rc_filter_t horiz_vel_ctrl_pd_Y;
 	rc_filter_t horiz_vel_ctrl_i_Y;
-	rc_filter_t horiz_pos_ctrl_X;
-	rc_filter_t horiz_pos_ctrl_Y;
+	rc_filter_t horiz_pos_ctrl_X_pd;
+	rc_filter_t horiz_pos_ctrl_Y_pd;
+	rc_filter_t horiz_pos_ctrl_X_i;
+	rc_filter_t horiz_pos_ctrl_Y_i;
 	///@}
 
 	/** @name dsm connection */

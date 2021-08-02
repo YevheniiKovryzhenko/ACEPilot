@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/28/2020 (MM/DD/YYYY)
+ * Last Edit:  08/02/2020 (MM/DD/YYYY)
  */
 
 #ifndef CONTROLLER_HPP
@@ -62,7 +62,7 @@ private:
 	double D_Xdot_pd_gain_orig, D_Ydot_pd_gain_orig, D_Zdot_pd_gain_orig;
 	double D_Xdot_i_gain_orig, D_Ydot_i_gain_orig, D_Zdot_i_gain_orig;
 
-	double D_X_gain_orig, D_Y_gain_orig;
+	double D_X_pd_gain_orig, D_Y_pd_gain_orig, D_X_i_gain_orig, D_Y_i_gain_orig;
 	double D_Z_pd_gain_orig, D_Z_i_gain_orig;
 
 
@@ -85,8 +85,10 @@ private:
 	rc_filter_t D_Zdot_pd;
 	rc_filter_t D_Zdot_i;
 
-	rc_filter_t D_X;
-	rc_filter_t D_Y;
+	rc_filter_t D_X_pd;
+	rc_filter_t D_Y_pd;
+	rc_filter_t D_X_i;
+	rc_filter_t D_Y_i;
 
 	rc_filter_t D_Z_pd;
 	rc_filter_t D_Z_i;

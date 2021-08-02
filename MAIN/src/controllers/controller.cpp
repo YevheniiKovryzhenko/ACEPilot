@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/02/2020 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -284,22 +284,36 @@ int feedback_controller_t::rpy_rate_reset(void)
 int feedback_controller_t::xy_init(void)
 {
     // filters
-	D_X = RC_FILTER_INITIALIZER;
-	D_Y = RC_FILTER_INITIALIZER;
+	D_X_pd	= RC_FILTER_INITIALIZER;
+	D_Y_pd	= RC_FILTER_INITIALIZER;
+	D_X_i	= RC_FILTER_INITIALIZER;
+	D_Y_i	= RC_FILTER_INITIALIZER;
 
-	if (unlikely(rc_filter_duplicate(&D_X, settings.horiz_pos_ctrl_X) == -1))
+	if (unlikely(rc_filter_duplicate(&D_X_pd, settings.horiz_pos_ctrl_X_pd) == -1))
 	{
 		printf("\nError in xy_init: failed to dublicate controller from settings");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_Y, settings.horiz_pos_ctrl_Y) == -1))
+	if (unlikely(rc_filter_duplicate(&D_X_i, settings.horiz_pos_ctrl_X_i) == -1))
+	{
+		printf("\nError in xy_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_Y_pd, settings.horiz_pos_ctrl_Y_pd) == -1))
+	{
+		printf("\nError in xy_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_Y_i, settings.horiz_pos_ctrl_Y_i) == -1))
 	{
 		printf("\nError in xy_init: failed to dublicate controller from settings");
 		return -1;
 	}
 
-	D_X_gain_orig = D_X.gain;
-	D_Y_gain_orig = D_Y.gain;
+	D_X_pd_gain_orig = D_X_pd.gain;
+	D_Y_pd_gain_orig = D_Y_pd.gain;
+	D_X_i_gain_orig = D_X_i.gain;
+	D_Y_i_gain_orig = D_Y_i.gain;
 
 	last_en_XY_ctrl = false;
 
@@ -344,14 +358,16 @@ int feedback_controller_t::xy_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_X.gain = D_X_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Y.gain = D_Y_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_X_pd.gain = D_X_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Y_pd.gain = D_Y_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_X_i.gain = D_X_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Y_i.gain = D_Y_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
 	// Position error -> Velocity/Acceleration error
-	setpoint.X_dot = rc_filter_march(&D_X, -x_error)
+	setpoint.X_dot = rc_filter_march(&D_X_pd, -x_error) + rc_filter_march(&D_X_i, -x_error)
 		+ setpoint.X_dot_ff;
-	setpoint.Y_dot = rc_filter_march(&D_Y, y_error)
+	setpoint.Y_dot = rc_filter_march(&D_Y_pd, y_error) + rc_filter_march(&D_Y_i, y_error)
 		+ setpoint.Y_dot_ff;
 	rc_saturate_double(&setpoint.X_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
 	rc_saturate_double(&setpoint.Y_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
@@ -380,12 +396,15 @@ int feedback_controller_t::xy_march(void)
 
 int feedback_controller_t::xy_reset(void)
 {
-	D_X.gain = D_X_gain_orig;
-	D_Y.gain = D_Y_gain_orig;
+	D_X_pd.gain = D_X_pd_gain_orig;
+	D_Y_pd.gain = D_Y_pd_gain_orig;
+	D_X_i.gain = D_X_i_gain_orig;
+	D_Y_i.gain = D_Y_i_gain_orig;
 
-	rc_filter_reset(&D_X);
-	rc_filter_reset(&D_Y);
-
+	rc_filter_reset(&D_X_pd);
+	rc_filter_reset(&D_Y_pd);
+	rc_filter_reset(&D_X_i);
+	rc_filter_reset(&D_Y_i);
 	return 0;
 }
 
@@ -564,11 +583,6 @@ int feedback_controller_t::z_march(void)
 		D_Z_pd.gain = D_Z_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
 		D_Z_i.gain = D_Z_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
 	}
-	
-
-	// This needs to be tested! currently altitude control is done in the inertial frame, but needs to be in the body 
-	//setpoint.Z_dot = -setpoint.Z_throttle_0 + rc_filter_march(&D_Z, setpoint.Z - state_estimate.Z);  // altitude is positive but +Z is down
-	//setpoint.Z_dot = -setpoint.Z_throttle_0 + rc_filter_march(&D_Z, z_error);  // altitude is positive but +Z is down
 	// Position error -> Velocity error:
 	setpoint.Z_dot = rc_filter_march(&D_Z_pd, setpoint.Z - state_estimate.Z)
 		+ rc_filter_march(&D_Z_i, setpoint.Z - state_estimate.Z) + setpoint.Z_dot_ff;
