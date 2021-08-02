@@ -821,7 +821,7 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
 	}
 
 	// run attitude rate controllers if enabled
-	if (setpoint.en_rpy_ctrl)
+	if (setpoint.en_rpy_rate_ctrl)
 	{
 		rpy_rate_march(); //marches only attitude rates ctrl.
 	}

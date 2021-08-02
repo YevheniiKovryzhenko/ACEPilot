@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/2/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -87,62 +87,55 @@ void setpoint_t::update_yaw(void)
 	return;
 }
 
+//----Manual/Radio/Direct control----//
+// only run this is need an update from radio control.
+// make sure setpoint doesn't go too far below current altitude since we
+// can't sink into the ground
 void setpoint_t::update_Z(void)
 {
-	//----Manual/Radio/Direct control----//
-	// always run this - need to have direct pilot control just in case
-	// make sure setpoint doesn't go too far below current altitude since we
-	// can't sink into the ground
-	//-----Safety ----//
 	
-	//printf("\n Throttle value is %f, zero throttle is %f and z is %f \n",user_input.thr_stick,Z_throttle_0,Z_dot);
-	/* Controller saturation - need to move out as a separate function and always run
-	if(Z > (state_estimate.Z + XYZ_MAX_ERROR)){
-		Z = state_estimate.Z + XYZ_MAX_ERROR;
-		Z_dot = 0.0;
+
+	double tmp_Z_dot;
+
+	if	(user_input.get_thr_stick() > Z_throttle_0+0.1)
+	{
+		tmp_Z_dot = (user_input.get_thr_stick() - Z_throttle_0) * settings.max_Z_velocity;
+	}
+	else if (user_input.get_thr_stick() < Z_throttle_0-0.1)
+	{
+		tmp_Z_dot = (user_input.get_thr_stick() - Z_throttle_0) * settings.max_Z_velocity;
+	}
+	else
+	{
+		tmp_Z_dot = 0;
 		return;
 	}
-	else if(Z < (state_estimate.Z - XYZ_MAX_ERROR)){
-		Z = state_estimate.Z - XYZ_MAX_ERROR;
-		Z_dot = 0.0;
-		return;
-		}
-	else{
-		Z += Z_dot*DT;
-		Z_dot = 0;
-	}
-	*/
-	
-	if	(user_input.get_thr_stick() > Z_throttle_0+0.1){
-		Z_dot = (user_input.get_thr_stick() - Z_throttle_0) * settings.max_Z_velocity;
-	}
-	else if (user_input.get_thr_stick() < Z_throttle_0-0.1){
-		Z_dot = (user_input.get_thr_stick() - Z_throttle_0) * settings.max_Z_velocity;
-	}
-	else{
-		Z_dot = 0;
-	}
-	Z -= Z_dot*DT; //neagtive since Z positive is defined to be down
+	Z -= tmp_Z_dot*DT; //neagtive since Z positive is defined to be down
 	
 	return;
 }
 
+
+//----Manual/Radio/Direct control----//
 void setpoint_t::update_XY_pos(void)
 {
+	double tmp_X_dot, tmp_Y_dot;
 	// X in the body frame (forward flight)
 	// make sure setpoint doesn't go too far from state in case touching something
 	if(X > (state_estimate.X + XYZ_MAX_ERROR)){
 		X = state_estimate.X + XYZ_MAX_ERROR;
-		X_dot = 0.0;
+		tmp_X_dot = 0.0;
 	}
 	else if(X < (state_estimate.X - XYZ_MAX_ERROR)){
 		X = state_estimate.X - XYZ_MAX_ERROR;
-		X_dot = 0.0;
+		tmp_X_dot = 0.0;
 		return;
 	}
 	else{
+		tmp_X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
+
 		//apply velocity command 
-		X += X_dot*DT;
+		X += tmp_X_dot * DT;
 	}
 	
 	// Y in the body frame (lateral translation)
@@ -150,17 +143,19 @@ void setpoint_t::update_XY_pos(void)
 	
 	if(Y > (state_estimate.Y + XYZ_MAX_ERROR)){
 		Y = state_estimate.Y + XYZ_MAX_ERROR;
-		Y_dot = 0.0;
+		tmp_Y_dot = 0.0;
 		return;
 	}
 	else if(Y < (state_estimate.Y - XYZ_MAX_ERROR)){
 		Y = state_estimate.Y - XYZ_MAX_ERROR;
-		Y_dot = 0.0;
+		tmp_Y_dot = 0.0;
 		return;
 	}
 	else{
+		tmp_Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
+
 		//apply velocity command 
-		Y += Y_dot*DT; //Y is defined positive to the left
+		Y += tmp_Y_dot * DT; //Y is defined positive to the left
 	}
 	
 
@@ -287,7 +282,7 @@ void setpoint_t::update_setpoint_from_waypoint()
 					Z		= path.waypoints_init.z		+ path.waypoints[cur_waypoint_num].z;
 					roll	= path.waypoints_init.roll	+ path.waypoints[cur_waypoint_num].roll;
 					pitch	= path.waypoints_init.pitch + path.waypoints[cur_waypoint_num].pitch;
-					yaw	= path.waypoints_init.yaw	+ path.waypoints[cur_waypoint_num].yaw;
+					yaw		= path.waypoints_init.yaw	+ path.waypoints[cur_waypoint_num].yaw;
 				}
                 
             }

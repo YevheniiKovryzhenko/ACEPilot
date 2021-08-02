@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/02/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -651,9 +651,6 @@ int feedback_state_t::update_setpoints(void)
 		setpoint.en_XY_vel_ctrl = false;
 		setpoint.en_XY_pos_ctrl = true;
 
-		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
-		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
-
 		//check validity of the velocity command, construct virtual setpoint
 		setpoint.update_XY_pos();
 		setpoint.update_Z();
@@ -670,9 +667,6 @@ int feedback_state_t::update_setpoints(void)
 		setpoint.en_Z_rate_ctrl = false;
 		setpoint.en_XY_vel_ctrl = false;
 		setpoint.en_XY_pos_ctrl = true;
-
-		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
-		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
 
 		//check validity of the velocity command, construct virtual setpoint
 		setpoint.update_XY_pos();
@@ -691,9 +685,6 @@ int feedback_state_t::update_setpoints(void)
 		setpoint.en_XY_vel_ctrl = false;
 		setpoint.en_XY_pos_ctrl = true;
 
-		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
-		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
-
 		//check validity of the velocity command, construct virtual setpoint
 		setpoint.update_XY_pos();
 		setpoint.update_Z();
@@ -710,9 +701,6 @@ int feedback_state_t::update_setpoints(void)
 		setpoint.en_Z_rate_ctrl = true;
 		setpoint.en_XY_vel_ctrl = true;
 		setpoint.en_XY_pos_ctrl = true;
-
-		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
-		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
 
 		//check validity of the velocity command, construct virtual setpoint
 		setpoint.update_XY_pos();

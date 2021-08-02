@@ -12,7 +12,7 @@
 	"enable_v_gain_scaling": true,
 
 	"enable_magnetometer": false,
-	"enable_mocap": false,
+	"enable_mocap": true,
 	"use_mocap_yaw": true,
 	"use_mocap_pitch": false,
 	"use_mocap_roll": false,
@@ -23,15 +23,15 @@
 
 	"arm_time_s": 3.0,
 
-	"enable_servos": true,
+	"enable_servos": false,
 	"servo_i2c_driver_id": 1,
 	"servo_layout": "LAYOUT_4xDIRECT_TEST",
 	"servos_arm_time_s": 1.0,
 
-	"enable_mocap_dropout_emergency_land": true,
+	"enable_mocap_dropout_emergency_land": false,
 	"mocap_dropout_timeout_ms": 300.0,
 
-	"serial_port_1": "/dev/ttyS5",
+	"serial_port_1": "/dev/ttyS1",
 	"serial_baud_1": 230400,
 	"serial_port_2": "/dev/ttyS6",
 	"serial_baud_2": 230400,
@@ -39,9 +39,9 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "TEST_BENCH_4DOF",
-	"flight_mode_2": "ACRO",
-	"flight_mode_3": "TEST_6xSERVOS_DIRECT",
+	"flight_mode_1": "MANUAL_F",
+	"flight_mode_2": "ALT_HOLD_FF",
+	"flight_mode_3": "POSITION_CONTROL_FFF",
 
 	"dsm_thr_ch": 1,
 	"dsm_thr_pol": 1,
@@ -59,14 +59,14 @@
 
 	"printf_arm": true,
 	"printf_altitude": true,
-	"printf_battery": false,
+	"printf_battery": true,
 	"printf_rpy": true,
 	"printf_sticks": true,
-	"printf_setpoint": false,
+	"printf_setpoint": true,
 	"printf_u": false,
 	"printf_motors": false,
 	"printf_mode": true,
-	"printf_mocap": false,
+	"printf_mocap": true,
 	"printf_tracking": false,
 	"printf_gps": false,
 	"printf_int_mag": false,
