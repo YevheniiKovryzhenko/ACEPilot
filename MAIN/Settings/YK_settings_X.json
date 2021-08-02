@@ -18,12 +18,13 @@
 	"use_mocap_roll": false,
 	"enable_dynamic_gains": false,
 	"enable_encoders": false,
-	"enable_gps": true,
+	"enable_gps": false,
 	"enable_ext_mag": false,
 
 	"arm_time_s": 3.0,
 
-	"enable_servos": false,
+	"enable_servos": true,
+	"servo_i2c_driver_id": 1,
 	"servo_layout": "LAYOUT_4xDIRECT_TEST",
 	"servos_arm_time_s": 1.0,
 
@@ -35,12 +36,12 @@
 	"serial_port_2": "/dev/ttyS6",
 	"serial_baud_2": 230400,
 	"serial_port_gps": "/dev/ttyS2",
-	"serial_baud_gps": 52600,
+	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "MANUAL_S",
-	"flight_mode_2": "ALT_HOLD_SS",
-	"flight_mode_3": "AUTONOMOUS",
+	"flight_mode_1": "TEST_BENCH_4DOF",
+	"flight_mode_2": "ACRO",
+	"flight_mode_3": "TEST_6xSERVOS_DIRECT",
 
 	"dsm_thr_ch": 1,
 	"dsm_thr_pol": 1,
@@ -58,17 +59,17 @@
 
 	"printf_arm": true,
 	"printf_altitude": true,
-	"printf_battery": true,
+	"printf_battery": false,
 	"printf_rpy": true,
 	"printf_sticks": true,
-	"printf_setpoint": true,
-	"printf_u": true,
-	"printf_motors": true,
-	"printf_mode": false,
-	"printf_mocap": true,
-	"printf_tracking": true,
-	"printf_gps": true,
-	"printf_int_mag": true,
+	"printf_setpoint": false,
+	"printf_u": false,
+	"printf_motors": false,
+	"printf_mode": true,
+	"printf_mocap": false,
+	"printf_tracking": false,
+	"printf_gps": false,
+	"printf_int_mag": false,
 	"printf_ext_mag": false,
 	"printf_rev": false,
 	"printf_counter": false,
@@ -108,7 +109,6 @@
 	"max_Z_velocity": 1.5,
 
 	"roll_rate_controller_pd": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 0.1,
@@ -116,7 +116,6 @@
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"roll_rate_controller_i": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
 		"ki": 0.02,
@@ -125,7 +124,6 @@
 
 
 	"pitch_rate_controller_pd": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 0.1,
@@ -133,7 +131,6 @@
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"pitch_rate_controller_i": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
 		"ki": 0.02,
@@ -142,7 +139,6 @@
 
 
 	"yaw_rate_controller_pd": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 0.2,
@@ -150,7 +146,6 @@
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"yaw_rate_controller_i": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
 		"ki": 0.02,
@@ -159,7 +154,6 @@
 
 
 	"roll_controller": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "P",
 		"kp": 8.0
@@ -167,7 +161,6 @@
 
 
 	"pitch_controller": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "P",
 		"kp": 8.0
@@ -175,7 +168,6 @@
 
 
 	"yaw_controller": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "P",
 		"kp": 4.0
@@ -183,7 +175,6 @@
 
 
 	"altitude_rate_controller_pd": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 0.15,
@@ -191,7 +182,6 @@
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"altitude_rate_controller_i": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
 		"ki": 0.05,
@@ -200,7 +190,6 @@
 
 
 	"altitude_controller_pd": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 5.0,
@@ -208,7 +197,6 @@
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"altitude_controller_i": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
 		"ki": 0.15,
@@ -217,7 +205,6 @@
 
 
 	"horiz_vel_ctrl_pd_X": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 2,
@@ -225,7 +212,6 @@
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"horiz_vel_ctrl_i_X": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
 		"ki": 0.02,
@@ -233,7 +219,6 @@
 	},
 
 	"horiz_vel_ctrl_pd_Y": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 2,
@@ -241,7 +226,6 @@
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"horiz_vel_ctrl_i_Y": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
 		"ki": 0.02,
@@ -250,13 +234,11 @@
 
 
 	"horiz_pos_ctrl_X": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "P",
 		"kp": 1
 	},
 	"horiz_pos_ctrl_Y": {
-		"gain": 1.0,
 		"CT_or_DT": "CT",
 		"TF_or_PID": "P",
 		"kp": 1

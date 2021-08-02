@@ -108,7 +108,7 @@ int feedback_state_t::disarm(void)
 	rc_led_set(RC_LED_RED, 1);
 	rc_led_set(RC_LED_GREEN, 0);
 
-	if (settings.enable_servos)
+	if (settings.enable_servos && sstate.is_armed())
 	{
 		if (unlikely(sstate.disarm() == -1))
 		{
@@ -147,7 +147,7 @@ int feedback_state_t::arm(void)
 	// time so do it before touching anything else
 	if (settings.enable_logging)
 	{
-		if (unlikely(log_entry.init() == -1))
+		if (unlikely(log_entry.reset() == -1))
 		{
 			printf("\nERROR in arm: failed to start new log entry");
 			return -1;
@@ -221,11 +221,22 @@ int feedback_state_t::init(void)
 
 	if (settings.enable_servos)
 	{
-		// make sure everything is disarmed then start the ISR
-		if (unlikely(sstate.disarm() == -1))
+		if (!sstate.is_initialized())
 		{
-			printf("\nERROR in init: failed to disarm servos");
-			return -1;
+			if (unlikely(sstate.init(settings.servo_i2c_driver_id) == -1))
+			{
+				printf("\nERROR in init: failed to init servos");
+				return -1;
+			}
+		}
+		if (sstate.is_armed())
+		{
+			// make sure everything is disarmed then start the ISR
+			if (unlikely(sstate.disarm() == -1))
+			{
+				printf("\nERROR in init: failed to disarm servos");
+				return -1;
+			}
 		}
 	}
 	
@@ -324,7 +335,7 @@ int feedback_state_t::march(void)
 
 
 	int i;
-	double tmp_u[MAX_INPUTS], tmp_mot[MAX_ROTORS], tmp_s[MAX_INPUTS], tmp_servos[MAX_SERVOS];
+	double tmp_u[MAX_INPUTS], tmp_mot[MAX_ROTORS], tmp_s[MAX_SERVO_INPUTS], tmp_servos[MAX_SERVOS];
 
 	// Disarm if rc_state is somehow paused without disarming the controller.
 	// This shouldn't happen if other threads are working properly.
@@ -363,16 +374,14 @@ int feedback_state_t::march(void)
 	if (settings.enable_servos)
 	{
 		for (i = 0; i < MAX_SERVOS; i++) tmp_servos[i] = 0.0;
-		for (i = 0; i < MAX_INPUTS; i++) tmp_s[i] = 0.0;
+		for (i = 0; i < MAX_SERVO_INPUTS; i++) tmp_s[i] = 0.0;
 
 		//we need to march a dedicated servo controller here
-		/*
-		if (servo_controller.march(tmp_s, tmp_servos) == -1)
+		if (sstate.march_controller(tmp_u, tmp_servos) == -1)
 		{
 			printf("\nERROR in march: failed to march the servo controller");
 			disarm();
 		}
-		*/
 	}
 	
 
@@ -392,7 +401,7 @@ int feedback_state_t::march(void)
 
 		// final saturation just to take care of possible rounding errors
 		// this should not change the values and is probably excessive
-		rc_saturate_double(&m[i], 0.0, 1.0);
+		//rc_saturate_double(&m[i], 0.0, 1.0);
 
 		// finally send pulses!
 		rc_servo_send_esc_pulse_normalized(i + 1, m[i]);
@@ -403,10 +412,10 @@ int feedback_state_t::march(void)
 	{
 		for (int i = 0; i < settings.num_servos; i++)
 		{
-			rc_saturate_double(&tmp_servos[i], 0.0, 1.0);
+			//rc_saturate_double(&tmp_servos[i], 0.0, 1.0);
 			//need to do control allocation here:
-			//tmp_s[i] = map_servo_signal(tmp_servos[i]);
-
+			tmp_s[i] = tmp_servos[i]; //assume direct 1-1 map
+			//printf("\nServo CMND: %f", tmp_s[i]);
 			// final saturation just to take care of possible rounding errors
 			// this should not change the values and is probably excessive
 			rc_saturate_double(&tmp_s[i], 0.0, 1.0);
@@ -419,7 +428,7 @@ int feedback_state_t::march(void)
 	* Final cleanup, timing, and indexing
 	***************************************************************************/
 	// Load control inputs into cstate for viewing by outside threads
-	for (i = 0; i < 6; i++) u[i] = tmp_u[i];
+	for (i = 0; i < MAX_INPUTS; i++) u[i] = tmp_u[i];
 	// keep track of loops since arming
 		loop_index++;
 	// log us since arming, mostly for the log
@@ -453,61 +462,264 @@ int feedback_state_t::update_setpoints(void)
 
 	case TEST_BENCH_4DOF:
 		// configure which controllers are enabled
-		setpoint.en_6dof = 0;
-		setpoint.en_rpy_ctrl = 0;
-		setpoint.en_Z_ctrl = 0;
-		setpoint.en_XY_vel_ctrl = 0;
-		setpoint.en_XY_pos_ctrl = 0;
+		setpoint.en_6dof			= false;
+		setpoint.en_rpy_rate_ctrl	= false;
+		setpoint.en_rpy_ctrl		= false;
+		setpoint.en_Z_ctrl			= false;
+		setpoint.en_Z_rate_ctrl		= false;
+		setpoint.en_XY_vel_ctrl		= false;
+		setpoint.en_XY_pos_ctrl		= false;
 
 		setpoint.roll_throttle = user_input.get_roll_stick();
 		setpoint.pitch_throttle = user_input.get_pitch_stick();
 		setpoint.yaw_throttle = user_input.get_yaw_stick();
+		setpoint.X_throttle = 0.0;
+		setpoint.Y_throttle = 0.0;
 		setpoint.Z_throttle = -user_input.get_thr_stick();
 		// TODO add these two throttle modes as options to settings, I use a radio
 		// with self-centering throttle so having 0 in the middle is safest
 		// setpoint.Z_throttle = -(user_input.thr_stick+1.0)/2.0;
+
 		break;
 
 	case TEST_BENCH_6DOF:
-		setpoint.en_6dof = 1;
-		setpoint.en_rpy_ctrl = 0;
-		setpoint.en_Z_ctrl = 0;
-		setpoint.en_XY_vel_ctrl = 0;
-		setpoint.en_XY_pos_ctrl = 0;
+		// configure which controllers are enabled
+		setpoint.en_6dof			= true;
+		setpoint.en_rpy_rate_ctrl	= false;
+		setpoint.en_rpy_ctrl		= false;
+		setpoint.en_Z_ctrl			= false;
+		setpoint.en_Z_rate_ctrl		= false;
+		setpoint.en_XY_vel_ctrl		= false;
+		setpoint.en_XY_pos_ctrl		= false;
 
-		setpoint.X_throttle = -user_input.get_pitch_stick();
-		setpoint.Y_throttle = user_input.get_roll_stick();
+		
 		setpoint.roll_throttle = 0.0;
 		setpoint.pitch_throttle = 0.0;
 		setpoint.yaw_throttle = user_input.get_yaw_stick();
+		setpoint.X_throttle = -user_input.get_pitch_stick();
+		setpoint.Y_throttle = user_input.get_roll_stick();
 		setpoint.Z_throttle = -user_input.get_thr_stick();
 		break;
 
+	case TEST_6xSERVOS_DIRECT:
+		// configure which controllers are enabled
+		setpoint.en_6dof			= false;
+		setpoint.en_rpy_rate_ctrl	= false;
+		setpoint.en_rpy_ctrl		= false;
+		setpoint.en_Z_ctrl			= false;
+		setpoint.en_Z_rate_ctrl		= false;
+		setpoint.en_XY_vel_ctrl		= false;
+		setpoint.en_XY_pos_ctrl		= false;
+
+
+		setpoint.roll_throttle = 0.0;
+		setpoint.pitch_throttle = 0.0;
+		setpoint.yaw_throttle = 0.0;
+		setpoint.X_throttle = 0.0;
+		setpoint.Y_throttle = 0.0;
+		setpoint.Z_throttle = 0.0;
+
+
+		//servos:
+		setpoint.roll_servo_throttle = user_input.get_roll_stick();
+		setpoint.pitch_servo_throttle = user_input.get_pitch_stick();
+		setpoint.yaw_servo_throttle = user_input.get_yaw_stick();
+		setpoint.X_servo_throttle = user_input.get_thr_stick();
+		setpoint.Y_servo_throttle = user_input.get_thr_stick();
+		setpoint.Z_servo_throttle = user_input.get_thr_stick();
+		break;
+
+	case ACRO:
+		setpoint.en_6dof = false;
+		setpoint.en_rpy_rate_ctrl = true;
+		setpoint.en_rpy_ctrl = false;
+		setpoint.en_Z_ctrl = false;
+		setpoint.en_Z_rate_ctrl = false;
+		setpoint.en_XY_vel_ctrl = false;
+		setpoint.en_XY_pos_ctrl = false;
+
+		setpoint.roll_dot = user_input.get_roll_stick() * MAX_ROLL_RATE;
+		setpoint.pitch_dot = user_input.get_pitch_stick() * MAX_PITCH_RATE;
+		setpoint.yaw_dot = user_input.get_yaw_stick() * MAX_YAW_RATE;
+		setpoint.Z_throttle = -user_input.get_thr_stick() / \
+			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+		break;
+
 	case MANUAL_S:
-		setpoint.en_6dof = 0;
-		setpoint.en_rpy_ctrl = 1;
-		setpoint.en_Z_ctrl = 0;
-		setpoint.en_XY_vel_ctrl = 0;
-		setpoint.en_XY_pos_ctrl = 0;
+		setpoint.en_6dof			= false;
+		setpoint.en_rpy_rate_ctrl	= false;
+		setpoint.en_rpy_ctrl		= true;
+		setpoint.en_Z_ctrl			= false;
+		setpoint.en_Z_rate_ctrl		= false;
+		setpoint.en_XY_vel_ctrl		= false;
+		setpoint.en_XY_pos_ctrl		= false;
 
 		setpoint.roll = user_input.get_roll_stick();
 		setpoint.pitch = user_input.get_pitch_stick();
 		setpoint.Z_throttle = -user_input.get_thr_stick() /\
 			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+		
+		setpoint.update_yaw();
+		break;
+
+	case MANUAL_F:
+		setpoint.en_6dof			= false;
+		setpoint.en_rpy_rate_ctrl	= true;
+		setpoint.en_rpy_ctrl		= true;
+		setpoint.en_Z_ctrl			= false;
+		setpoint.en_Z_rate_ctrl		= false;
+		setpoint.en_XY_vel_ctrl		= false;
+		setpoint.en_XY_pos_ctrl		= false;
+
+		setpoint.roll = user_input.get_roll_stick();
+		setpoint.pitch = user_input.get_pitch_stick();
+		setpoint.Z_throttle = -user_input.get_thr_stick() / \
+			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+
 		setpoint.update_yaw();
 		break;
 
 	case DIRECT_THROTTLE_6DOF:
-		setpoint.en_6dof = 1;
-		setpoint.en_rpy_ctrl = 1;
-		setpoint.en_Z_ctrl = 0;
-		setpoint.en_XY_vel_ctrl = 0;
-		setpoint.en_XY_pos_ctrl = 0;
+		setpoint.en_6dof = true;
+		setpoint.en_rpy_rate_ctrl = false;
+		setpoint.en_rpy_ctrl = true;
+		setpoint.en_Z_ctrl = false;
+		setpoint.en_Z_rate_ctrl = false;
+		setpoint.en_XY_vel_ctrl = false;
+		setpoint.en_XY_pos_ctrl = false;
 
 		setpoint.X_throttle = -user_input.get_pitch_stick();
 		setpoint.Y_throttle = user_input.get_roll_stick();
 		setpoint.Z_throttle = -user_input.get_thr_stick();
 		setpoint.update_yaw();
+		break;
+
+	case ALT_HOLD_SS:
+		setpoint.en_6dof = false;
+		setpoint.en_rpy_rate_ctrl = false;
+		setpoint.en_rpy_ctrl = true;
+		setpoint.en_Z_ctrl = true;
+		setpoint.en_Z_rate_ctrl = false;
+		setpoint.en_XY_vel_ctrl = false;
+		setpoint.en_XY_pos_ctrl = false;
+
+		setpoint.roll = user_input.get_roll_stick();
+		setpoint.pitch = user_input.get_pitch_stick();
+
+		setpoint.update_Z();
+		setpoint.update_yaw();
+		break;
+
+	case ALT_HOLD_FS:
+		setpoint.en_6dof = false;
+		setpoint.en_rpy_rate_ctrl = true;
+		setpoint.en_rpy_ctrl = true;
+		setpoint.en_Z_ctrl = true;
+		setpoint.en_Z_rate_ctrl = false;
+		setpoint.en_XY_vel_ctrl = false;
+		setpoint.en_XY_pos_ctrl = false;
+
+		setpoint.roll = user_input.get_roll_stick();
+		setpoint.pitch = user_input.get_pitch_stick();
+
+		setpoint.update_Z();
+		setpoint.update_yaw();
+		break;
+
+	case ALT_HOLD_FF:
+		setpoint.en_6dof = false;
+		setpoint.en_rpy_rate_ctrl = true;
+		setpoint.en_rpy_ctrl = true;
+		setpoint.en_Z_ctrl = true;
+		setpoint.en_Z_rate_ctrl = true;
+		setpoint.en_XY_vel_ctrl = false;
+		setpoint.en_XY_pos_ctrl = false;
+
+		setpoint.roll = user_input.get_roll_stick();
+		setpoint.pitch = user_input.get_pitch_stick();
+
+		setpoint.update_Z();
+		setpoint.update_yaw();
+		break;
+
+	case POSITION_CONTROL_SSS:
+		setpoint.en_6dof = false;
+		setpoint.en_rpy_rate_ctrl = false;
+		setpoint.en_rpy_ctrl = true;
+		setpoint.en_Z_ctrl = true;
+		setpoint.en_Z_rate_ctrl = false;
+		setpoint.en_XY_vel_ctrl = false;
+		setpoint.en_XY_pos_ctrl = true;
+
+		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
+		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
+
+		//check validity of the velocity command, construct virtual setpoint
+		setpoint.update_XY_pos();
+		setpoint.update_Z();
+		setpoint.update_yaw();
+
+		//printf("\nM2  setpoint.X=%f setpoint.Y=%f setpoint.Z=%f with altitude of %f \n",setpoint.X,setpoint.Y,setpoint.Z,state_estimate.Z);
+		break;
+
+	case POSITION_CONTROL_FSS:
+		setpoint.en_6dof = false;
+		setpoint.en_rpy_rate_ctrl = true;
+		setpoint.en_rpy_ctrl = true;
+		setpoint.en_Z_ctrl = true;
+		setpoint.en_Z_rate_ctrl = false;
+		setpoint.en_XY_vel_ctrl = false;
+		setpoint.en_XY_pos_ctrl = true;
+
+		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
+		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
+
+		//check validity of the velocity command, construct virtual setpoint
+		setpoint.update_XY_pos();
+		setpoint.update_Z();
+		setpoint.update_yaw();
+
+		//printf("\nM2  setpoint.X=%f setpoint.Y=%f setpoint.Z=%f with altitude of %f \n",setpoint.X,setpoint.Y,setpoint.Z,state_estimate.Z);
+		break;
+
+	case POSITION_CONTROL_FFS:
+		setpoint.en_6dof = false;
+		setpoint.en_rpy_rate_ctrl = true;
+		setpoint.en_rpy_ctrl = true;
+		setpoint.en_Z_ctrl = true;
+		setpoint.en_Z_rate_ctrl = true;
+		setpoint.en_XY_vel_ctrl = false;
+		setpoint.en_XY_pos_ctrl = true;
+
+		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
+		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
+
+		//check validity of the velocity command, construct virtual setpoint
+		setpoint.update_XY_pos();
+		setpoint.update_Z();
+		setpoint.update_yaw();
+
+		//printf("\nM2  setpoint.X=%f setpoint.Y=%f setpoint.Z=%f with altitude of %f \n",setpoint.X,setpoint.Y,setpoint.Z,state_estimate.Z);
+		break;
+
+	case POSITION_CONTROL_FFF:
+		setpoint.en_6dof = false;
+		setpoint.en_rpy_rate_ctrl = true;
+		setpoint.en_rpy_ctrl = true;
+		setpoint.en_Z_ctrl = true;
+		setpoint.en_Z_rate_ctrl = true;
+		setpoint.en_XY_vel_ctrl = true;
+		setpoint.en_XY_pos_ctrl = true;
+
+		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
+		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
+
+		//check validity of the velocity command, construct virtual setpoint
+		setpoint.update_XY_pos();
+		setpoint.update_Z();
+		setpoint.update_yaw();
+
+		//printf("\nM2  setpoint.X=%f setpoint.Y=%f setpoint.Z=%f with altitude of %f \n",setpoint.X,setpoint.Y,setpoint.Z,state_estimate.Z);
 		break;
 
 	case AUTONOMOUS:
@@ -531,38 +743,6 @@ int feedback_state_t::update_setpoints(void)
 		//    setpoint.X, state_estimate.X, setpoint.Y, state_estimate.Y, setpoint.Z,
 		//    state_estimate.Z, setpoint.yaw, state_estimate.yaw);
 
-		break;
-	case ALT_HOLD_SS:
-		setpoint.en_6dof = 0;
-		setpoint.en_rpy_ctrl = 1;
-		setpoint.en_Z_ctrl = 1;
-		setpoint.en_XY_vel_ctrl = 0;
-		setpoint.en_XY_pos_ctrl = 0;
-
-		setpoint.roll = user_input.get_roll_stick();
-		setpoint.pitch = user_input.get_pitch_stick();
-		setpoint.update_Z();
-		setpoint.update_yaw();
-		break;
-
-	
-
-	case POSITION_CONTROL_SSS:
-		setpoint.en_6dof = 0;
-		setpoint.en_rpy_ctrl = 1;
-		setpoint.en_Z_ctrl = 1;
-		setpoint.en_XY_vel_ctrl = 0;
-		setpoint.en_XY_pos_ctrl = 1;
-
-		setpoint.X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
-		setpoint.Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
-
-		//check validity of the velocity command, construct virtual setpoint
-		setpoint.update_XY_pos();
-		setpoint.update_Z();
-		setpoint.update_yaw();
-
-		//printf("\nM2  setpoint.X=%f setpoint.Y=%f setpoint.Z=%f with altitude of %f \n",setpoint.X,setpoint.Y,setpoint.Z,state_estimate.Z);
 		break;
 
 	case EMERGENCY_LAND:

@@ -31,7 +31,7 @@
 
 #ifndef LOG_MANAGER_H
 #define LOG_MANAGER_H
-
+#include <stdbool.h>
 
 #define MAX_LOG_FILES	500
 
@@ -45,12 +45,12 @@
 //typedef struct log_entry_t {
 class log_entry_t {
 private:
-	bool initialized = 0;
+	bool initialized;
 
 	uint64_t num_entries;	// number of entries logged so far
 	FILE* log_fd;          ///< file descriptor for the log file
 
-	int logging_enabled;
+	bool logging_enabled;
 
 	/** @name index, always printed */
 	///@{
@@ -233,11 +233,18 @@ private:
 public:
 
 	/**
-	 * @brief      creates a new csv log file and starts the background thread.
+	 * @brief      creates a new csv log file and starts the background thread. only call once.
 	 *
 	 * @return     0 on success, -1 on failure
 	 */
 	int init(void);
+
+	/**
+	 * @brief      resets log mannager, creates a new csv log file and starts the background thread.
+	 *
+	 * @return     0 on success, -1 on failure
+	 */
+	int reset(void);
 
 
 	/**

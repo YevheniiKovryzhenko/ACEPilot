@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  07/30/2020 (MM/DD/YYYY)
  */
 
 #ifndef SERVOS_HPP
@@ -49,7 +49,7 @@
 class servo_state_t
 {
 private:
-	int initialized = 0;						///< set to 1 after servos_init(void)
+	bool initialized;							///< set to 1 after servos_init(void)
 	i2c i2c_driver;								///< i2c driver interface
 	Adafruit_PWMServoDriver_mod servo_driver;	///< servo driver interface
 
@@ -139,11 +139,15 @@ public:
 	/* Returns 0 on success or -1 on failure */
 	int init(int driver_bus_id);
 	int init(int driver_bus_id, uint8_t devAddr);
+	bool is_initialized(void);
 
 #ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
 	int return_to_nominal(void);
 
 	int arm(void);
+	bool is_armed(void);
+
+	int march_controller(double(&u)[MAX_SERVO_INPUTS], double(&mot)[MAX_SERVOS]);
 
 	int disarm(void);
 #endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot

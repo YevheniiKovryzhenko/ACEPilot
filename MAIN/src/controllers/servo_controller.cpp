@@ -56,31 +56,32 @@ int feedback_servo_controller_t::mix_all_control(double(&u)[MAX_SERVO_INPUTS], d
 	double min, max;
 
 	/* 1. Throttle/Altitude Control */
-	rc_saturate_double(&setpoint.Z_servo_throttle, MIN_THRUST_COMPONENT, MAX_THRUST_COMPONENT);
+	rc_saturate_double(&setpoint.Z_servo_throttle, MIN_SERVO_THRUST_COMPONENT, MAX_SERVO_THRUST_COMPONENT);
 	u[VEC_Z] = setpoint.Z_servo_throttle;
 	servo_mix.add_input(u[VEC_Z], VEC_Z, mot);
 
 
 	/* 2. Roll (X) Control */
 	servo_mix.check_saturation(VEC_ROLL, mot, &min, &max);
-	if (max > MAX_ROLL_COMPONENT)  max = MAX_ROLL_COMPONENT;
-	if (min < -MAX_ROLL_COMPONENT) min = -MAX_ROLL_COMPONENT;
+	printf("\nROLL: min=%f max=%f mot=%f", min, max, mot[VEC_ROLL]);
+	if (max > MAX_SERVO_ROLL_COMPONENT)  max = MAX_SERVO_ROLL_COMPONENT;
+	if (min < MIN_SERVO_ROLL_COMPONENT) min = MIN_SERVO_ROLL_COMPONENT;
 	u[VEC_ROLL] = setpoint.roll_servo_throttle;
 	rc_saturate_double(&u[VEC_ROLL], min, max);
 	servo_mix.add_input(u[VEC_ROLL], VEC_ROLL, mot);
 
 	/* 2. Pitch (Y) Control */
 	servo_mix.check_saturation(VEC_PITCH, mot, &min, &max);
-	if (max > MAX_PITCH_COMPONENT)  max = MAX_PITCH_COMPONENT;
-	if (min < -MAX_PITCH_COMPONENT) min = -MAX_PITCH_COMPONENT;
+	if (max > MAX_SERVO_PITCH_COMPONENT)  max = MAX_SERVO_PITCH_COMPONENT;
+	if (min < MIN_SERVO_PITCH_COMPONENT) min = MIN_SERVO_PITCH_COMPONENT;
 	u[VEC_PITCH] = setpoint.pitch_servo_throttle;
 	rc_saturate_double(&u[VEC_PITCH], min, max);
 	servo_mix.add_input(u[VEC_PITCH], VEC_PITCH, mot);
 	
 	/* 3. Yaw (Z) Control */
 	servo_mix.check_saturation(VEC_YAW, mot, &min, &max);
-	if (max > MAX_YAW_COMPONENT)  max = MAX_YAW_COMPONENT;
-	if (min < -MAX_YAW_COMPONENT) min = -MAX_YAW_COMPONENT;
+	if (max > MAX_SERVO_YAW_COMPONENT)  max = MAX_SERVO_YAW_COMPONENT;
+	if (min < MIN_SERVO_YAW_COMPONENT) min = MIN_SERVO_YAW_COMPONENT;
 	u[VEC_YAW] = setpoint.yaw_servo_throttle;
 	rc_saturate_double(&u[VEC_YAW], min, max);
 	servo_mix.add_input(u[VEC_YAW], VEC_YAW, mot);

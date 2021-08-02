@@ -298,6 +298,9 @@ int print_flight_mode(flight_mode_t mode){
 	case TEST_BENCH_6DOF:
 		printf("%sTEST_BENCH_6DOF%s",KYEL,KNRM);
 		return 0;
+	case TEST_6xSERVOS_DIRECT:
+		printf("%sTEST_6xSERVOS_DIRECT%s", KYEL, KNRM);
+		return 0;
 	case ACRO:
 		printf("%sACRO%s", KCYN, KNRM);
 		return 0;

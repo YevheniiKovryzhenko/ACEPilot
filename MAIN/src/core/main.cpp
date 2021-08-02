@@ -33,7 +33,23 @@ struct stat buffer;
 bool RUNNING_ON_BBB = (stat("/sys/devices/platform/leds/leds/", &buffer) == 0 && S_ISDIR(buffer.st_mode)); 
 
 
-//uint64_t t_init     = rc_nanos_since_boot(); //log start time
+/**
+ *  @brief      Standard exit for initialization failures
+ */
+#define FAIL(str)                       \
+    fprintf(stderr, str);               \
+    rc_led_set(RC_LED_GREEN, 0);        \
+    rc_led_blink(RC_LED_RED, 8.0, 2.0); \
+    printf("\ncleaning up");            \
+    rc_mpu_power_off();                 \
+    fstate.cleanup();                   \
+    user_input.input_manager_cleanup(); \
+    setpoint.cleanup();                 \
+    printf_cleanup();                   \
+    log_entry.cleanup();                \
+    rc_encoder_cleanup();               \
+    sstate.cleanup();                   \
+    return -1;
 
 /**
  *  @brief      Prints main function commond line ussage (arguments)
@@ -189,7 +205,7 @@ int main(int argc, char** argv)
             // settings file option
         case 's':
             settings_file_path = optarg;
-            printf("User specified settings file:\n%s\n", settings_file_path);
+            printf("\nUser specified settings file:\n%s\n", settings_file_path);
             break;
 
             // help mode
@@ -212,13 +228,13 @@ int main(int argc, char** argv)
 
     // first things first, load settings which may be used during startup
     if (settings_load_from_file(settings_file_path) < 0) {
-        fprintf(stderr, "ERROR: failed to load settings\n");
+        fprintf(stderr, "\nERROR: failed to load settings");
         char tmp[256];
         getcwd(tmp, 256);
-        cout << "Current working directory: " << tmp << endl;
+        cout << "\nCurrent working directory: " << tmp << endl;
         return -1;
     }
-    printf("Loaded settings: %s\n", settings.name);
+    printf("\nLoaded settings: %s", settings.name);
     
 
     // before touching hardware, make sure another instance isn't running
@@ -242,16 +258,16 @@ int main(int argc, char** argv)
 
         // make sure IMU is calibrated
         if (!rc_mpu_is_gyro_calibrated()) {
-            FAIL("ERROR, must calibrate gyroscope with rc_calibrate_gyro first\n")
+            FAIL("\nERROR, must calibrate gyroscope with rc_calibrate_gyro first")
         }
         if (!rc_mpu_is_accel_calibrated()) {
-            FAIL("ERROR, must calibrate accelerometer with rc_calibrate_accel first\n")
+            FAIL("\nERROR, must calibrate accelerometer with rc_calibrate_accel first")
         }
         if (settings.enable_magnetometer && !rc_mpu_is_gyro_calibrated()) {
-            FAIL("ERROR, must calibrate magnetometer with rc_calibrate_mag first\n")
+            FAIL("\nERROR, must calibrate magnetometer with rc_calibrate_mag first")
         }
         if (!__rc_dsm_is_calibrated()) {
-            FAIL("ERROR, must calibrate DSM with rc_calibrate_dsm first\n")
+            FAIL("\nERROR, must calibrate DSM with rc_calibrate_dsm first")
         }
 
         // turn cpu freq to max for most consistent performance and lowest
@@ -259,66 +275,66 @@ int main(int argc, char** argv)
         // this also serves as an initial check for root access which is needed
         // by the PRU later. PRU root acces might get resolved in the future.
         if (rc_cpu_set_governor(RC_GOV_PERFORMANCE) < 0) {
-            FAIL("WARNING, can't set CPU governor, need to run as root\n")
+            FAIL("\nWARNING, can't set CPU governor, need to run as root")
         }
     }
     // do initialization not involving threads
-    printf("initializing thrust map\n");
+    printf("\ninitializing thrust map");
     if (thrust_map_init(settings.thrust_map) < 0) {
-        FAIL("ERROR: failed to initialize thrust map\n")
+        FAIL("\nERROR: failed to initialize thrust map")
     }
-    printf("initializing mixing matrix\n");
+    printf("\ninitializing mixing matrix\n");
     if (mix_init(settings.layout) < 0) {
-        FAIL("ERROR: failed to initialize mixing matrix\n")
+        FAIL("\nERROR: failed to initialize mixing matrix")
     }
-    printf("initializing servo mixing matrix\n");
+    printf("\ninitializing servo mixing matrix");
     if (servo_mix.init(settings.servo_layout) < 0) {
-        FAIL("ERROR: failed to initialize mixing matrix for servos\n")
+        FAIL("\nERROR: failed to initialize mixing matrix for servos")
     }
-    printf("initializing setpoint_manager\n");
+    printf("\ninitializing setpoint_manager");
     if (setpoint.init() < 0) {
-        FAIL("ERROR: failed to initialize setpoint_manager\n")
+        FAIL("\nERROR: failed to initialize setpoint_manager")
     }
 
     // initialize cape hardware, this prints an error itself if unsuccessful
     if (RUNNING_ON_BBB)
     {
-        printf("initializing servos\n");
+        printf("\ninitializing servos");
         if (rc_servo_init() == -1) {
-            FAIL("ERROR: failed to initialize servos, probably need to run as root\n")
+            FAIL("\nERROR: failed to initialize servos, probably need to run as root")
         }
 
         if (settings.enable_servos)
         {
-            if (sstate.init(1, 0x40) == -1)
+            if (sstate.init(settings.servo_i2c_driver_id) == -1)
             {
                 printf("\nERROR: failed to initialize servos");
                 return -1;
             }
         }        
 
-        printf("initializing adc\n");
+        printf("\ninitializing adc");
         if (rc_adc_init() == -1) {
-            FAIL("ERROR: failed to initialize ADC")
+            FAIL("\nERROR: failed to initialize ADC")
         }
 
         // start signal handler so threads can exit cleanly
-        printf("initializing signal handler\n");
+        printf("\ninitializing signal handler");
         if (rc_enable_signal_handler() < 0) {
-            FAIL("ERROR: failed to complete rc_enable_signal_handler\n")
+            FAIL("\nERROR: failed to complete rc_enable_signal_handler")
         }
 
         // start threads
-        printf("initializing DSM and input_manager\n");
+        printf("\ninitializing DSM and input_manager");
         if (user_input.input_manager_init() < 0) {
-            FAIL("ERROR: failed to initialize input_manager\n")
+            FAIL("\nERROR: failed to initialize input_manager")
         }
 
         // initialize buttons and Assign functions to be called when button
         // events occur
         if (rc_button_init(RC_BTN_PIN_PAUSE, RC_BTN_POLARITY_NORM_HIGH,
             RC_BTN_DEBOUNCE_DEFAULT_US)) {
-            FAIL("ERROR: failed to init buttons\n")
+            FAIL("\nERROR: failed to init buttons")
         }
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE, on_pause_press, NULL);
     }
@@ -328,10 +344,10 @@ int main(int argc, char** argv)
     {
         if (!settings.log_only_while_armed)
         {
-            printf("initializing log manager\n");
+            printf("\ninitializing log manager");
             if (log_entry.init() < 0)
             {
-                FAIL("ERROR: failed to initialize log manager\n")
+                FAIL("\nERROR: failed to initialize log manager")
             }
         }
     }
@@ -339,7 +355,8 @@ int main(int argc, char** argv)
     if (settings.enable_gps)
     {
         /* Init GPS */
-        printf("\nInitializing gps serial link");
+        printf("\nInitializing gps serial link for serial port\
+        \n%s\n with baudrate \n%d\n", settings.serial_port_gps, settings.serial_baud_gps);
         //int portID = gps_init("/dev/ttyS11", 57600);
         if (gps_init(settings.serial_port_gps, settings.serial_baud_gps))
         {
@@ -349,49 +366,49 @@ int main(int argc, char** argv)
 
     // set up XBEE serial link
     if (settings.enable_mocap) {
-        printf("initializing xbee serial link.\n");
+        printf("\ninitializing xbee serial link.");
         if (XBEE_init(settings.serial_port_1, settings.serial_baud_1) < 0)
         {
-            FAIL("ERROR: failed to init xbee serial link")
+            FAIL("\nERROR: failed to init xbee serial link")
         }
     }
 
     if (RUNNING_ON_BBB)
     {
         // start barometer, must do before starting state estimator
-        printf("initializing Barometer\n");
+        printf("\ninitializing Barometer\n");
         if (rc_bmp_init(BMP_OVERSAMPLE_16, BMP_FILTER_16)) {
-            FAIL("ERROR: failed to initialize barometer\n")
+            FAIL("\nERROR: failed to initialize barometer")
         }
 
         if (settings.enable_encoders) {
             //initializiation on counter
-            printf("initializing revolution counter\n");
+            printf("\ninitializing revolution counter");
             if (rc_encoder_init() < 0) {
-                FAIL("ERROR: failed to initialize encoder\n")
+                FAIL("\nERROR: failed to initialize encoder")
             }
         }
 
         // set up state estimator
-        printf("initializing state_estimator\n");
+        printf("\ninitializing state_estimator");
         if (state_estimator_init() < 0) {
-            FAIL("ERROR: failed to init state_estimator")
+            FAIL("\nERROR: failed to init state_estimator")
         }
     }
 
     // Initialize waypoint state machine
-    printf("initializing waypoint state machine\n");
+    printf("\ninitializing waypoint state machine");
     if (sm_init(&waypoint_state_machine) < 0)
     {
-        FAIL("ERROR: failed to init waypoint state machine");
+        FAIL("\nERROR: failed to init waypoint state machine");
     }
 
     if (RUNNING_ON_BBB)
     {
         // set up feedback controller
-        printf("initializing feedback controller\n");
+        printf("\ninitializing feedback controller");
         if (fstate.init() < 0) {
-            FAIL("ERROR: failed to init feedback controller")
+            FAIL("\nERROR: failed to init feedback controller")
         }
 
     }

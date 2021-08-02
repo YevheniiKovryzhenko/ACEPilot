@@ -38,6 +38,10 @@
 
 #include "controller.hpp"
 
+ // preposessor macros
+#define unlikely(x)	__builtin_expect (!!(x), 0)
+#define likely(x)	__builtin_expect (!!(x), 1)
+
 /***************************************************************************
 * Roll Pitch Yaw controllers
 ***************************************************************************/
@@ -49,10 +53,21 @@ int feedback_controller_t::rpy_init(void)
     D_yaw = RC_FILTER_INITIALIZER;
 
     // get controllers from settings
-
-    rc_filter_duplicate(&D_roll, settings.roll_controller);
-    rc_filter_duplicate(&D_pitch, settings.pitch_controller);
-    rc_filter_duplicate(&D_yaw, settings.yaw_controller);
+	if (unlikely(rc_filter_duplicate(&D_roll, settings.roll_controller) == -1))
+	{
+		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_pitch, settings.pitch_controller) == -1))
+	{
+		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_yaw, settings.yaw_controller) == -1))
+	{
+		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		return -1;
+	}
 
 #ifdef DEBUG
     printf("ROLL CONTROLLER:\n");
@@ -97,7 +112,7 @@ int feedback_controller_t::rpy_march(void)
 		// updating the gains based on battery voltage
 		D_roll.gain = D_roll_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
 		D_pitch.gain = D_pitch_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw.gain = D_pitch_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_yaw.gain = D_yaw_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
 
@@ -132,7 +147,7 @@ int feedback_controller_t::rpy_reset(void)
 {
 	D_roll.gain = D_roll_gain_orig;
 	D_pitch.gain = D_pitch_gain_orig;
-	D_yaw.gain = D_pitch_gain_orig;
+	D_yaw.gain = D_yaw_gain_orig;
 
     rc_filter_reset(&D_roll);
     rc_filter_reset(&D_pitch);
@@ -160,13 +175,36 @@ int feedback_controller_t::rpy_rate_init(void)
 	D_yaw_rate_i = RC_FILTER_INITIALIZER;
 
 	// get controllers from settings
-	rc_filter_duplicate(&D_roll_rate_pd, settings.roll_rate_controller_pd);
-	rc_filter_duplicate(&D_pitch_rate_pd, settings.pitch_rate_controller_pd);
-	rc_filter_duplicate(&D_yaw_rate_pd, settings.yaw_rate_controller_pd);
-	rc_filter_duplicate(&D_roll_rate_i, settings.roll_rate_controller_i);
-	rc_filter_duplicate(&D_pitch_rate_i, settings.pitch_rate_controller_i);
-	rc_filter_duplicate(&D_yaw_rate_i, settings.yaw_rate_controller_i);
-
+	if (unlikely(rc_filter_duplicate(&D_roll_rate_pd, settings.roll_rate_controller_pd) == -1))
+	{
+		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_pitch_rate_pd, settings.pitch_rate_controller_pd) == -1))
+	{
+		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_yaw_rate_pd, settings.yaw_rate_controller_pd) == -1))
+	{
+		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_roll_rate_i, settings.roll_rate_controller_i) == -1))
+	{
+		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_pitch_rate_i, settings.pitch_rate_controller_i) == -1))
+	{
+		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_yaw_rate_i, settings.yaw_rate_controller_i) == -1))
+	{
+		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
 
 	// save original gains as we will scale these by battery voltage later
 	D_roll_rate_pd_gain_orig = D_roll_rate_pd.gain;
@@ -249,9 +287,16 @@ int feedback_controller_t::xy_init(void)
 	D_X = RC_FILTER_INITIALIZER;
 	D_Y = RC_FILTER_INITIALIZER;
 
-    
-    rc_filter_duplicate(&D_X, settings.horiz_pos_ctrl_X);
-    rc_filter_duplicate(&D_Y, settings.horiz_pos_ctrl_Y);
+	if (unlikely(rc_filter_duplicate(&D_X, settings.horiz_pos_ctrl_X) == -1))
+	{
+		printf("\nError in xy_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_Y, settings.horiz_pos_ctrl_Y) == -1))
+	{
+		printf("\nError in xy_init: failed to dublicate controller from settings");
+		return -1;
+	}
 
 	D_X_gain_orig = D_X.gain;
 	D_Y_gain_orig = D_Y.gain;
@@ -314,7 +359,7 @@ int feedback_controller_t::xy_march(void)
 	if (setpoint.en_XY_vel_ctrl)
 	{
 		// Velocity error -> Acceleration error
-		xy_march();
+		xy_rate_march();
 	}
 	else
 	{
@@ -357,11 +402,26 @@ int feedback_controller_t::xy_rate_init(void)
 	D_Ydot_pd = RC_FILTER_INITIALIZER;
 	D_Ydot_i = RC_FILTER_INITIALIZER;
 
-
-	rc_filter_duplicate(&D_Xdot_pd, settings.horiz_vel_ctrl_pd_X);
-	rc_filter_duplicate(&D_Xdot_i, settings.horiz_vel_ctrl_i_X);
-	rc_filter_duplicate(&D_Ydot_pd, settings.horiz_vel_ctrl_pd_Y);
-	rc_filter_duplicate(&D_Ydot_i, settings.horiz_vel_ctrl_i_Y);
+	if (unlikely(rc_filter_duplicate(&D_Xdot_pd, settings.horiz_vel_ctrl_pd_X) == -1))
+	{
+		printf("\nError in xy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_Xdot_i, settings.horiz_vel_ctrl_i_X) == -1))
+	{
+		printf("\nError in xy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_Ydot_pd, settings.horiz_vel_ctrl_pd_Y) == -1))
+	{
+		printf("\nError in xy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_Ydot_i, settings.horiz_vel_ctrl_i_Y) == -1))
+	{
+		printf("\nError in xy_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
 
 	D_Xdot_pd_gain_orig = D_Xdot_pd.gain;
 	D_Xdot_i_gain_orig = D_Xdot_i.gain;
@@ -414,7 +474,7 @@ int feedback_controller_t::xy_rate_reset(void)
 	rc_filter_reset(&D_Xdot_pd);
 	rc_filter_reset(&D_Xdot_i);
 	rc_filter_reset(&D_Ydot_pd);
-	rc_filter_reset(&D_Zdot_i);
+	rc_filter_reset(&D_Ydot_i);
 
 	rc_filter_prefill_inputs(&D_Xdot_pd, -state_estimate.X_dot);
 	rc_filter_prefill_inputs(&D_Ydot_pd, -state_estimate.Y_dot);
@@ -438,8 +498,16 @@ int feedback_controller_t::z_init(void)
 	D_Z_pd = RC_FILTER_INITIALIZER;
 	D_Z_i = RC_FILTER_INITIALIZER;
 
-	rc_filter_duplicate(&D_Z_pd, settings.altitude_rate_controller_pd);
-	rc_filter_duplicate(&D_Z_pd, settings.altitude_rate_controller_i);
+	if (unlikely(rc_filter_duplicate(&D_Z_pd, settings.altitude_rate_controller_pd) == -1))
+	{
+		printf("\nError in z_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_Z_i, settings.altitude_rate_controller_i) == -1))
+	{
+		printf("\nError in z_init: failed to dublicate controller from settings");
+		return -1;
+	}
 
 
 #ifdef DEBUG
@@ -503,7 +571,7 @@ int feedback_controller_t::z_march(void)
 	//setpoint.Z_dot = -setpoint.Z_throttle_0 + rc_filter_march(&D_Z, z_error);  // altitude is positive but +Z is down
 	// Position error -> Velocity error:
 	setpoint.Z_dot = rc_filter_march(&D_Z_pd, setpoint.Z - state_estimate.Z)
-		+ rc_filter_march(&D_Z_pd, setpoint.Z - state_estimate.Z) + setpoint.Z_dot_ff;
+		+ rc_filter_march(&D_Z_i, setpoint.Z - state_estimate.Z) + setpoint.Z_dot_ff;
 	
 	rc_saturate_double(&setpoint.Z_dot, -MAX_Z_VELOCITY, MAX_Z_VELOCITY);
 	if (setpoint.en_Z_rate_ctrl)
@@ -542,8 +610,16 @@ int feedback_controller_t::z_rate_init(void)
 	D_Zdot_pd = RC_FILTER_INITIALIZER;
 	D_Zdot_i = RC_FILTER_INITIALIZER;
 
-	rc_filter_duplicate(&D_Zdot_pd, settings.altitude_rate_controller_pd);
-	rc_filter_duplicate(&D_Zdot_i, settings.altitude_rate_controller_i);
+	if (unlikely(rc_filter_duplicate(&D_Zdot_pd, settings.altitude_rate_controller_pd) == -1))
+	{
+		printf("\nError in z_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_Zdot_i, settings.altitude_rate_controller_i) == -1))
+	{
+		printf("\nError in z_rate_init: failed to dublicate controller from settings");
+		return -1;
+	}
 
 	D_Zdot_pd_gain_orig = D_Zdot_pd.gain;
 	D_Zdot_i_gain_orig = D_Zdot_i.gain;
@@ -599,12 +675,36 @@ int feedback_controller_t::init(void)
         return 0;
     }
 
-    rpy_init();
-	rpy_rate_init();
-    z_init();
-	z_rate_init();
-	xy_init();
-	xy_rate_init();
+	if (unlikely(rpy_init() == -1))
+	{
+		printf("\nError in init: failed to initialize rpy controller");
+		return -1;
+	}
+	if (unlikely(rpy_rate_init() == -1))
+	{
+		printf("\nError in init: failed to initialize rpy_rate controller");
+		return -1;
+	}
+	if (unlikely(z_init() == -1))
+	{
+		printf("\nError in init: failed to initialize z controller");
+		return -1;
+	}
+	if (unlikely(z_rate_init() == -1))
+	{
+		printf("\nError in init: failed to initialize z_rate controller");
+		return -1;
+	}
+	if (unlikely(xy_init() == -1))
+	{
+		printf("\nError in init: failed to initialize xy controller");
+		return -1;
+	}
+	if (unlikely(xy_rate_init() == -1))
+	{
+		printf("\nError in init: failed to initialize xy_rate controller");
+		return -1;
+	}
 
     initialized = true;
     return 0;
@@ -612,6 +712,12 @@ int feedback_controller_t::init(void)
 
 int feedback_controller_t::mix_all_control(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS])
 {
+	if (unlikely(!initialized))
+	{
+		printf("\nERROR in mix_all_control: feedback controller not initialized");
+		return -1;
+	}
+
 	double min, max;
 
 	/* 1. Throttle/Altitude Control */
@@ -669,7 +775,7 @@ int feedback_controller_t::mix_all_control(double(&u)[MAX_INPUTS], double(&mot)[
 
 int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS])
 {
-    if (!initialized)
+    if (unlikely(!initialized))
     {
         printf("\nERROR in reset: feedback controller not initialized");
         return -1;
@@ -730,7 +836,7 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
 
 int feedback_controller_t::reset(void)
 {
-    if (!initialized)
+    if (unlikely(!initialized))
     {
         printf("\nERROR in reset: feedback controller not initialized");
         return -1;

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  07/30/2020 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager.
  */
@@ -286,55 +286,75 @@ int log_entry_t::init(void)
         printf("\nERROR in log_manager_init: already initialized");
         return -1;
     }
-	int i;
-	char path[100];
-	struct stat st = {0};
+    if (unlikely((reset() == -1)))
+    {
+        printf("\nERROR in log_manager_init: failed to reset");
+        initialized = false;
+        logging_enabled = false;
+        return -1;
+    }
 
-	// if the thread is running, stop before starting a new log file
-	if(logging_enabled){
-		cleanup();
-	}
 
-	// first make sure the directory exists, make it if not
-	if(stat(LOG_DIR, &st) == -1) {
-		mkdir(LOG_DIR, 0755);
-	}
+    // start thread
+    logging_enabled = true;
+    initialized = true;
+    num_entries = 0;
+	return 0;
+}
 
-	// search for existing log files to determine the next number in the series
-	for(i=1;i<=MAX_LOG_FILES+1;i++){
-		memset(&path, 0, sizeof(path));
-		sprintf(path, LOG_DIR "%d.csv", i);
-		// if file exists, move onto the next index
-		if(stat(path, &st)==0) continue;
-		else break;
-	}
-	// limit number of log files
-	if(i==MAX_LOG_FILES+1){
-		fprintf(stderr,"ERROR: log file limit exceeded\n");
-		fprintf(stderr,"delete old log files before continuing\n");
-		return -1;
-	}
-	// create and open new file for writing
-	log_fd = fopen(path, "w+");
-	if(log_fd == 0) {
-		printf("ERROR: can't open log file for writing\n");
-		return -1;
-	}
 
-	// write header
+int log_entry_t::reset(void)
+{
+    int i;
+    char path[100];
+    struct stat st = { 0 };
+
+    // if the thread is running, stop before starting a new log file
+    if (logging_enabled) {
+        cleanup();
+    }
+
+    // first make sure the directory exists, make it if not
+    if (stat(LOG_DIR, &st) == -1) {
+        mkdir(LOG_DIR, 0755);
+    }
+
+    // search for existing log files to determine the next number in the series
+    for (i = 1; i <= MAX_LOG_FILES + 1; i++) {
+        memset(&path, 0, sizeof(path));
+        sprintf(path, LOG_DIR "%d.csv", i);
+        // if file exists, move onto the next index
+        if (stat(path, &st) == 0) continue;
+        else break;
+    }
+    // limit number of log files
+    if (i == MAX_LOG_FILES + 1) {
+        fprintf(stderr, "ERROR: log file limit exceeded\n");
+        fprintf(stderr, "delete old log files before continuing\n");
+        return -1;
+    }
+    // create and open new file for writing
+    log_fd = fopen(path, "w+");
+    if (log_fd == 0) {
+        printf("ERROR: can't open log file for writing\n");
+        return -1;
+    }
+
+    initialized = true;
+    // write header
     if (unlikely(write_header()) == -1)
     {
         printf("\nERROR in init, failed to write header");
+        initialized = false;
         return -1;
     }
-    
 
-	// start thread
-	logging_enabled = 1;
-    initialized = 1;
-	num_entries = 0;
 
-	return 0;
+    // start thread
+    logging_enabled = true;
+    initialized = true;
+    num_entries = 0;
+    return 0;
 }
 
 void log_entry_t::construct_new_entry(void)
@@ -513,7 +533,7 @@ int log_entry_t::add_new()
 int log_entry_t::cleanup(void)
 {
 	// just return if not logging
-    if (logging_enabled == 0) return 0;
+    if (!logging_enabled) return 0;
 
     if (unlikely(!initialized))
     {
@@ -522,8 +542,8 @@ int log_entry_t::cleanup(void)
     }
 
 
-    logging_enabled = 0;
-    initialized = 0;
+    logging_enabled = false;
+    initialized = false;
     fclose(log_fd);
 
     return 0;

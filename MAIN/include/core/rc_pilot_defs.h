@@ -34,15 +34,6 @@ typedef enum dsm_kill_mode_t {
 	 DSM_KILL_NEGATIVE_THROTTLE
 } dsm_kill_mode_t;
 
-/**
- *  @brief      Standard exit for initialization failures
- */
-#define FAIL(str)                       \
-    fprintf(stderr, str);               \
-    rc_led_set(RC_LED_GREEN, 0);        \
-    rc_led_blink(RC_LED_RED, 8.0, 2.0); \
-    return -1;
-
 // Speed of feedback loop
 #define FEEDBACK_HZ		200
 #define DT			0.005
@@ -101,6 +92,30 @@ typedef enum dsm_kill_mode_t {
  */
 #define MAX_THRUST_COMPONENT	-0.05
 #define MIN_THRUST_COMPONENT	-0.75
+
+
+/*
+* Define maximum and minimum servo channel mapping
+* Maping is done from: 
+* Thrust stick which has [0,1]
+* Roll, Pitch, Yaw sticks which have [-1, 1] range
+* 
+* The control/manual inputs will be mapped into
+* ranges specified below:
+*/
+#define MAX_SERVO_THRUST_COMPONENT	1.0
+#define MIN_SERVO_THRUST_COMPONENT	0.0
+
+#define MAX_SERVO_ROLL_COMPONENT	1.0
+#define MIN_SERVO_ROLL_COMPONENT	-1.0
+
+#define MAX_SERVO_PITCH_COMPONENT	1.0
+#define MIN_SERVO_PITCH_COMPONENT	-1.0
+
+#define MAX_SERVO_YAW_COMPONENT		1.0
+#define MIN_SERVO_YAW_COMPONENT		-1.0
+
+
 
 // Files
 //#define LOG_DIR		"/home/debian/rc_pilot_logs/"

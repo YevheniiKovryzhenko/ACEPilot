@@ -30,6 +30,11 @@ typedef enum flight_mode_t{
 	 */
 	TEST_BENCH_6DOF,
 	/**
+	 * Radio sticks are directly controling 6 servo channels, each individually. 
+	 * Can be used for testing servo channels, don't ever try to fly with this mode
+	 */
+	 TEST_6xSERVOS_DIRECT,
+	/**
 	 * Attitude sticks command attitude rate (roll, pitch, yaw)
 	 * Throttle stick directly controls throttle
 	 * Can be used for fpv drone racing and also attitude rate tuning in the pvc rig
@@ -53,19 +58,19 @@ typedef enum flight_mode_t{
 	 */
 	DIRECT_THROTTLE_6DOF,
 	/**
-	 * like DIRECT_THROTTLE for roll/pitch/yaw but feedback is performed to
+	 * like MANUAL_S for roll/pitch/yaw but feedback is performed to
 	 * hold altitude setpoint which is them moved up and down steadily based
 	 * on user input. No attitude rate control, no velocity control.
 	 */
 	ALT_HOLD_SS,
 	/**
-	 * like DIRECT_THROTTLE for roll/pitch/yaw but feedback is performed to
+	 * like MANUAL_F for roll/pitch/yaw but feedback is performed to
 	 * hold altitude setpoint which is them moved up and down steadily based
 	 * on user input. Attitude rate control, but no velocity control.
 	 */
 	 ALT_HOLD_FS,
 	 /**
-	 * like DIRECT_THROTTLE for roll/pitch/yaw but feedback is performed to
+	 * like MANUAL_F for roll/pitch/yaw but feedback is performed to
 	 * hold altitude setpoint which is them moved up and down steadily based
 	 * on user input. Attitude rate control and velocity control.
 	 */

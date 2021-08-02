@@ -137,7 +137,7 @@ public:
 	/** @name altitude */
 	///< @{
 	bool en_Z_ctrl;			///< enable altitude feedback.
-	bool en_Z_rate_ctrl;		///< enable altitude rate feedback.
+	bool en_Z_rate_ctrl;	///< enable altitude rate feedback.
 	double Z;				///< vertical distance from where controller was armed
 	double Z_dot;			///< vertical velocity m/s^2, remember Z points down
 	double Z_dot_ff;		///< feedforward vertical velocity (m/s)

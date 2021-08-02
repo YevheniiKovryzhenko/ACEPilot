@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  07/30/2020 (MM/DD/YYYY)
  */
 
 #include "tools.h"
@@ -101,7 +101,7 @@ int servo_state_t::set_max_pulse(void)
 int servo_state_t::cmnd2us(int i)
 {
     // sanity check
-    if (unlikely(m[i] > 1.0 || m[i] < 0.0)) 
+    if (unlikely(m[i] > 1.0 || m[i] < 0.0))
     {
         printf("\nERROR: in CMD2PWM, command signal must be between 0.0 & 1.0");
         return -1;
@@ -113,15 +113,15 @@ int servo_state_t::cmnd2us(int i)
         m_us[i] = min_us[i];
         return 0;
     }
-if (m[i] == 1.0)
-{
-    m_us[i] = max_us[i];
-    return 0;
-}
+    if (m[i] == 1.0)
+    {
+        m_us[i] = max_us[i];
+        return 0;
+    }
 
-// Map [0 1] signal to servo pulse width
-m_us[i] = m[i] * (max_us[i] - min_us[i]) + min_us[i];
-return 0;
+    // Map [0 1] signal to servo pulse width
+    m_us[i] = m[i] * (max_us[i] - min_us[i]) + min_us[i];
+    return 0;
 }
 
 /*
@@ -144,7 +144,7 @@ int servo_state_t::init(int driver_bus_id)
 /* Returns 0 on success or -1 on failure */
 int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
 {
-    if (initialized)
+    if (unlikely(initialized))
     {
         printf("\nERROR in init: servos already initialized");
         return -1;
@@ -220,8 +220,13 @@ int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
 
 #endif
     printf("\nSuccess, servos initialized");
-    initialized = 1;
+    initialized = true;
     return 0;
+}
+
+bool servo_state_t::is_initialized(void)
+{
+    return initialized;
 }
 
 
@@ -243,22 +248,30 @@ int servo_state_t::arm(void)
         return -1;
     }
 
+    controller.reset();
     // need to set each of the servos to their nominal positions:
     set_nom_pulse();
 
     arm_time_ns = rc_nanos_since_boot();
+    arm_state = ARMED; //set servos to armed and powered
+    printf("\n WARNING: Waking up the servos....");
     do // at least once, but maybe more when specified
     {
         // need to set each of the servos to their nominal positions:
         return_to_nominal();
     } while (finddt_s(arm_time_ns) < settings.servos_arm_time_s);
-    
+    printf("\nDone! Servo wake up time was %f", finddt_s(arm_time_ns));
 
     //enable power: //(if used of BBB servo rails)
     //rc_servo_power_rail_en(1);
 
     arm_state = ARMED; //set servos to armed and powered
     return 0;
+}
+
+bool servo_state_t::is_armed(void)
+{
+    return arm_state;
 }
 
 int servo_state_t::return_to_nominal(void)
@@ -288,6 +301,12 @@ int servo_state_t::disarm(void)
     // need to set each of the servos to their nominal positions:
     set_nom_pulse(); //won't work, need extra time before power is killed
 
+    if (arm_state == DISARMED)
+    {
+        //no need to proceed if already disarmed (no power to servo rail)
+        printf("WARNING: trying to disarm when servos are already disarmed\n");
+        return 0;
+    }
     //send servo signals using Pulse Width in microseconds
     for (int i = 0; i < MAX_SERVOS; i++) {
         if (unlikely(march(i, m_us[i]) == -1)) return -1;
@@ -369,6 +388,14 @@ int servo_state_t::cmnd_signal_saturate(int i, double signal)
 }
 
 
+#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+int servo_state_t::march_controller(double(&u)[MAX_SERVO_INPUTS], double(&mot)[MAX_SERVOS])
+{
+    return controller.march(u, mot);
+}
+#endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+
+
 /*
 * This is how the user should march (apply)
 * servo command. Sends m[i] coverted into PWM
@@ -378,7 +405,7 @@ int servo_state_t::cmnd_signal_saturate(int i, double signal)
 int servo_state_t::march(int i, double signal)
 {
     
-    if (unlikely(initialized == 0))
+    if (unlikely(!initialized))
     {
         printf("\nERROR in march: trying to march servos when not initialized");
         return -1;
@@ -391,13 +418,14 @@ int servo_state_t::march(int i, double signal)
     }
 #endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
 
+    
     // need to do mapping between [0 1] and servo signal in us
     if (unlikely(cmnd_signal_saturate(i, signal) == -1))
     {
         printf("\nERROR in march: failed to set command signal");
         return -1;
     }
-
+    
 
     // need to do mapping between [0 1] and servo signal in us
     if (unlikely(cmnd2us(i) == -1))
@@ -504,7 +532,7 @@ int servo_state_t::set_max_us(int i, double signal_us)
 int servo_state_t::test_min_max(void)
 {
     printf("\nRunning servo test...");
-    if (unlikely(initialized == 0))
+    if (unlikely(!initialized))
     {
         printf("\nERROR in march: trying to march servos when not initialized");
         return -1;
@@ -547,14 +575,14 @@ int servo_state_t::test_min_max(void)
 int servo_state_t::cleanup(void)
 {
     printf("\nCleaning up servos...");
-    if (initialized == 1)
+    if (unlikely(initialized))
     {
-        if (servo_driver.reset() == -1)
+        if (unlikely(servo_driver.reset() == -1))
         {
             printf("\nWARNING: Failed to reset servo driver");
         }
 
-        if (i2c_driver.close())
+        if (unlikely(i2c_driver.close()))
         {
             printf("\nERROR: Failed to cleanup servos");
             return -1;
@@ -564,6 +592,6 @@ int servo_state_t::cleanup(void)
     {
         printf("\nWARNING: servos were not initialized, can't cleanup");
     }
-    initialized = 0;
+    initialized = false;
     return 0;
 }
