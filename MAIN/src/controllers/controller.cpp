@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/02/2020 (MM/DD/YYYY)
+ * Last Edit:  08/03/2020 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -48,22 +48,40 @@
 int feedback_controller_t::rpy_init(void)
 {
     // filters
-    D_roll = RC_FILTER_INITIALIZER;
-    D_pitch = RC_FILTER_INITIALIZER;
-    D_yaw = RC_FILTER_INITIALIZER;
+    D_roll_pd	= RC_FILTER_INITIALIZER;
+    D_pitch_pd	= RC_FILTER_INITIALIZER;
+    D_yaw_pd	= RC_FILTER_INITIALIZER;
+	D_roll_i	= RC_FILTER_INITIALIZER;
+	D_pitch_i	= RC_FILTER_INITIALIZER;
+	D_yaw_i		= RC_FILTER_INITIALIZER;
 
     // get controllers from settings
-	if (unlikely(rc_filter_duplicate(&D_roll, settings.roll_controller) == -1))
+	if (unlikely(rc_filter_duplicate(&D_roll_pd, settings.roll_controller_pd) == -1))
 	{
 		printf("\nError in rpy_init: failed to dublicate controller from settings");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_pitch, settings.pitch_controller) == -1))
+	if (unlikely(rc_filter_duplicate(&D_pitch_pd, settings.pitch_controller_pd) == -1))
 	{
 		printf("\nError in rpy_init: failed to dublicate controller from settings");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_yaw, settings.yaw_controller) == -1))
+	if (unlikely(rc_filter_duplicate(&D_yaw_pd, settings.yaw_controller_pd) == -1))
+	{
+		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_roll_i, settings.roll_controller_i) == -1))
+	{
+		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_pitch_i, settings.pitch_controller_i) == -1))
+	{
+		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		return -1;
+	}
+	if (unlikely(rc_filter_duplicate(&D_yaw_i, settings.yaw_controller_i) == -1))
 	{
 		printf("\nError in rpy_init: failed to dublicate controller from settings");
 		return -1;
@@ -79,21 +97,13 @@ int feedback_controller_t::rpy_init(void)
 #endif
 
     // save original gains as we will scale these by battery voltage later
-    D_roll_gain_orig = D_roll.gain;
-    D_pitch_gain_orig = D_pitch.gain;
-    D_yaw_gain_orig = D_yaw.gain;
+    D_roll_pd_gain_orig = D_roll_pd.gain;
+    D_pitch_pd_gain_orig = D_pitch_pd.gain;
+    D_yaw_pd_gain_orig = D_yaw_pd.gain;
+	D_roll_i_gain_orig = D_roll_i.gain;
+	D_pitch_i_gain_orig = D_pitch_i.gain;
+	D_yaw_i_gain_orig = D_yaw_i.gain;
 
-	/*
-    // enable saturation. these limits will be changed late but we need to
-    // enable now so that soft start can also be enabled
-    rc_filter_enable_saturation(&D_roll, -MAX_ROLL_COMPONENT, MAX_ROLL_COMPONENT);
-    rc_filter_enable_saturation(&D_pitch, -MAX_PITCH_COMPONENT, MAX_PITCH_COMPONENT);
-    rc_filter_enable_saturation(&D_yaw, -MAX_YAW_COMPONENT, MAX_YAW_COMPONENT);
-    // enable soft start
-    rc_filter_enable_soft_start(&D_roll, SOFT_START_SECONDS);
-    rc_filter_enable_soft_start(&D_pitch, SOFT_START_SECONDS);
-    rc_filter_enable_soft_start(&D_yaw, SOFT_START_SECONDS);
-	*/
 	last_en_rpy_ctrl = false;
     return 0;
 }
@@ -110,19 +120,22 @@ int feedback_controller_t::rpy_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_roll.gain = D_roll_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch.gain = D_pitch_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw.gain = D_yaw_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_roll_pd.gain = D_roll_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_pitch_pd.gain = D_pitch_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_yaw_pd.gain = D_yaw_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_roll_i.gain = D_roll_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_pitch_i.gain = D_pitch_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_yaw_i.gain = D_yaw_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
 
 	// 1) Attitude -> Attitude Rate
-	setpoint.roll_dot = rc_filter_march(&D_roll, setpoint.roll - state_estimate.roll)
-		+ setpoint.roll_dot_ff;
-	setpoint.pitch_dot = rc_filter_march(&D_pitch, setpoint.pitch - state_estimate.pitch)
-		+ setpoint.pitch_dot_ff;
-	setpoint.yaw_dot = rc_filter_march(&D_yaw, setpoint.yaw - state_estimate.continuous_yaw)
-		+ setpoint.yaw_dot_ff;
+	setpoint.roll_dot = rc_filter_march(&D_roll_pd, setpoint.roll - state_estimate.roll)
+		+ rc_filter_march(&D_roll_i, setpoint.roll - state_estimate.roll) + setpoint.roll_dot_ff;
+	setpoint.pitch_dot = rc_filter_march(&D_pitch_pd, setpoint.pitch - state_estimate.pitch)
+		+ rc_filter_march(&D_pitch_i, setpoint.pitch - state_estimate.pitch) + setpoint.pitch_dot_ff;
+	setpoint.yaw_dot = rc_filter_march(&D_yaw_pd, setpoint.yaw - state_estimate.continuous_yaw)
+		+ rc_filter_march(&D_yaw_i, setpoint.yaw - state_estimate.continuous_yaw) + setpoint.yaw_dot_ff;
 
 	
 
@@ -145,17 +158,23 @@ int feedback_controller_t::rpy_march(void)
 
 int feedback_controller_t::rpy_reset(void)
 {
-	D_roll.gain = D_roll_gain_orig;
-	D_pitch.gain = D_pitch_gain_orig;
-	D_yaw.gain = D_yaw_gain_orig;
+	D_roll_pd.gain = D_roll_pd_gain_orig;
+	D_pitch_pd.gain = D_pitch_pd_gain_orig;
+	D_yaw_pd.gain = D_yaw_pd_gain_orig;
+	D_roll_i.gain = D_roll_i_gain_orig;
+	D_pitch_i.gain = D_pitch_i_gain_orig;
+	D_yaw_i.gain = D_yaw_i_gain_orig;
 
-    rc_filter_reset(&D_roll);
-    rc_filter_reset(&D_pitch);
-    rc_filter_reset(&D_yaw);
+    rc_filter_reset(&D_roll_pd);
+    rc_filter_reset(&D_pitch_pd);
+    rc_filter_reset(&D_yaw_pd);
+	rc_filter_reset(&D_roll_i);
+	rc_filter_reset(&D_pitch_i);
+	rc_filter_reset(&D_yaw_i);
 
-    // prefill filters with current error
-    rc_filter_prefill_inputs(&D_roll, -state_estimate.roll);
-    rc_filter_prefill_inputs(&D_pitch, -state_estimate.pitch);
+    // prefill filters with current error (only those with D terms)
+    rc_filter_prefill_inputs(&D_roll_pd, -state_estimate.roll);
+    rc_filter_prefill_inputs(&D_pitch_pd, -state_estimate.pitch);
     return 0;
 }
 
@@ -365,9 +384,9 @@ int feedback_controller_t::xy_march(void)
 	}
 
 	// Position error -> Velocity/Acceleration error
-	setpoint.X_dot = rc_filter_march(&D_X_pd, -x_error) + rc_filter_march(&D_X_i, -x_error)
+	setpoint.X_dot = rc_filter_march(&D_X_pd, x_error) + rc_filter_march(&D_X_i, x_error)
 		+ setpoint.X_dot_ff;
-	setpoint.Y_dot = rc_filter_march(&D_Y_pd, y_error) + rc_filter_march(&D_Y_i, y_error)
+	setpoint.Y_dot = rc_filter_march(&D_Y_pd, -y_error) + rc_filter_march(&D_Y_i, -y_error)
 		+ setpoint.Y_dot_ff;
 	rc_saturate_double(&setpoint.X_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
 	rc_saturate_double(&setpoint.Y_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);

@@ -163,17 +163,24 @@ typedef struct settings_t{
 	rc_filter_t pitch_rate_controller_i;
 	rc_filter_t yaw_rate_controller_pd;
 	rc_filter_t yaw_rate_controller_i;
-	rc_filter_t roll_controller;
-	rc_filter_t pitch_controller;
-	rc_filter_t yaw_controller;
+
+	rc_filter_t roll_controller_pd;
+	rc_filter_t pitch_controller_pd;
+	rc_filter_t yaw_controller_pd;
+	rc_filter_t roll_controller_i;
+	rc_filter_t pitch_controller_i;
+	rc_filter_t yaw_controller_i;
+
 	rc_filter_t altitude_rate_controller_pd;
 	rc_filter_t altitude_rate_controller_i;
 	rc_filter_t altitude_controller_pd;
 	rc_filter_t altitude_controller_i;
+
 	rc_filter_t horiz_vel_ctrl_pd_X;
 	rc_filter_t horiz_vel_ctrl_i_X;
 	rc_filter_t horiz_vel_ctrl_pd_Y;
 	rc_filter_t horiz_vel_ctrl_i_Y;
+
 	rc_filter_t horiz_pos_ctrl_X_pd;
 	rc_filter_t horiz_pos_ctrl_Y_pd;
 	rc_filter_t horiz_pos_ctrl_X_i;

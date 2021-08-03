@@ -179,6 +179,10 @@ int setpoint_t::init(void)
 	initialized = true;
 	return 0;
 }
+bool setpoint_t::is_initialized(void)
+{
+	return initialized;
+}
 
 /**
 * @brief   Externally order setpoint manager to follow new path from path_file

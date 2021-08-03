@@ -521,12 +521,10 @@ int feedback_state_t::update_setpoints(void)
 
 
 		//servos:
-		setpoint.roll_servo_throttle = user_input.get_roll_stick();
-		setpoint.pitch_servo_throttle = user_input.get_pitch_stick();
-		setpoint.yaw_servo_throttle = user_input.get_yaw_stick();
-		setpoint.X_servo_throttle = user_input.get_thr_stick();
-		setpoint.Y_servo_throttle = user_input.get_thr_stick();
-		setpoint.Z_servo_throttle = user_input.get_thr_stick();
+		setpoint.roll_servo_throttle	= (user_input.get_roll_stick() + 1.0) / 2.0;	//map [-1 1] into [0 1]
+		setpoint.pitch_servo_throttle	= (user_input.get_pitch_stick() + 1.0) / 2.0;	//map [-1 1] into [0 1]
+		setpoint.yaw_servo_throttle		= (user_input.get_yaw_stick() + 1.0) / 2.0;		//map [-1 1] into [0 1]
+		setpoint.Z_servo_throttle		= user_input.get_thr_stick();
 		break;
 
 	case ACRO:

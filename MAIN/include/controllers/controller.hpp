@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/02/2020 (MM/DD/YYYY)
+ * Last Edit:  08/03/2020 (MM/DD/YYYY)
  */
 
 #ifndef CONTROLLER_HPP
@@ -57,7 +57,9 @@ private:
 	// keep original controller gains for scaling later:
 	double D_roll_rate_pd_gain_orig, D_pitch_rate_pd_gain_orig, D_yaw_rate_pd_gain_orig;
 	double D_roll_rate_i_gain_orig, D_pitch_rate_i_gain_orig, D_yaw_rate_i_gain_orig;
-	double D_roll_gain_orig, D_pitch_gain_orig, D_yaw_gain_orig;
+	
+	double D_roll_pd_gain_orig, D_pitch_pd_gain_orig, D_yaw_pd_gain_orig;
+	double D_roll_i_gain_orig, D_pitch_i_gain_orig, D_yaw_i_gain_orig;
 
 	double D_Xdot_pd_gain_orig, D_Ydot_pd_gain_orig, D_Zdot_pd_gain_orig;
 	double D_Xdot_i_gain_orig, D_Ydot_i_gain_orig, D_Zdot_i_gain_orig;
@@ -74,9 +76,12 @@ private:
 	rc_filter_t D_yaw_rate_pd;
 	rc_filter_t D_yaw_rate_i;
 
-	rc_filter_t D_roll;
-	rc_filter_t D_pitch;
-	rc_filter_t D_yaw;
+	rc_filter_t D_roll_pd;
+	rc_filter_t D_pitch_pd;
+	rc_filter_t D_yaw_pd;
+	rc_filter_t D_roll_i;
+	rc_filter_t D_pitch_i;
+	rc_filter_t D_yaw_i;
 
 	rc_filter_t D_Xdot_pd;
 	rc_filter_t D_Xdot_i;

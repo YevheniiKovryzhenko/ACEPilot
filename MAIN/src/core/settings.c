@@ -845,17 +845,24 @@ int settings_load_from_file(char* path)
 	PARSE_CONTROLLER(pitch_rate_controller_i);
 	PARSE_CONTROLLER(yaw_rate_controller_pd);
 	PARSE_CONTROLLER(yaw_rate_controller_i);
-	PARSE_CONTROLLER(roll_controller);
-	PARSE_CONTROLLER(pitch_controller);
-	PARSE_CONTROLLER(yaw_controller);
+
+	PARSE_CONTROLLER(roll_controller_pd);
+	PARSE_CONTROLLER(pitch_controller_pd);
+	PARSE_CONTROLLER(yaw_controller_pd);
+	PARSE_CONTROLLER(roll_controller_i);
+	PARSE_CONTROLLER(pitch_controller_i);
+	PARSE_CONTROLLER(yaw_controller_i);
+
 	PARSE_CONTROLLER(altitude_rate_controller_pd);
 	PARSE_CONTROLLER(altitude_rate_controller_i);
 	PARSE_CONTROLLER(altitude_controller_pd);
 	PARSE_CONTROLLER(altitude_controller_i);
+
 	PARSE_CONTROLLER(horiz_vel_ctrl_pd_X);
 	PARSE_CONTROLLER(horiz_vel_ctrl_i_X);
 	PARSE_CONTROLLER(horiz_vel_ctrl_pd_Y);
 	PARSE_CONTROLLER(horiz_vel_ctrl_i_Y);
+
 	PARSE_CONTROLLER(horiz_pos_ctrl_X_pd);
 	PARSE_CONTROLLER(horiz_pos_ctrl_Y_pd);
 	PARSE_CONTROLLER(horiz_pos_ctrl_X_i);

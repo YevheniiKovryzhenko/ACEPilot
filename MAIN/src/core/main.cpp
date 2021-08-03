@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/03/2020 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -38,17 +38,17 @@ bool RUNNING_ON_BBB = (stat("/sys/devices/platform/leds/leds/", &buffer) == 0 &&
  */
 #define FAIL(str)                       \
     fprintf(stderr, str);               \
-    rc_led_set(RC_LED_GREEN, 0);        \
-    rc_led_blink(RC_LED_RED, 8.0, 2.0); \
+    if (RUNNING_ON_BBB) rc_led_set(RC_LED_GREEN, 0);                        \
+    if (RUNNING_ON_BBB) rc_led_blink(RC_LED_RED, 8.0, 2.0);                 \
     printf("\ncleaning up");            \
     rc_mpu_power_off();                 \
-    fstate.cleanup();                   \
-    user_input.input_manager_cleanup(); \
-    setpoint.cleanup();                 \
+    if (fstate.is_initialized()) fstate.cleanup();                          \
+    if (user_input.is_initialized()) user_input.input_manager_cleanup();    \
+    if (setpoint.is_initialized()) setpoint.cleanup();                      \
     printf_cleanup();                   \
     log_entry.cleanup();                \
     rc_encoder_cleanup();               \
-    sstate.cleanup();                   \
+    if (sstate.is_initialized()) sstate.cleanup();                          \
     return -1;
 
 /**
