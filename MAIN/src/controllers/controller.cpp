@@ -384,9 +384,9 @@ int feedback_controller_t::xy_march(void)
 	}
 
 	// Position error -> Velocity/Acceleration error
-	setpoint.X_dot = rc_filter_march(&D_X_pd, x_error) + rc_filter_march(&D_X_i, x_error)
+	setpoint.X_dot = rc_filter_march(&D_X_pd, -x_error) + rc_filter_march(&D_X_i, -x_error)
 		+ setpoint.X_dot_ff;
-	setpoint.Y_dot = rc_filter_march(&D_Y_pd, -y_error) + rc_filter_march(&D_Y_i, -y_error)
+	setpoint.Y_dot = rc_filter_march(&D_Y_pd, y_error) + rc_filter_march(&D_Y_i, y_error)
 		+ setpoint.Y_dot_ff;
 	rc_saturate_double(&setpoint.X_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
 	rc_saturate_double(&setpoint.Y_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
@@ -403,8 +403,8 @@ int feedback_controller_t::xy_march(void)
 	}
 
 	// Acceleration error -> Lean Angles
-	setpoint.roll = setpoint.X_ddot / GRAVITY;
-	setpoint.pitch = setpoint.Y_ddot / GRAVITY;
+	setpoint.roll = setpoint.Y_ddot / GRAVITY;
+	setpoint.pitch = setpoint.X_ddot / GRAVITY;
 
 	rc_saturate_double(&setpoint.roll, -MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
 	rc_saturate_double(&setpoint.pitch, -MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);

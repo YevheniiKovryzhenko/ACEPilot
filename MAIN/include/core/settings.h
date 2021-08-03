@@ -132,6 +132,7 @@ typedef struct settings_t{
 	/** @name log settings */
 	///@{
 	bool enable_logging;
+	int log_every_n_entry;
 	bool log_only_while_armed;
 	bool log_sensors;
 	bool log_state;

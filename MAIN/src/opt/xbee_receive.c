@@ -9,7 +9,7 @@
 // Note:  This MBin protocol is commonly used on embedded serial devices subject to errors
 
 #include "xbee_receive.h"
-
+#include "state_estimator.h"
 
 xbee_packet_t xbeeMsg; // Defined as extern in xbee_packet_t.h
 int xbee_portID;  // Defined as extern in xbee_packet_t.h
@@ -139,7 +139,7 @@ void XBEE_readRingBuffer()
             
   	        
             memcpy(&xbeeMsg, msgdata, OPTI_DATA_LENGTH);
-	        
+            state_estimate.mocap_timestamp_ns = rc_nanos_since_boot();
 	        if (settings.delay_warnings_en) last_time = rc_nanos_since_boot();
 	
 		    //check for xbee connection (move it out later)

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/30/2020 (MM/DD/YYYY)
+ * Last Edit:  08/03/2020 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager.
  */
@@ -299,6 +299,7 @@ int log_entry_t::init(void)
     logging_enabled = true;
     initialized = true;
     num_entries = 0;
+    num_entries_skipped = 0;
 	return 0;
 }
 
@@ -354,6 +355,7 @@ int log_entry_t::reset(void)
     logging_enabled = true;
     initialized = true;
     num_entries = 0;
+    num_entries_skipped = 0;
     return 0;
 }
 
@@ -522,10 +524,14 @@ int log_entry_t::add_new()
         }
     }
 	
-    construct_new_entry();
-    write_log_entry();
-    fflush(log_fd);
-    num_entries++;
+    if (num_entries_skipped > settings.log_every_n_entry)
+    {
+        construct_new_entry();
+        write_log_entry();
+        fflush(log_fd);
+        num_entries++;
+    }
+    num_entries_skipped++;
 
     return 0;
 }

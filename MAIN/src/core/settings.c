@@ -793,6 +793,7 @@ int settings_load_from_file(char* path)
 
 	// LOGGING
 	PARSE_BOOL(enable_logging);
+	PARSE_INT(log_every_n_entry);
 	PARSE_BOOL(log_only_while_armed);
 	PARSE_BOOL(log_sensors);
 	PARSE_BOOL(log_state);

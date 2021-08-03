@@ -405,9 +405,9 @@ static void __feedback_select(void)
 	state_estimate.continuous_yaw	= state_estimate.imu_continuous_yaw;
 
 	if (settings.enable_mocap) {
-        state_estimate.X = xbeeMsg.x;
-        state_estimate.Y = -xbeeMsg.y;
-        state_estimate.Z = -xbeeMsg.z;
+        state_estimate.X = state_estimate.pos_mocap[0];
+        state_estimate.Y = state_estimate.pos_mocap[1];
+        state_estimate.Z = state_estimate.pos_mocap[2];
 		
 		if (settings.use_mocap_roll) {
 			state_estimate.roll 	= state_estimate.tb_mocap[0];

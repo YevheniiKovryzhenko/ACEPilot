@@ -469,7 +469,7 @@ int main(int argc, char** argv)
     // some of these, like printf_manager and log_manager, have cleanup
     // functions that can be called even if not being used. So just call all
     // cleanup functions here.
-    printf("\ncleaning up");
+    printf("\ncleaning up\n");
     rc_mpu_power_off();
     fstate.cleanup();
     user_input.input_manager_cleanup();
@@ -477,7 +477,7 @@ int main(int argc, char** argv)
     printf_cleanup();
     log_entry.cleanup();
     rc_encoder_cleanup();
-    sstate.cleanup();
+    if (sstate.is_initialized()) sstate.cleanup();
 
 
     if (RUNNING_ON_BBB)

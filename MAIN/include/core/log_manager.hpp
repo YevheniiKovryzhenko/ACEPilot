@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/03/2020 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -46,7 +46,7 @@
 class log_entry_t {
 private:
 	bool initialized;
-
+	uint64_t num_entries_skipped;
 	uint64_t num_entries;	// number of entries logged so far
 	FILE* log_fd;          ///< file descriptor for the log file
 

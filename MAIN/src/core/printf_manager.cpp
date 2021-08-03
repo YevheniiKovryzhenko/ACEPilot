@@ -211,8 +211,8 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 		if (settings.printf_mocap)
 		{
 			printf("%s%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+7.2f|%+7.2f|%+7.2f|%+7.2f|  %2X   |", __next_colour(),
-				xbeeMsg.x, xbeeMsg.y, xbeeMsg.z, state_estimate.X_dot, state_estimate.Y_dot,
-				state_estimate.Z_dot, xbeeMsg.qx, xbeeMsg.qy, xbeeMsg.qz, xbeeMsg.qw,
+				state_estimate.pos_mocap[0], state_estimate.pos_mocap[1], state_estimate.pos_mocap[2], state_estimate.X_dot, state_estimate.Y_dot,
+				state_estimate.Z_dot, state_estimate.quat_mocap[1], state_estimate.quat_mocap[2], state_estimate.quat_mocap[3], state_estimate.quat_mocap[0],
 				xbeeMsg.sm_event);
 		}
 		if (settings.printf_gps)
