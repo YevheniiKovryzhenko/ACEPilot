@@ -357,7 +357,6 @@ int main(int argc, char** argv)
         /* Init GPS */
         printf("\nInitializing gps serial link for serial port\
         \n%s\n with baudrate \n%d\n", settings.serial_port_gps, settings.serial_baud_gps);
-        //int portID = gps_init("/dev/ttyS11", 57600);
         if (gps_init(settings.serial_port_gps, settings.serial_baud_gps))
         {
             FAIL("\nERROR: Failed to initialize GPS");
