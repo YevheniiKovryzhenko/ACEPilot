@@ -11,7 +11,7 @@ file(GLOB ALL_MAIN
 "src/io/*.c" "src/io/*.cpp"
 "src/opt/*.c" "src/opt/*.cpp")
 
-add_executable(Main ${ALL_MAIN}) #this tells the compiler what to compile (ALL_MAIN files) 
+add_executable(rc_pilot ${ALL_MAIN}) #this tells the compiler what to compile (ALL_MAIN files) 
 # and calls them executables.
 
 # Next, tell the compiler to copy ALL_MAIN files to the whatever directory it will be compiling in.
@@ -25,31 +25,31 @@ source_group("ALL_FILES" FILES ${ALL_MAIN})
 # at this point we can compile all the sources and headers individually, but they don't see 
 # each other, so linking will fail. To fix this, add all the folders to the executable 
 # tree (called using variable "Main") so linker can search over it for all #inludes:
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/core")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/core")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/controllers")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/controllers")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/mod")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/mod")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/io")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/io")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/opt")
-target_include_directories(Main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/opt")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/core")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/core")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/controllers")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/controllers")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/mod")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/mod")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/io")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/io")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/opt")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/opt")
 # note, we can do all the above lines by droping a separate CMakeLists.txt into each of the subfolder
 # and adding respective header and source file along with the path to the Cmake file tree, but this
 # allows reducing everyhting to a one general CMakeLists.txt and keeping everything important for the 
 # MAIN project in one place. 
 
 # Link all the outside libraries used in this project (from libs folder):
-target_link_libraries(Main PUBLIC GPS_lib)
-target_link_libraries(Main PUBLIC robotics_cape)
-target_link_libraries(Main PUBLIC lwrb_lib)
-target_link_libraries(Main PUBLIC json-c)
+target_link_libraries(rc_pilot PUBLIC GPS_lib)
+target_link_libraries(rc_pilot PUBLIC robotics_cape)
+target_link_libraries(rc_pilot PUBLIC lwrb_lib)
+target_link_libraries(rc_pilot PUBLIC json-c)
 
 # This forces to use threads library:
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-target_link_libraries(Main PRIVATE Threads::Threads) #just including pthread.h is not enough
+target_link_libraries(rc_pilot PRIVATE Threads::Threads) #just including pthread.h is not enough
 
 # At this point, everything will compile as it should. However, rc_pilot requires a settings file
 # to be attached at run time, but the destination/build folder has no source files or any other

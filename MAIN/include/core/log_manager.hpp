@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/03/2020 (MM/DD/YYYY)
+ * Last Edit:  08/04/2020 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -93,6 +93,9 @@ private:
 	double	Xdot;
 	double	Ydot;
 	double	Zdot;
+	double	Xdot_raw;
+	double	Ydot_raw;
+	double	Zdot_raw;
 	double	Zddot;
 
 	/*** @name mocap data */

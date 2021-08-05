@@ -24,6 +24,7 @@
  //#include "input_manager.h"	
 #include "xbee_receive.h"
 #include "gps.h"
+#include "benchmark.h" //for velocity estimation
 
 #include "state_estimator.h"
 //#include <rc/math/filter.h>
@@ -48,6 +49,11 @@ static rc_filter_t gyro_yaw_lpf = RC_FILTER_INITIALIZER;
 
 // z filter
 static rc_filter_t z_lpf = RC_FILTER_INITIALIZER;
+
+// mocap velocity filter
+static rc_filter_t mocap_dx_bw_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t mocap_dy_bw_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t mocap_dz_bw_lpf = RC_FILTER_INITIALIZER;
 
 // battery filter
 static rc_filter_t batt_lp = RC_FILTER_INITIALIZER;
@@ -115,6 +121,30 @@ static void __gyro_cleanup(void)
     return;
 }
 
+static void __mocap_init(void)
+{
+	rc_filter_butterworth_lowpass(&mocap_dx_bw_lpf, 2, DT, 6 * DT);
+	rc_filter_butterworth_lowpass(&mocap_dy_bw_lpf, 2, DT, 6 * DT);
+	rc_filter_butterworth_lowpass(&mocap_dz_bw_lpf, 2, DT, 6 * DT);
+	return;
+}
+
+static void __mocap_march(void)
+{
+	state_estimate.X_dot = rc_filter_march(&mocap_dx_bw_lpf, state_estimate.X_dot_raw);
+	state_estimate.Y_dot = rc_filter_march(&mocap_dy_bw_lpf, state_estimate.Y_dot_raw);
+	state_estimate.Z_dot = rc_filter_march(&mocap_dz_bw_lpf, state_estimate.Z_dot_raw);
+	return;
+}
+
+static void __mocap_cleanup(void)
+{
+	rc_filter_free(&mocap_dx_bw_lpf);
+	rc_filter_free(&mocap_dy_bw_lpf);
+	rc_filter_free(&mocap_dz_bw_lpf);
+	return;
+}
+
 static void __z_init(void)
 {
     rc_filter_first_order_lowpass(&z_lpf, DT, 300*DT);
@@ -145,6 +175,11 @@ static void __imu_march(void)
     static int num_yaw_spins_mocap = 0;
     double diff_mocap;
 
+	static double last_mocap_x = 0.0;
+	static double last_mocap_y = 0.0;
+	static double last_mocap_z = 0.0;
+	double last_mocap_dt = 0.0;
+
 	// gyro and accel require converting to NED coordinates
 	state_estimate.gyro[0] =  mpu_data.gyro[1] * DEG_TO_RAD;
 	state_estimate.gyro[1] =  mpu_data.gyro[0] * DEG_TO_RAD;
@@ -165,11 +200,31 @@ static void __imu_march(void)
 		rc_quaternion_norm_array(state_estimate.quat_mocap);
 		// calculate tait bryan angles too
 		rc_quaternion_to_tb_array(state_estimate.quat_mocap, state_estimate.tb_mocap);
+		
+		last_mocap_x = state_estimate.pos_mocap[0];
+		last_mocap_y = state_estimate.pos_mocap[1];
+		last_mocap_z = state_estimate.pos_mocap[2];
 		// position in the inertial frame
 		state_estimate.pos_mocap[0]=(double)xbeeMsg.x;
 		state_estimate.pos_mocap[1]=-(double)xbeeMsg.y;
 		state_estimate.pos_mocap[2]=-(double)xbeeMsg.z;
 		
+		// we need to estimate velocity from mocap position
+		last_mocap_dt = finddt_s(benchmark_timers.tNAV); //get time elapsed since last itter.
+		if (last_mocap_dt <= 0) //undefined division by zero, or if time is negative assume velocity did not change
+		{
+			printf("\nWARNING in __imu_march: undefined time step of %d", last_mocap_dt);
+		}
+		else
+		{
+			state_estimate.X_dot_raw = (state_estimate.pos_mocap[0] - last_mocap_x)\
+				/ last_mocap_dt;
+			state_estimate.Y_dot_raw = (state_estimate.pos_mocap[1] - last_mocap_y)\
+				/ last_mocap_dt;
+			state_estimate.Z_dot_raw = (state_estimate.pos_mocap[2] - last_mocap_z)\
+				/ last_mocap_dt;
+		}
+
 		// yaw is more annoying since we have to detect spins
         // also make sign negative since NED coordinates has Z point down
         diff_mocap = state_estimate.tb_mocap[2] + (num_yaw_spins_mocap * TWO_PI) - last_yaw_mocap;
@@ -456,6 +511,7 @@ int state_estimator_init(void)
 {
 	__batt_init();
 	__gyro_init();
+	__mocap_init();
     __z_init();
 	if (__altitude_init() == -1) return -1;
     if (rc_vector_zeros(&accel_in, 3) == -1) return -1;
@@ -478,6 +534,7 @@ int state_estimator_march(void)
     __mag_march();
     __altitude_march();
     __gyro_march();
+	__mocap_march();
     __z_march();
     __feedback_select();
     __mocap_check_timeout();
@@ -506,6 +563,7 @@ int state_estimator_cleanup(void)
 	__batt_cleanup();
     __altitude_cleanup();
     __gyro_cleanup();
+	__mocap_cleanup();
     __z_cleanup();
 	return 0;
 }

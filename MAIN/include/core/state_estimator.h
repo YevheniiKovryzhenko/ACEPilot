@@ -104,6 +104,9 @@ extern "C"
 		double X_dot;
 		double Y_dot;
 		double Z_dot;
+		double X_dot_raw;	// d/dt position based estimate of velocity 
+		double Y_dot_raw;	// d/dt position based estimate of velocity 
+		double Z_dot_raw;	// d/dt position based estimate of velocity 
 		double Z_ddot; // transformed z accel
 		///@}
 

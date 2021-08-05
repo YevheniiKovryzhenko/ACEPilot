@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  08/03/2020 (MM/DD/YYYY)
+ * Last Edit:  08/04/2020 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -159,7 +159,7 @@ static void __imu_isr(void)
 
     //Navigation
     state_estimator_march();
-    if (settings.log_benchmark) benchmark_timers.tNAV = rc_nanos_since_boot();
+    benchmark_timers.tNAV = rc_nanos_since_boot(); //using this for velocity estimation
 
     //Guidance
     setpoint.update();
@@ -429,33 +429,33 @@ int main(int argc, char** argv)
         mpu_conf.enable_magnetometer = settings.enable_magnetometer;
 
         // now set up the imu for dmp interrupt operation
-        printf("initializing MPU\n");
+        printf("\ninitializing MPU");
         if (rc_mpu_initialize_dmp(&mpu_data, mpu_conf)) {
-            fprintf(stderr, "ERROR: failed to start MPU DMP\n");
+            fprintf(stderr, "\nERROR: failed to start MPU DMP");
             return -1;
         }        
 
         // final setup
         if (rc_make_pid_file() != 0) {
-            FAIL("ERROR: failed to make a PID file\n")
+            FAIL("\nERROR: failed to make a PID file")
         }
 
         // make sure everything is disarmed them start the ISR
         fstate.disarm();
-        printf("waiting for dmp to settle...\n");
+        printf("\nwaiting for dmp to settle...");
         fflush(stdout);
         rc_usleep(3000000);
         if (rc_mpu_set_dmp_callback(__imu_isr) != 0) {
-            FAIL("ERROR: failed to set dmp callback function\n")
+            FAIL("\nERROR: failed to set dmp callback function")
         }
 
         // start printf_thread if running from a terminal
         // if it was started as a background process then don't bother	
 
         if (isatty(fileno(stdout))) {
-            printf("initializing printf manager\n");
+            printf("\ninitializing printf manager");
             if (printf_init() < 0) {
-                FAIL("ERROR: failed to initialize printf_manager\n")
+                FAIL("\nERROR: failed to initialize printf_manager")
             }
         }
     }
@@ -469,7 +469,7 @@ int main(int argc, char** argv)
     // some of these, like printf_manager and log_manager, have cleanup
     // functions that can be called even if not being used. So just call all
     // cleanup functions here.
-    printf("\ncleaning up\n");
+    printf("\ncleaning up");
     rc_mpu_power_off();
     fstate.cleanup();
     user_input.input_manager_cleanup();

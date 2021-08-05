@@ -22,9 +22,24 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/03/2020 (MM/DD/YYYY)
+ * Last Edit:  08/04/2020 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager.
+ * 
+ * NOTE:
+ * fflush only writes data to buffer, but not disk. we need to force pflush deamon to write 
+ * flush buffer and write it to disk more frequntly to avoid runnning out of memory and delays
+ * caused by waiting for the large chunk of data to be written to disk. 
+ * To do this, modify /etc/sysctl.confby adding the following two lines at the end of the file:
+ * vm.dirty_expire_centisecs = 100
+ * vm.dirty_writeback_centisecs = 100
+ * 
+ * this will force pdflush deamon thread to write data to disk every 100 centiseconds. 
+ * To apply the changes imediately:
+ * sudo sysctl -p
+ * and to check current settings, type in the console:
+ * sysctl vm.dirty_expire_centisecs
+ * sysctl vm.dirty_writeback_centisecs
  */
 
 #include <sys/types.h>
@@ -87,7 +102,7 @@ int log_entry_t::write_header(void)
 
 	if (settings.log_state)
     {
-        fprintf(log_fd, ",roll,pitch,yaw,cont_yaw,rollDot,pitchDot,yawDot,X,Y,Z,Xdot,Ydot,Zdot,Zddot");
+        fprintf(log_fd, ",roll,pitch,yaw,cont_yaw,rollDot,pitchDot,yawDot,X,Y,Z,Xdot,Ydot,Zdot,Xdot_raw,Ydot_raw,Zdot_raw,Zddot");
     }
 	
 	if (settings.log_mocap)
@@ -181,8 +196,8 @@ int log_entry_t::write_log_entry(void)
 
 	if (settings.log_state)
     {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", roll, pitch, yaw,
-            yaw_cont, rollDot, pitchDot, yawDot, X, Y, Z, Xdot, Ydot, Zdot, Zddot);
+        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", roll, pitch, yaw,
+            yaw_cont, rollDot, pitchDot, yawDot, X, Y, Z, Xdot, Ydot, Zdot, Xdot_raw, Ydot_raw, Zdot_raw, Zddot);
     }
 
     if (settings.log_mocap)
@@ -394,6 +409,9 @@ void log_entry_t::construct_new_entry(void)
     Xdot 			= state_estimate.X_dot;
     Ydot 			= state_estimate.Y_dot;
     Zdot 			= state_estimate.Z_dot;
+    Xdot_raw        = state_estimate.X_dot_raw;
+    Ydot_raw        = state_estimate.Y_dot_raw;
+    Zdot_raw        = state_estimate.Z_dot_raw;
     Zddot 		    = state_estimate.Z_ddot;
 
     mocap_time 	    = state_estimate.mocap_time;
@@ -529,6 +547,8 @@ int log_entry_t::add_new()
         construct_new_entry();
         write_log_entry();
         fflush(log_fd);
+        //try writing to disk:
+        //syncfs(fileno(log_fd)); //don't do this, introduces significant delay
         num_entries++;
     }
     num_entries_skipped++;
