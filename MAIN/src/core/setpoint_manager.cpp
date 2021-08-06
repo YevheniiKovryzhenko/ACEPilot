@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/2/2020 (MM/DD/YYYY)
+ * Last Edit:  08/5/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -132,7 +132,9 @@ void setpoint_t::update_XY_pos(void)
 		return;
 	}
 	else{
-		tmp_X_dot = -user_input.get_pitch_stick() * settings.max_XY_velocity;
+		tmp_X_dot = (-user_input.get_pitch_stick() * cos(state_estimate.continuous_yaw)\
+			- user_input.get_roll_stick() * sin(state_estimate.continuous_yaw))\
+			* settings.max_XY_velocity;
 
 		//apply velocity command 
 		X += tmp_X_dot * DT;
@@ -152,7 +154,9 @@ void setpoint_t::update_XY_pos(void)
 		return;
 	}
 	else{
-		tmp_Y_dot = user_input.get_roll_stick() * settings.max_XY_velocity;
+		tmp_Y_dot = (user_input.get_roll_stick() * cos(state_estimate.continuous_yaw)\
+			- user_input.get_pitch_stick() * sin(state_estimate.continuous_yaw))\
+			* settings.max_XY_velocity;
 
 		//apply velocity command 
 		Y += tmp_Y_dot * DT; //Y is defined positive to the left

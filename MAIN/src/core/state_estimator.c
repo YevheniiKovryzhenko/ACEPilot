@@ -51,9 +51,9 @@ static rc_filter_t gyro_yaw_lpf = RC_FILTER_INITIALIZER;
 static rc_filter_t z_lpf = RC_FILTER_INITIALIZER;
 
 // mocap velocity filter
-static rc_filter_t mocap_dx_bw_lpf = RC_FILTER_INITIALIZER;
-static rc_filter_t mocap_dy_bw_lpf = RC_FILTER_INITIALIZER;
-static rc_filter_t mocap_dz_bw_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t mocap_dx_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t mocap_dy_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t mocap_dz_lpf = RC_FILTER_INITIALIZER;
 
 // battery filter
 static rc_filter_t batt_lp = RC_FILTER_INITIALIZER;
@@ -99,10 +99,10 @@ static void __batt_cleanup(void)
 
 static void __gyro_init(void)
 {
-    rc_filter_first_order_lowpass(&gyro_pitch_lpf, DT, 3*DT);
-    rc_filter_first_order_lowpass(&gyro_roll_lpf, DT, 3*DT);
-    rc_filter_first_order_lowpass(&gyro_yaw_lpf, DT, 3*DT);
-    return;
+    rc_filter_first_order_lowpass(&gyro_pitch_lpf, DT, 5.2*DT);
+    rc_filter_first_order_lowpass(&gyro_roll_lpf, DT, 5.2*DT);
+    rc_filter_first_order_lowpass(&gyro_yaw_lpf, DT, 6.0*DT);
+	return;
 }
 
 static void __gyro_march(void)
@@ -123,25 +123,25 @@ static void __gyro_cleanup(void)
 
 static void __mocap_init(void)
 {
-	rc_filter_butterworth_lowpass(&mocap_dx_bw_lpf, 2, DT, 6 * DT);
-	rc_filter_butterworth_lowpass(&mocap_dy_bw_lpf, 2, DT, 6 * DT);
-	rc_filter_butterworth_lowpass(&mocap_dz_bw_lpf, 2, DT, 6 * DT);
+	rc_filter_first_order_lowpass(&mocap_dx_lpf, DT, 20 * DT);
+	rc_filter_first_order_lowpass(&mocap_dy_lpf, DT, 20 * DT);
+	rc_filter_first_order_lowpass(&mocap_dz_lpf, DT, 4 * DT);
 	return;
 }
 
 static void __mocap_march(void)
 {
-	state_estimate.X_dot = rc_filter_march(&mocap_dx_bw_lpf, state_estimate.X_dot_raw);
-	state_estimate.Y_dot = rc_filter_march(&mocap_dy_bw_lpf, state_estimate.Y_dot_raw);
-	state_estimate.Z_dot = rc_filter_march(&mocap_dz_bw_lpf, state_estimate.Z_dot_raw);
+	state_estimate.X_dot = rc_filter_march(&mocap_dx_lpf, state_estimate.X_dot_raw);
+	state_estimate.Y_dot = rc_filter_march(&mocap_dy_lpf, state_estimate.Y_dot_raw);
+	state_estimate.Z_dot = rc_filter_march(&mocap_dz_lpf, state_estimate.Z_dot_raw);
 	return;
 }
 
 static void __mocap_cleanup(void)
 {
-	rc_filter_free(&mocap_dx_bw_lpf);
-	rc_filter_free(&mocap_dy_bw_lpf);
-	rc_filter_free(&mocap_dz_bw_lpf);
+	rc_filter_free(&mocap_dx_lpf);
+	rc_filter_free(&mocap_dy_lpf);
+	rc_filter_free(&mocap_dz_lpf);
 	return;
 }
 

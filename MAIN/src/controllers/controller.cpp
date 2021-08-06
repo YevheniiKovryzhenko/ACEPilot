@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/03/2020 (MM/DD/YYYY)
+ * Last Edit:  08/05/2020 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -353,27 +353,6 @@ int feedback_controller_t::xy_march(void)
 	}
 
 	////////////// PID for horizontal positon control /////////////
-	//Rotation from inertial to body frame:
-	double X_error = setpoint.X - state_estimate.X;
-	double Y_error = setpoint.Y - state_estimate.Y;
-	double Z_error = setpoint.Z - state_estimate.Z;
-
-	double state_estimate_roll = state_estimate.roll;
-	double state_estimate_pitch = state_estimate.pitch;
-	double state_estimate_yaw = state_estimate.continuous_yaw;
-
-	double x_error = X_error * cos(state_estimate_yaw) * cos(state_estimate_pitch) -
-		Z_error * sin(state_estimate_pitch) +
-		Y_error * cos(state_estimate_pitch) * sin(state_estimate_yaw);
-
-	double y_error = Y_error * (cos(state_estimate_yaw) * cos(state_estimate_roll) +
-		sin(state_estimate_yaw) * sin(state_estimate_roll) *
-		sin(state_estimate_pitch)) -
-		X_error * (cos(state_estimate_roll) * sin(state_estimate_yaw) -
-			cos(state_estimate_yaw) * sin(state_estimate_roll) *
-			sin(state_estimate_pitch)) +
-		Z_error * cos(state_estimate_pitch) * sin(state_estimate_roll);
-
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
@@ -384,10 +363,10 @@ int feedback_controller_t::xy_march(void)
 	}
 
 	// Position error -> Velocity/Acceleration error
-	setpoint.X_dot = rc_filter_march(&D_X_pd, -x_error) + rc_filter_march(&D_X_i, -x_error)
-		+ setpoint.X_dot_ff;
-	setpoint.Y_dot = rc_filter_march(&D_Y_pd, y_error) + rc_filter_march(&D_Y_i, y_error)
-		+ setpoint.Y_dot_ff;
+	setpoint.X_dot = rc_filter_march(&D_X_pd, setpoint.X - state_estimate.X)\
+		+ rc_filter_march(&D_X_i, setpoint.X - state_estimate.X) + setpoint.X_dot_ff;
+	setpoint.Y_dot = rc_filter_march(&D_Y_pd, setpoint.Y - state_estimate.Y)\
+		+ rc_filter_march(&D_Y_i, setpoint.Y - state_estimate.Y) + setpoint.Y_dot_ff;
 	rc_saturate_double(&setpoint.X_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
 	rc_saturate_double(&setpoint.Y_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
 	
@@ -403,8 +382,12 @@ int feedback_controller_t::xy_march(void)
 	}
 
 	// Acceleration error -> Lean Angles
-	setpoint.roll = setpoint.Y_ddot / GRAVITY;
-	setpoint.pitch = setpoint.X_ddot / GRAVITY;
+	setpoint.roll = (-sin(state_estimate.continuous_yaw) * setpoint.X_ddot\
+		+ cos(state_estimate.continuous_yaw) * setpoint.Y_ddot) / GRAVITY\
+		+ setpoint.roll_ff;
+	setpoint.pitch = -(cos(state_estimate.continuous_yaw) * setpoint.X_ddot\
+		+ sin(state_estimate.continuous_yaw) * setpoint.Y_ddot) / GRAVITY\
+		+ setpoint.pitch_ff;
 
 	rc_saturate_double(&setpoint.roll, -MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
 	rc_saturate_double(&setpoint.pitch, -MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
@@ -489,6 +472,7 @@ int feedback_controller_t::xy_rate_march(void)
 	}
 
 	////////////// PID for horizontal velocity control /////////////
+
 	setpoint.X_ddot = rc_filter_march(&D_Xdot_pd, setpoint.X_dot - state_estimate.X_dot)
 		+ rc_filter_march(&D_Xdot_i, setpoint.X_dot - state_estimate.X_dot);
 	setpoint.Y_ddot = rc_filter_march(&D_Ydot_pd, setpoint.Y_dot - state_estimate.Y_dot)
@@ -556,14 +540,6 @@ int feedback_controller_t::z_init(void)
 	D_Z_pd_gain_orig = D_Z_pd.gain;
 	D_Z_i_gain_orig = D_Z_i.gain;
 
-	/*
-	rc_filter_enable_saturation(&D_Z, -1.0, 1.0);
-	rc_filter_enable_soft_start(&D_Z, SOFT_START_SECONDS);
-	rc_filter_enable_saturation(&D_X_4, -1.0, 1.0);
-	rc_filter_enable_soft_start(&D_X_4, SOFT_START_SECONDS);
-	rc_filter_enable_saturation(&D_Y_4, -1.0, 1.0);
-	rc_filter_enable_soft_start(&D_Y_4, SOFT_START_SECONDS);
-	*/
 	last_en_Z_ctrl = false;
 
 	return 0;
@@ -665,6 +641,7 @@ int feedback_controller_t::z_rate_march(void)
 {
 	if (!last_en_Zdot_ctrl)
 	{
+
 		z_rate_reset();
 		
 		last_en_Z_ctrl = true;
