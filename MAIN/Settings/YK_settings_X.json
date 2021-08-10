@@ -108,6 +108,17 @@
 	"t_takeoff": 4.0,
 	"max_XY_velocity": 1.0,
 	"max_Z_velocity": 1.5,
+	"hover_throttle": 0.4,
+	"XY_start_delay_s": 1.0,
+	"XY_waypt_delay_s": 0.1,
+	"square_X_offset": 1.5,
+	"square_Y_offset": 1.5,
+	"square_X_time_s": 2.0,
+	"square_Y_time_s": 2.0,
+	"turn_radius": 1.5,
+	"turn_period": 10.0,
+	"turn_time_s": 10.0,
+	"turn_dir_yaw_cw": true,
 
 	"roll_rate_controller_pd": {
 		"CT_or_DT": "CT",

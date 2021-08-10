@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/02/2020 (MM/DD/YYYY)
+ * Last Edit:  08/10/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -59,7 +59,6 @@
 #include "controller.hpp"
 #include "log_manager.hpp"
 #include "input_manager.hpp"
-#include "trajectories_common.hpp"
 #include "servos.hpp"
 
 #include "feedback.hpp"

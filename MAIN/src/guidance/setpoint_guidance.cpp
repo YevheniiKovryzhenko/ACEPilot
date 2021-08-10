@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/08/2020 (MM/DD/YYYY)
+ * Last Edit:  08/10/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Contains all the automated trajectory guidance and related functionality.
@@ -236,11 +236,10 @@ void setpoint_guidance_t::reset_Z(void)
     last_en_Z   = false;
     st_Z        = false;
     en_Z        = false;
+    en_takeoff  = false;
+    en_land     = false;
     Z_dot       = 0.0;  // stop moving the setpoint down
     Z_initial   = setpoint.Z;
-
-    reset_land();
-    reset_takeoff();
 
     return;
 }
@@ -254,11 +253,23 @@ int setpoint_guidance_t::init_Z(void)
         return 0;
     }
     reset_Z();
+
+
     init_land();
     init_takeoff();
 
     Z_initialized = true;
     return 0;
+}
+
+bool setpoint_guidance_t::is_Z_initialized(void)
+{
+    return Z_initialized;
+}
+
+bool setpoint_guidance_t::is_Z_en(void)
+{
+    return en_Z;
 }
 
 bool setpoint_guidance_t::get_state_Z(void)
@@ -322,7 +333,8 @@ int setpoint_guidance_t::march_land(void)
 void setpoint_guidance_t::init_land(void)
 {
     reset_land();
-    land_finished = false;
+    land_finished   = false;
+    en_land         = false;
     return;
 }
 
@@ -330,7 +342,6 @@ void setpoint_guidance_t::reset_land(void)
 {
     land_start_delay_s  = land_start_def_delay_s;
     V_land              = -settings.V_max_land;
-    en_land             = false;
     return;
 }
 
@@ -361,7 +372,7 @@ int setpoint_guidance_t::restart_land(void) //intended as a trigger (do not run 
     reset_Z();
     land_finished = false;
     start_land();
-    return;
+    return 0;
 }
 
 void setpoint_guidance_t::set_V_land(double new_V_max)
@@ -444,18 +455,15 @@ int setpoint_guidance_t::march_takeoff(void)
 
 void setpoint_guidance_t::reset_takeoff(void)
 {
-    en_takeoff              = false;
     t_takeoff_s             = settings.t_takeoff;
     takeoff_height          = settings.height_takeoff;
-
-    Z_cubic.set(Z_initial, takeoff_height + Z_initial, 0,
-        0, t_takeoff_s);
     return;
 }
 
 void setpoint_guidance_t::init_takeoff(void)
 {
-    takeoff_finished = false;
+    en_takeoff          = false;
+    takeoff_finished    = false;
     reset_takeoff();
     return;
 }
@@ -478,6 +486,9 @@ void setpoint_guidance_t::start_takeoff(void) //intended to allow running at eac
         en_Z        = true; // allow Z guidance
         en_takeoff  = true; // start takeoff
         setpoint.Z  = state_estimate.Z; //zero out the error
+
+        Z_cubic.set(Z_initial, takeoff_height + Z_initial, 0,
+            0, t_takeoff_s);
         printf("\nStarting takeoff algorithm....");
     }//otherwise do nothing
 
@@ -498,7 +509,7 @@ int setpoint_guidance_t::restart_takeoff(void) //intended as a trigger (do not r
     reset_Z();
     takeoff_finished = false;
     start_takeoff();
-    return;
+    return 0;
 }
 
 
@@ -568,6 +579,8 @@ void setpoint_guidance_t::reset_XY(void)
     st_XY       = false;
     en_XY       = false;
     en_yaw      = false;
+    en_square   = false;
+    en_circ     = false;
     X_dot       = 0.0;          // stop moving the setpoint
     Y_dot       = 0.0;          // stop moving the setpoint
     X_initial   = setpoint.X;
@@ -577,9 +590,6 @@ void setpoint_guidance_t::reset_XY(void)
 
     XY_start_delay_s = settings.XY_start_delay_s;
     XY_waypt_delay_s = settings.XY_waypt_delay_s;
-
-    reset_square();
-    reset_circ();
 
     return;
 }
@@ -604,6 +614,16 @@ int setpoint_guidance_t::init_XY(void)
 bool setpoint_guidance_t::get_state_XY(void)
 {
     return st_XY;
+}
+
+bool setpoint_guidance_t::is_XY_initialized(void)
+{
+    return XY_initialized;
+}
+
+bool setpoint_guidance_t::is_XY_en(void)
+{
+    return en_XY;
 }
 
 int setpoint_guidance_t::march_square(void)
@@ -753,13 +773,13 @@ int setpoint_guidance_t::march_square(void)
 
 void setpoint_guidance_t::init_square(void)
 {
+    en_square = false;
     reset_square();
     return;
 }
 
 void setpoint_guidance_t::reset_square(void)
 {
-    en_square = false;
     square_X_offset = settings.square_X_offset;
     square_Y_offset = settings.square_Y_offset;
     square_X_time_s = settings.square_X_time_s;
@@ -796,7 +816,7 @@ int setpoint_guidance_t::restart_square(void) //intended as a trigger (do not ru
     reset_XY();
     square_finished = false;
     start_square();
-    return;
+    return 0;
 }
 
 int setpoint_guidance_t::march_circ(void)
@@ -914,13 +934,13 @@ int setpoint_guidance_t::march_circ(void)
 
 void setpoint_guidance_t::init_circ(void)
 {
+    en_circ = false;
     reset_circ();
     return;
 }
 
 void setpoint_guidance_t::reset_circ(void)
 {
-    en_circ = false;
     turn_radius = settings.turn_radius;
     turn_period = settings.turn_period;
     turn_time_s = settings.turn_time_s;
@@ -963,7 +983,7 @@ int setpoint_guidance_t::restart_circ(void) //intended as a trigger (do not run 
     reset_XY();
     circ_finished = false;
     start_circ();
-    return;
+    return 0;
 }
 
 /*
@@ -1374,4 +1394,17 @@ int setpoint_guidance_t::march(void)
     }
 
     return 0;
+}
+
+
+void setpoint_guidance_t::reset(void)
+{
+    reset_Z();
+    reset_land();
+    reset_takeoff();
+
+    reset_XY();
+    reset_square();
+    reset_circ();
+    return;
 }

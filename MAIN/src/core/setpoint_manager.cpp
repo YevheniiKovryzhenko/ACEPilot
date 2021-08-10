@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/5/2020 (MM/DD/YYYY)
+ * Last Edit:  08/10/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -183,6 +183,7 @@ int setpoint_t::init(void)
 	if (setpoint_guidance.init() == -1)
 	{
 		fprintf(stderr, "\nERROR in setpoint_manager_init, failed to initialize setpoint guidance");
+		return -1;
 	}
 
 	initialized = true;
@@ -639,15 +640,20 @@ int setpoint_t::update(void)
 	// shutdown feedback on kill switch
 	if (user_input.requested_arm_mode == DISARMED)
 	{
-		if (fstate.get_arm_state() != DISARMED) fstate.disarm();
+		if (fstate.get_arm_state() != DISARMED) fstate.disarm(), \
+			setpoint_guidance.reset_Z(), \
+			setpoint_guidance.reset_XY();
 		return 0;
 	}
 
 	// arm feedback when requested
 	if (user_input.requested_arm_mode == ARMED) {
-		if (fstate.get_arm_state() == DISARMED) fstate.arm();
+		if (fstate.get_arm_state() == DISARMED) fstate.arm(), \
+			setpoint_guidance.reset_Z(), \
+			setpoint_guidance.reset_XY();
 	}
 	update_setpoints();
+	setpoint_guidance.march();
 
 	return 0;
 }

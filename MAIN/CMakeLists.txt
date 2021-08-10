@@ -5,11 +5,13 @@ file(GLOB ALL_MAIN
 "include/mod/*.h" "include/mod/*.hpp"
 "include/io/*.h" "include/io/*.hpp"
 "include/opt/*.h" "include/opt/*.hpp"
+"include/guidance/*.h" "include/guidance/*.hpp"
 "src/core/*.c" "src/core/*.cpp"
 "src/controllers/*.c" "src/controllers/*.cpp"
 "src/mod/*.c" "src/mod/*.cpp"
 "src/io/*.c" "src/io/*.cpp"
-"src/opt/*.c" "src/opt/*.cpp")
+"src/opt/*.c" "src/opt/*.cpp"
+"src/guidance/*.c" "src/guidance/*.cpp")
 
 add_executable(rc_pilot ${ALL_MAIN}) #this tells the compiler what to compile (ALL_MAIN files) 
 # and calls them executables.
@@ -35,6 +37,8 @@ target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/io")
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/opt")
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/opt")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/guidance")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/guidance")
 # note, we can do all the above lines by droping a separate CMakeLists.txt into each of the subfolder
 # and adding respective header and source file along with the path to the Cmake file tree, but this
 # allows reducing everyhting to a one general CMakeLists.txt and keeping everything important for the 

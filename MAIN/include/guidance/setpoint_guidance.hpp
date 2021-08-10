@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/08/2020 (MM/DD/YYYY)
+ * Last Edit:  08/10/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Contains all the automated trajectory guidance and related functionality
@@ -79,10 +79,12 @@ private:
 
 	int init_Z(void);
 	int march_Z(void);
-	bool is_Z_initialized(void);
+	
 public:
-	void reset_Z(void);
+	bool is_Z_initialized(void);
 	bool get_state_Z(void);
+	bool is_Z_en(void);
+	void reset_Z(void);
 private:
 	//-------------Auto-Land---------------//
 	// Landing algorithm basic logic is the following:
@@ -163,8 +165,10 @@ private:
 public:
 	void reset_XY(void);
 	bool get_state_XY(void);
-private:
 	bool is_XY_initialized(void);
+	bool is_XY_en(void);
+private:
+	
 	
 
 
@@ -183,10 +187,12 @@ private:
 	double square_Y_time_s;
 	double square_Y_offset;
 	void init_square(void);
+	int march_square(void);
+public:
 	void reset_square(void);
 	void start_square(void);
 	int restart_square(void);
-	int march_square(void);
+private:
 
 	/* Circular/loiter trajectory */
 	bool en_circ;

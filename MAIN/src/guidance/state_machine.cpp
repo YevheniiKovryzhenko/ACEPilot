@@ -29,7 +29,7 @@ static const char* sm_alph_strings[] = {
     "ENTER_GUIDED",
     "ENTER_LANDING",
     "ENTER_LOITER",
-    "ENTER_NAILING",
+    "ENTER_SQUARE",
     "ENTER_RETURN",
     "NO_EVENT",
 };
@@ -65,17 +65,6 @@ int sm_init(state_machine_t* sm)
  */
 void sm_transition(state_machine_t* sm, sm_alphabet input)
 {
-    //printf("\n event %s\n", sm_alph_strings[input]);
-    // static sm_alphabet last_input = NO_EVENT;
-
-    // Do nothing if the input hasn't changed
-    // if (input == last_input)
-    // {
-    //     return;
-    // }
-    // last_input = input;
-
-    // Things that should be done for all state transitions
 
     // Unique things that should be done for each state
     switch (sm->current_state)
@@ -87,7 +76,9 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     if (user_input.flight_mode == AUTONOMOUS)
                     {
                         setpoint.yaw = state_estimate.continuous_yaw;
-                    }                    
+                    }
+                    if (setpoint_guidance.is_XY_en()) setpoint_guidance.reset_XY();
+                    if (setpoint_guidance.is_Z_en()) setpoint_guidance.reset_Z();
                     break;
                 case ENTER_TAKEOFF:
                     sm->current_state = TAKEOFF;
@@ -107,13 +98,15 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     break;
             }
             break;
-        /** STANDBY: waits until further instructions.
+        /** STANDBY: waits until further instructions. Kills all guidance if active.
          * Valid Transitions: All, but PARKED
          */
         case STANDBY:
             switch (input)
             {
                 case ENTER_STANDBY:
+                    if (setpoint_guidance.is_XY_en()) setpoint_guidance.reset_XY();
+                    if (setpoint_guidance.is_Z_en()) setpoint_guidance.reset_Z();
                     break;
 
                 case ENTER_TAKEOFF:
@@ -135,8 +128,8 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     sm->changedState    = true;
                     break;
 
-                case ENTER_NAILING:
-                    sm->current_state   = NAILING;
+                case ENTER_SQUARE:
+                    sm->current_state   = SQUARE;
                     sm->changedState    = true;
                     break;
 
@@ -152,8 +145,8 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
             }
             break;
 
-        /** TAKEOFF: Assumes vehicle is on the ground. Parses through waypoints to get from
-         * ground into the air Valid Transitions: TAKEOFF, GUIDED, LANDING, LOITER, NAILING,
+        /** TAKEOFF: Assumes vehicle is on the ground. Activates procedure for automated ascent to get from
+         * ground into the air. Valid Transitions: STANDBY, GUIDED, LANDING, LOITER, SQUARE,
          * RETURN
          */
         case TAKEOFF:
@@ -161,32 +154,22 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
             // Actions associated with this state
             if (sm->changedState)
             {
-                /*
-                // Load new waypoint file
-                __build_waypoit_filename(
-                    waypoint_filename, settings.wp_folder, settings.wp_takeoff_filename);
-
-                set_new_path(waypoint_filename);
-                */
                 sm->changedState = false;
-                
-                setpoint.dZ_takeoff     = -settings.height_takeoff;  // lift-off height above initial point
-                setpoint.t_takeoff      = settings.t_takeoff;
-                setpoint.en_Z_takeoff   = 1;    // start take-off algorithm
-                setpoint.st_takeoff     = 0;
+
+                //terminate all the previous guidance jobs and clean up
+                setpoint_guidance.reset_XY();
+                setpoint_guidance.reset_Z();
+                //start new job
+                setpoint_guidance.restart_takeoff();
             }
 
             // State transition
             switch (input)
             {
                 case ENTER_TAKEOFF:
-                    if (AUTO_TAKEOFF())
+                    if (setpoint_guidance.get_state_Z() && setpoint_guidance.is_Z_en())
                     {
-                        setpoint.en_Z_takeoff = 0;  // just in case
-                    }
-                    else
-                    {
-                        setpoint.en_Z_takeoff = 1;
+                        setpoint_guidance.reset_Z(); //should never get here, but just in case
                     }
                     break;
 
@@ -201,8 +184,8 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     break;
 
                 case ENTER_LANDING:
-                    sm->current_state       = LANDING;
-                    sm->changedState        = true;
+                    sm->current_state   = LANDING;
+                    sm->changedState    = true;
                     break;
 
                 case ENTER_LOITER:
@@ -210,8 +193,8 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     sm->changedState    = true;
                     break;
 
-                case ENTER_NAILING:
-                    sm->current_state   = NAILING;
+                case ENTER_SQUARE:
+                    sm->current_state   = SQUARE;
                     sm->changedState    = true;
                     break;
 
@@ -228,12 +211,16 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
             break;
 
         /** GUIDED: Assumes vehicle is in the air. Parses through waypoints of desried
-         * trajectory. Valid Transitions: GUIDED, LANDING, LOITER, NAILING, RETURN
+         * trajectory. Valid Transitions: STANDBY, LANDING, LOITER, SQUARE, RETURN
          */
         case GUIDED:
             // Actions associated with this state
             if (sm->changedState)
             {
+                //terminate all the previous guidance jobs and clean up
+                setpoint_guidance.reset_XY();
+                setpoint_guidance.reset_Z();
+                //start new job
                 __build_waypoit_filename(
                     waypoint_filename, settings.wp_folder, settings.wp_guided_filename);
 
@@ -268,10 +255,10 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     sm->changedState    = true;
                     break;
 
-                case ENTER_NAILING:
-                    sm->current_state   = NAILING;
+                case ENTER_SQUARE:
+                    sm->current_state   = SQUARE;
                     sm->changedState    = true;
-                    // TODO: Load waypoints from NAILING file
+                    // TODO: Load waypoints from SQUARE file
                     break;
 
                 case ENTER_RETURN:
@@ -287,22 +274,18 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
             }
             break;
 
-        /** LANDING: Assumes vehicle is in the air. Parses through waypoints to get from the air
-         * to the ground Valid Transitions: STANDBY, LANDING, LOITER
+        /** LANDING: Assumes vehicle is in the air. Starts automater landing procedure to get from the air
+         * to the ground. Valid Transitions: STANDBY, TAKEOFF
          */
         case LANDING:
             // Actions associated with this state
             if (sm->changedState)
             {
-                /*
-                __build_waypoit_filename(
-                    waypoint_filename, settings.wp_folder, settings.wp_landing_filename);
-
-                set_new_path(waypoint_filename);
-                */
-                setpoint.V_max_land = settings.V_max_land;
-                setpoint.en_Z_land  = 1;  // start landing algorithm
-                setpoint.st_land    = 0;
+                //terminate all the previous guidance jobs and clean up
+                setpoint_guidance.reset_XY();
+                setpoint_guidance.reset_Z();
+                //start new job
+                setpoint_guidance.restart_land();
 
                 sm->changedState = false;
             }
@@ -315,24 +298,23 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     sm->changedState = true;
                     break;
 
+                case ENTER_TAKEOFF:
+                    sm->current_state = TAKEOFF;
+                    sm->changedState = true;
+                    break;
+
                 case ENTER_LANDING:
-                    if (AUTO_LAND())
+                    if (setpoint_guidance.get_state_Z())
                     {
+                        if (setpoint_guidance.is_Z_en())
+                        {
+                            setpoint_guidance.reset_Z(); //should never get here, but just in case
+                        }
                         sm->current_state               = PARKED;
                         sm->changedState                = true;
-                        setpoint.en_Z_land              = 0;  // just in case
                         user_input.requested_arm_mode   = DISARMED;
                         // should be on the ground at this point
                     }
-                    else
-                    {
-                        setpoint.en_Z_land = 1;
-                    }
-                    break;
-
-                case ENTER_LOITER:
-                    sm->current_state = LOITER;
-                    sm->changedState = true;
                     break;
 
                 default:
@@ -342,21 +324,85 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
             }
             break;
 
-        // States that have not yet been implemented
+            /** LOITER: Assumes vehicle is in the air. Activates automated circular guidance script
+             *  about the point of activation. Valid Transitions: STANDBY, LANDING
+             */
         case LOITER:
-            fprintf(stderr,
-                "\nLOITER mode not yet implemented. Switching state to STANDBY. Input: %s\n",
-                sm_alph_strings[input]);
-            sm->current_state = STANDBY;
-            sm->changedState = true;
+            // Actions associated with this state
+            if (sm->changedState)
+            {
+                //terminate all the previous guidance jobs and clean up
+                setpoint_guidance.reset_XY();
+                setpoint_guidance.reset_Z();
+                //start new job
+                setpoint_guidance.restart_circ(); 
+
+                sm->changedState = false;
+            }
+
+            // State transition
+            switch (input)
+            {
+            case ENTER_STANDBY:
+                sm->current_state = STANDBY;
+                sm->changedState = true;
+                break;
+            case ENTER_LANDING:
+                sm->current_state = LANDING;
+                sm->changedState = true;
+                break;
+
+            case ENTER_LOITER:
+                if (setpoint_guidance.get_state_XY() && setpoint_guidance.is_XY_en())\
+                    setpoint_guidance.reset_XY();
+                break;
+
+            default:
+                fprintf(stderr, "\nLOITER cannot transition with event %s\n",
+                    sm_alph_strings[input]);
+                break;
+            }
             break;
-        case NAILING:
-            fprintf(stderr,
-                "\nNAILING mode not yet implemented. Switching state to STANDBY. Input: %s\n",
-                sm_alph_strings[input]);
-            sm->current_state = STANDBY;
-            sm->changedState = true;
+        /** SQUARE: Similar to LOITER, but square. Assumes vehicle is in the air. Activates automated 
+        *  square guidance script aboubt the point of activation. Valid Transitions: STANDBY, LANDING
+        */
+        case SQUARE:
+            // Actions associated with this state
+            if (sm->changedState)
+            {
+                //terminate all the previous guidance jobs and clean up
+                setpoint_guidance.reset_XY();
+                setpoint_guidance.reset_Z();
+                //start new job
+                setpoint_guidance.restart_square();
+
+                sm->changedState = false;
+            }
+
+            // State transition
+            switch (input)
+            {
+            case ENTER_STANDBY:
+                sm->current_state = STANDBY;
+                sm->changedState = true;
+                break;
+            case ENTER_LANDING:
+                sm->current_state = LANDING;
+                sm->changedState = true;
+                break;
+
+            case ENTER_SQUARE:
+                if (setpoint_guidance.get_state_XY() && setpoint_guidance.is_XY_en())\
+                    setpoint_guidance.reset_XY();
+                break;
+
+            default:
+                fprintf(stderr, "\nSQUARE cannot transition with event %s\n",
+                    sm_alph_strings[input]);
+                break;
+            }
             break;
+        // States that have not yet been implemented
         case RETURN:
             fprintf(stderr,
                 "\nRETURN mode not yet implemented. Switching state to STANDBY. Input: %s\n",

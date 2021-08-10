@@ -30,7 +30,7 @@ extern "C"
         GUIDED = 3,
         LANDING = 4,
         LOITER = 5,
-        NAILING = 6,
+        SQUARE = 6,
         RETURN = 7,
     } sm_states;
 
@@ -46,7 +46,7 @@ extern "C"
         ENTER_GUIDED = 3,
         ENTER_LANDING = 4,
         ENTER_LOITER = 5,
-        ENTER_NAILING = 6,
+        ENTER_SQUARE = 6,
         ENTER_RETURN = 7,
         NO_EVENT,
     } sm_alphabet;
