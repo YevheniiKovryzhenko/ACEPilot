@@ -574,11 +574,13 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case AUTONOMOUS:
-		en_6dof = 0;
-		en_rpy_ctrl = 1;
-		en_Z_ctrl = 1;
-		en_XY_vel_ctrl = 0;
-		en_XY_pos_ctrl = 1;
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = true;
+		en_XY_pos_ctrl = true;
 
 		//Test functions:
 		
@@ -591,14 +593,15 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case EMERGENCY_LAND:
-		// 1) Enable PID Loops based on flight mode
-		en_6dof = 0;
-		en_rpy_rate_ctrl = 1;
-		en_rpy_ctrl = 1;
-		en_Z_ctrl = 0;
-		en_XY_pos_ctrl = 0;
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = true;
+		en_XY_pos_ctrl = true;
 
-		// 2) Assign Setpoints
+		//Assign Setpoints
 		roll = 0;
 		pitch = 0;
 

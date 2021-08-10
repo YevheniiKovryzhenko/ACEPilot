@@ -341,7 +341,7 @@ void setpoint_guidance_t::init_land(void)
 void setpoint_guidance_t::reset_land(void)
 {
     land_start_delay_s  = land_start_def_delay_s;
-    V_land              = -settings.V_max_land;
+    V_land              = settings.V_max_land;
     return;
 }
 
@@ -379,11 +379,11 @@ void setpoint_guidance_t::set_V_land(double new_V_max)
 {
     if (fabs(new_V_max) < settings.V_max_land) //don't let exceed the maximum
     {
-        V_land = -fabs(new_V_max); // vertical velocity is positive down
+        V_land = fabs(new_V_max); // vertical velocity is positive down
     }
     else
     {
-        V_land = -settings.V_max_land;
+        V_land = settings.V_max_land;
     }
 
     return;
@@ -473,7 +473,7 @@ void setpoint_guidance_t::set_takeoff_height(double height)
     if (!en_takeoff)
     {
         takeoff_height = fabs(height);
-        Z_cubic.set(Z_initial, takeoff_height + Z_initial, 0,
+        Z_cubic.set(Z_initial, Z_initial - takeoff_height, 0,
             0, t_takeoff_s);
     }
     return;
@@ -487,7 +487,7 @@ void setpoint_guidance_t::start_takeoff(void) //intended to allow running at eac
         en_takeoff  = true; // start takeoff
         setpoint.Z  = state_estimate.Z; //zero out the error
 
-        Z_cubic.set(Z_initial, takeoff_height + Z_initial, 0,
+        Z_cubic.set(Z_initial, Z_initial - takeoff_height, 0,
             0, t_takeoff_s);
         printf("\nStarting takeoff algorithm....");
     }//otherwise do nothing
@@ -656,14 +656,16 @@ int setpoint_guidance_t::march_square(void)
     switch (XY_waypt)
     {
     case 0:
-        if (finddt_s(XY_time_ns) > XY_start_delay_s) //assume we are at corner 1
+        if (finddt_s(XY_time_ns) > XY_start_delay_s) //assume we are at the center
         {
-            X_cubic.set(X_initial, square_X_offset + X_initial, 0,
-                0, square_X_time_s);
+            X_cubic.set(X_initial, square_X_offset / 2.0 + X_initial, 0,
+                0, square_X_time_s / 2.0);
+            Y_cubic.set(Y_initial, square_Y_offset / 2.0 + Y_initial, 0,
+                0, square_Y_time_s / 2.0);
             XY_waypt = 1;
             break;
         }
-        else 
+        else
         {
             //keep current position:
             setpoint.X = X_initial;
@@ -671,8 +673,8 @@ int setpoint_guidance_t::march_square(void)
             break;
         }
     case 1:
-        // move to corner 2:
-        if (X_cubic.march(setpoint.X))
+        // move to first corner
+        if (Y_cubic.march(setpoint.Y) && X_cubic.march(setpoint.X))
         {
             XY_waypt = 2;
             XY_time_ns = rc_nanos_since_boot();
@@ -682,21 +684,23 @@ int setpoint_guidance_t::march_square(void)
     case 2:
         if (finddt_s(XY_time_ns) > XY_waypt_delay_s)
         {
-            Y_cubic.set(Y_initial, square_Y_offset + Y_initial, 0,
-                0, square_Y_time_s);
+            X_cubic.set(square_X_offset / 2.0 + X_initial, -square_X_offset / 2.0 + X_initial, 0,
+                0, square_X_time_s);
             XY_waypt = 3;
             break;
         }
         else
         {
             //keep current position:
-            setpoint.X = square_X_offset + X_initial; 
-            setpoint.Y = Y_initial;
+            setpoint.X = square_X_offset / 2.0 + X_initial;
+            setpoint.Y = square_Y_offset / 2.0 + Y_initial;
+            setpoint.yaw = Yaw_initial;
             break;
         }
+    
     case 3:
-        // move to corner 3:
-        if (Y_cubic.march(setpoint.Y))
+        // move to corner 2:
+        if (X_cubic.march(setpoint.X))
         {
             XY_waypt = 4;
             XY_time_ns = rc_nanos_since_boot();
@@ -706,21 +710,21 @@ int setpoint_guidance_t::march_square(void)
     case 4:
         if (finddt_s(XY_time_ns) > XY_waypt_delay_s)
         {
-            X_cubic.set(square_X_offset + X_initial, X_initial, 0,
-                0, square_X_time_s);
+            Y_cubic.set(square_Y_offset / 2.0 + Y_initial, -square_Y_offset / 2.0 + Y_initial, 0,
+                0, square_Y_time_s);
             XY_waypt = 5;
             break;
         }
         else
         {
             //keep current position:
-            setpoint.X = square_X_offset + X_initial;
-            setpoint.Y = square_Y_offset + Y_initial;
+            setpoint.X = -square_X_offset / 2.0 + X_initial;
+            setpoint.Y = square_Y_offset / 2.0 + Y_initial;
             break;
         }
     case 5:
-        // move to corner 4:
-        if (X_cubic.march(setpoint.X))
+        // move to corner 3:
+        if (Y_cubic.march(setpoint.Y))
         {
             XY_waypt = 6;
             XY_time_ns = rc_nanos_since_boot();
@@ -730,28 +734,78 @@ int setpoint_guidance_t::march_square(void)
     case 6:
         if (finddt_s(XY_time_ns) > XY_waypt_delay_s)
         {
-            Y_cubic.set(square_Y_offset + Y_initial, Y_initial, 0,
-                0, square_Y_time_s);
+            X_cubic.set(-square_X_offset / 2.0 + X_initial, square_X_offset / 2.0 + X_initial, 0,
+                0, square_X_time_s);
             XY_waypt = 7;
             break;
         }
         else
         {
             //keep current position:
-            setpoint.X = X_initial;
-            setpoint.Y = square_Y_offset + Y_initial;
+            setpoint.X = -square_X_offset / 2.0 + X_initial;
+            setpoint.Y = -square_Y_offset / 2.0 + Y_initial;
             break;
         }
     case 7:
-        // move back to corner 1:
-        if (Y_cubic.march(setpoint.Y))
+        // move to corner 4:
+        if (X_cubic.march(setpoint.X))
         {
-            XY_time_ns = rc_nanos_since_boot();
             XY_waypt = 8;
+            XY_time_ns = rc_nanos_since_boot();
             break;
         }
         else break;
     case 8:
+        if (finddt_s(XY_time_ns) > XY_waypt_delay_s)
+        {
+            Y_cubic.set(-square_Y_offset / 2.0 + Y_initial, square_Y_offset / 2.0 + Y_initial, 0,
+                0, square_Y_time_s);
+            XY_waypt = 9;
+            break;
+        }
+        else
+        {
+            //keep current position:
+            setpoint.X = square_X_offset / 2.0 + X_initial;
+            setpoint.Y = -square_Y_offset / 2.0 + Y_initial;
+            break;
+        }
+    case 9:
+        // move back to corner 1:
+        if (Y_cubic.march(setpoint.Y))
+        {
+            XY_time_ns = rc_nanos_since_boot();
+            XY_waypt = 10;
+            break;
+        }
+        else break;
+    case 10:
+        if (finddt_s(XY_time_ns) > XY_start_delay_s)
+        {
+            Y_cubic.set(setpoint.Y, Y_initial, 0,
+                0, square_Y_time_s / 2.0);
+            X_cubic.set(setpoint.X, X_initial, 0,
+                0, square_X_time_s / 2.0);
+            XY_waypt = 11;
+            break;
+        }
+        else
+        {
+            //keep current position:
+            // we don't know where we are (depends on tt)
+            // assume we reached our setpoint and want to go back
+            break;
+        }
+    case 11:
+        // move back to the origin:
+        if (Y_cubic.march(setpoint.Y) && X_cubic.march(setpoint.X))
+        {
+            XY_waypt = 12;
+            XY_time_ns = rc_nanos_since_boot();
+            break;
+        }
+        else break;
+    case 12:
         if (finddt_s(XY_time_ns) > XY_waypt_delay_s)
         {
             st_XY = true;
