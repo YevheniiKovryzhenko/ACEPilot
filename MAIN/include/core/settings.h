@@ -205,13 +205,6 @@ typedef struct settings_t{
     char wp_landing_filename[100];
     ///@}
 
-	/** @name pre-set settings for automated flight */
-    ///@{
-    double V_max_land;
-    double height_takeoff;
-    double t_takeoff;
-	///@}
-
     /** @name serial ports the Xbee and other hardware it is connected to */
     ///@{
     char serial_port_1[50];
@@ -224,8 +217,22 @@ typedef struct settings_t{
 
 	/** @name parameters for autonomous flight modes*/
 	///@{
+	double hover_throttle;
+	double V_max_land;
+	double height_takeoff;
+	double t_takeoff;
+	double XY_start_delay_s;
+	double XY_waypt_delay_s;
 	double max_XY_velocity;
 	double max_Z_velocity;
+	double square_X_offset;
+	double square_Y_offset;
+	double square_X_time_s;
+	double square_Y_time_s;
+	double turn_radius;
+	double turn_period;
+	double turn_time_s;
+	bool turn_dir_yaw_cw;
 	///@}
 }settings_t;
 

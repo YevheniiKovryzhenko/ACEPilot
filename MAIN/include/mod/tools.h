@@ -22,6 +22,14 @@ extern "C" {
 	double finddt_s(uint64_t ti);
 
 	/**
+	* @brief		uses a cubic pol. to connect two points in space using initial and final
+	*				constraints
+	*
+	* @return     possition (m) based on time elapsed dt and total time tt_s (in seconds)
+	*/
+	double cubicPol(double xi, double xf, double xdoti, double xdotf, float tt_s, double dt);
+
+	/**
 	 * @brief		scans data from a text file
 	 *
 	 * @return		0 on success, -1 on failure

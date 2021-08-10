@@ -830,6 +830,17 @@ int settings_load_from_file(char* path)
 	PARSE_DOUBLE_MIN_MAX(t_takeoff, 0.0, 10000000);
 	PARSE_DOUBLE_MIN_MAX(max_XY_velocity, 0.0, 100000000);
 	PARSE_DOUBLE_MIN_MAX(max_Z_velocity, 0.0, 10000000);
+	PARSE_DOUBLE_MIN_MAX(hover_throttle, 0.0, 1.0);
+	PARSE_DOUBLE_MIN_MAX(XY_start_delay_s, 0.0, 100.0);
+	PARSE_DOUBLE_MIN_MAX(XY_waypt_delay_s, 0.0, 100.0);
+	PARSE_DOUBLE_MIN_MAX(square_X_offset, -10000.0, 10000.0);
+	PARSE_DOUBLE_MIN_MAX(square_Y_offset, -10000.0, 10000.0);
+	PARSE_DOUBLE_MIN_MAX(square_X_time_s, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(square_Y_time_s, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(turn_radius, 0.0, 100.0);
+	PARSE_DOUBLE_MIN_MAX(turn_period, 0.0, 100.0);
+	PARSE_DOUBLE_MIN_MAX(turn_time_s, 0.0, 100.0);
+	PARSE_BOOL(turn_dir_yaw_cw);
 
 	// SERIAL PORTS
 	PARSE_STRING(serial_port_1);

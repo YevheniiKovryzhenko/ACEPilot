@@ -73,7 +73,7 @@ private:
 	/**
 	* Function only used locally
 	*/
-
+	int update_setpoints(void);
 	/**
 	* @brief   Logic for starting to follow path, reset time and waypoint counter
 	*/
@@ -143,9 +143,10 @@ public:
 	double Z_dot_ff;		///< feedforward vertical velocity (m/s)
 	double Z_throttle_0;	/// hover throttle
 
-
+	
 	/** @name auto-land/take-off logic */
 	///< @{
+	/*
 	bool en_Z_land;				///< enable landing algorithm.
 	bool en_Z_takeoff;			///< enable take-off algorithm.
 	bool st_land;				///< landing status (failure/success) - use it externally for automated algorithms
@@ -159,6 +160,7 @@ public:
 	double V_max_land;			///< vertical velocity for landing
 	double Z_init_takeoff;		///< altitude when take-off is initiated
 	double dZ_takeoff;			///< take off increment from the initial altitude  		
+	*/
 	///< @}
 	///< @}
 
@@ -181,6 +183,7 @@ public:
 	///< @{
 	//int en_XY_AUTO;					///< enable/disable automated trajectory
 	//int en_XY_AUTO_TEST;			///< enable/disable automated testing trajectory
+	/*
 	bool en_AUTO_LIFTOFF_HOWER_TEST; ///< enable/disable automated liftoff trajectory
 	bool en_XY_SQUARE_TEST;			///< enable/disable automated square trajectory
 	bool en_XY_CIRC_TEST;			///< enable/disable automated circular trajectory
@@ -204,12 +207,12 @@ public:
 	double dYaw_CIRC;			///< increment in Yaw
 	double T_CIRC;				///< time/period for circular trajectory
 	double R_CIRC;				///< radius of a circle to make
-
+	*/
 	/**
-		* @name Waypoint Management
-		*
-		*/
-		///< @{
+	* @name Waypoint Management
+	*
+	*/
+	///< @{
 	uint64_t time_auto_set;     ///< time autonomous mode is set and armed
 	double waypoint_time;       ///< current time to compare to waypoint times
 	bool auto_armed_set;         ///< flag to manage time auto + armed is set

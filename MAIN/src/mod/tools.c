@@ -9,6 +9,20 @@ double finddt_s(uint64_t ti)
     return dt_s;
 }
 
+double cubicPol(double xi, double xf, double xdoti, double xdotf, float tt_s, double dt)
+{
+    double dX = (2 * xi - 2 * xf + tt_s * (xdotf + xdoti)) / (pow(tt_s, 3)) * pow(dt, 3) -
+        (3 * xi - 3 * xf + tt_s * (xdotf + 2 * xdoti)) / (pow(tt_s, 2)) * pow(dt, 2) +
+        xdoti * dt + xi;
+    /* Cubic BVP:
+    initial position and velocity is 0
+    final position is xf and velocity is 0
+    tt_s is total time in seconds
+    */
+    // double dX = (-2*xf/(tt_s*tt_s*tt_s)) * dt*dt*dt + 3*xf/(tt_s*tt_s) * dt*dt;
+    return dX;
+}
+
 int scan_file_d(void)
 {
     uint64_t run_time = rc_nanos_since_boot();

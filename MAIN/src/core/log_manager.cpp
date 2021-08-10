@@ -72,7 +72,7 @@
 #include "input_manager.hpp"
 
 #include "log_manager.hpp"
- // preposessor macros
+// preposessor macros
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
 

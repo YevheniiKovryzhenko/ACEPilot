@@ -63,7 +63,7 @@ private:
 
 	int update_gains(void);
 
-	int update_setpoints(void);
+	//int update_setpoints(void);
 
 	int zero_out_ff(void);
 

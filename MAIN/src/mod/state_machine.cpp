@@ -15,7 +15,7 @@
 
 #include "setpoint_manager.hpp"
 #include "settings.h"
-#include "trajectories_common.hpp"
+#include "setpoint_guidance.hpp"
 #include "input_manager.hpp"
 #include "state_estimator.h"
 

@@ -27,7 +27,7 @@
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
  * and is the interface between the user inputs (input manager) and
- * the feedback controller setpoint. currently it contains very
+ * the feedback controller setpoint . currently it contains very
  * simply logic and runs very quickly which is why it's okay to run
  * in the feedback ISR right before the feedback controller. In the
  * future this is where go-home and other higher level autonomy will
@@ -58,7 +58,7 @@
 #include "state_estimator.h"
 #include "flight_mode.h"
 #include "xbee_receive.h"
-#include "trajectories_common.hpp"
+#include "setpoint_guidance.hpp"
 #include "tools.h"
 #include "feedback.hpp"
 
@@ -176,8 +176,13 @@ void setpoint_t::update_XY_pos(void)
 int setpoint_t::init(void)
 {
 	if(initialized){
-		fprintf(stderr, "ERROR in setpoint_manager_init, already initialized\n");
+		fprintf(stderr, "\nERROR in setpoint_manager_init, already initialized");
 		return -1;
+	}
+
+	if (setpoint_guidance.init() == -1)
+	{
+		fprintf(stderr, "\nERROR in setpoint_manager_init, failed to initialize setpoint guidance");
 	}
 
 	initialized = true;
@@ -313,6 +318,302 @@ void setpoint_t::update_setpoint_from_waypoint()
 }
 
 
+int setpoint_t::update_setpoints(void)
+{
+	// finally, switch between flight modes and adjust setpoint properly
+	switch (user_input.flight_mode) {
+
+
+	case TEST_BENCH_4DOF:
+		// configure which controllers are enabled
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_ctrl = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		roll_throttle = user_input.get_roll_stick();
+		pitch_throttle = user_input.get_pitch_stick();
+		yaw_throttle = user_input.get_yaw_stick();
+		X_throttle = 0.0;
+		Y_throttle = 0.0;
+		Z_throttle = -user_input.get_thr_stick();
+		// TODO add these two throttle modes as options to settings, I use a radio
+		// with self-centering throttle so having 0 in the middle is safest
+		// Z_throttle = -(user_input.thr_stick+1.0)/2.0;
+
+		break;
+
+	case TEST_BENCH_6DOF:
+		// configure which controllers are enabled
+		en_6dof = true;
+		en_rpy_rate_ctrl = false;
+		en_rpy_ctrl = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+
+		roll_throttle = 0.0;
+		pitch_throttle = 0.0;
+		yaw_throttle = user_input.get_yaw_stick();
+		X_throttle = -user_input.get_pitch_stick();
+		Y_throttle = user_input.get_roll_stick();
+		Z_throttle = -user_input.get_thr_stick();
+		break;
+
+	case TEST_6xSERVOS_DIRECT:
+		// configure which controllers are enabled
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_ctrl = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+
+		roll_throttle = 0.0;
+		pitch_throttle = 0.0;
+		yaw_throttle = 0.0;
+		X_throttle = 0.0;
+		Y_throttle = 0.0;
+		Z_throttle = 0.0;
+
+
+		//servos:
+		roll_servo_throttle = (user_input.get_roll_stick() + 1.0) / 2.0;	//map [-1 1] into [0 1]
+		pitch_servo_throttle = (user_input.get_pitch_stick() + 1.0) / 2.0;	//map [-1 1] into [0 1]
+		yaw_servo_throttle = (user_input.get_yaw_stick() + 1.0) / 2.0;		//map [-1 1] into [0 1]
+		Z_servo_throttle = user_input.get_thr_stick();
+		break;
+
+	case ACRO:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		roll_dot = user_input.get_roll_stick() * MAX_ROLL_RATE;
+		pitch_dot = user_input.get_pitch_stick() * MAX_PITCH_RATE;
+		yaw_dot = user_input.get_yaw_stick() * MAX_YAW_RATE;
+		Z_throttle = -user_input.get_thr_stick() / \
+			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+		break;
+
+	case MANUAL_S:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		roll = user_input.get_roll_stick();
+		pitch = user_input.get_pitch_stick();
+		Z_throttle = -user_input.get_thr_stick() / \
+			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+
+		update_yaw();
+		break;
+
+	case MANUAL_F:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		roll = user_input.get_roll_stick();
+		pitch = user_input.get_pitch_stick();
+		Z_throttle = -user_input.get_thr_stick() / \
+			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+
+		update_yaw();
+		break;
+
+	case DIRECT_THROTTLE_6DOF:
+		en_6dof = true;
+		en_rpy_rate_ctrl = false;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		X_throttle = -user_input.get_pitch_stick();
+		Y_throttle = user_input.get_roll_stick();
+		Z_throttle = -user_input.get_thr_stick();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_SS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		roll = user_input.get_roll_stick();
+		pitch = user_input.get_pitch_stick();
+
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		roll = user_input.get_roll_stick();
+		pitch = user_input.get_pitch_stick();
+
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FF:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		roll = user_input.get_roll_stick();
+		pitch = user_input.get_pitch_stick();
+
+		update_Z();
+		update_yaw();
+		break;
+
+	case POSITION_CONTROL_SSS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = true;
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+
+		//printf("\nM2  X=%f Y=%f Z=%f with altitude of %f \n",X,Y,Z,state_estimate.Z);
+		break;
+
+	case POSITION_CONTROL_FSS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = true;
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+
+		//printf("\nM2  X=%f Y=%f Z=%f with altitude of %f \n",X,Y,Z,state_estimate.Z);
+		break;
+
+	case POSITION_CONTROL_FFS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = true;
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+
+		//printf("\nM2  X=%f Y=%f Z=%f with altitude of %f \n",X,Y,Z,state_estimate.Z);
+		break;
+
+	case POSITION_CONTROL_FFF:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_ctrl = true;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = true;
+		en_XY_pos_ctrl = true;
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+
+		//printf("\nM2  X=%f Y=%f Z=%f with altitude of %f \n",X,Y,Z,state_estimate.Z);
+		break;
+
+	case AUTONOMOUS:
+		en_6dof = 0;
+		en_rpy_ctrl = 1;
+		en_Z_ctrl = 1;
+		en_XY_vel_ctrl = 0;
+		en_XY_pos_ctrl = 1;
+
+		//Test functions:
+		
+
+		update_setpoint_from_waypoint();
+		//printf("\nsp.x = %f and st.x = %f, sp.y = %f and st.y = %f, sp.z = %f, st.z = %f sp.yaw=%f and st.yaw = %f\n",
+		//    X, state_estimate.X, Y, state_estimate.Y, Z,
+		//    state_estimate.Z, yaw, state_estimate.yaw);
+
+		break;
+
+	case EMERGENCY_LAND:
+		// 1) Enable PID Loops based on flight mode
+		en_6dof = 0;
+		en_rpy_rate_ctrl = 1;
+		en_rpy_ctrl = 1;
+		en_Z_ctrl = 0;
+		en_XY_pos_ctrl = 0;
+
+		// 2) Assign Setpoints
+		roll = 0;
+		pitch = 0;
+
+		setpoint_guidance.start_land();  // start landing algorithm
+
+		update_yaw();
+		break;
+	default: // should never get here
+		fprintf(stderr, "ERROR in setpoint_manager thread, unknown flight mode\n");
+		break;
+
+	} // end switch(user_input.flight_mode)
+	return 0;
+}
+
+
 /**
 * @brief      updates the setpoint manager, call this before feedback loop
 *
@@ -346,7 +647,7 @@ int setpoint_t::update(void)
 	if (user_input.requested_arm_mode == ARMED) {
 		if (fstate.get_arm_state() == DISARMED) fstate.arm();
 	}
-
+	update_setpoints();
 
 	return 0;
 }
