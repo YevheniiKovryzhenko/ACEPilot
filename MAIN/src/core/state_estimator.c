@@ -99,9 +99,9 @@ static void __batt_cleanup(void)
 
 static void __gyro_init(void)
 {
-    rc_filter_first_order_lowpass(&gyro_pitch_lpf, DT, 5.2*DT);
-    rc_filter_first_order_lowpass(&gyro_roll_lpf, DT, 5.2*DT);
-    rc_filter_first_order_lowpass(&gyro_yaw_lpf, DT, 6.0*DT);
+    rc_filter_first_order_lowpass(&gyro_pitch_lpf, DT, 6.0*DT);
+    rc_filter_first_order_lowpass(&gyro_roll_lpf, DT, 6.0*DT);
+    rc_filter_first_order_lowpass(&gyro_yaw_lpf, DT, 7.0*DT);
 	return;
 }
 

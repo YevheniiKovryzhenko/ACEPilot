@@ -11,7 +11,7 @@ add_compile_options(
 
 if(DEFINED __RC_V0_3)
 
-	add_library(robotics_cape
+	add_library(robotics_cape STATIC
 		roboticscape.c
 		bmp280/rc_bmp280.c
 		gpio/rc_buttons.c
@@ -48,7 +48,7 @@ if(DEFINED __RC_V0_3)
 else()
 
 	include_directories(include)
-	add_library(robotics_cape
+	add_library(robotics_cape STATIC
 		src/button.c
 		src/cpu.c
 		src/dsm.c
