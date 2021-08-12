@@ -520,12 +520,12 @@ int feedback_controller_t::z_init(void)
 	D_Z_pd = RC_FILTER_INITIALIZER;
 	D_Z_i = RC_FILTER_INITIALIZER;
 
-	if (unlikely(rc_filter_duplicate(&D_Z_pd, settings.altitude_rate_controller_pd) == -1))
+	if (unlikely(rc_filter_duplicate(&D_Z_pd, settings.altitude_controller_pd) == -1))
 	{
 		printf("\nError in z_init: failed to dublicate controller from settings");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_Z_i, settings.altitude_rate_controller_i) == -1))
+	if (unlikely(rc_filter_duplicate(&D_Z_i, settings.altitude_controller_i) == -1))
 	{
 		printf("\nError in z_init: failed to dublicate controller from settings");
 		return -1;

@@ -289,7 +289,7 @@ void setpoint_t::update_setpoint_from_waypoint()
                 ++cur_waypoint_num;
 
 				// Set the desired x, y, and z if allowed
-                if (en_waypoint_update)
+                if (waypoint_state_machine.is_en())
                 {
 					X		= path.waypoints_init.x		+ path.waypoints[cur_waypoint_num].x;
 					Y		= path.waypoints_init.y		+ path.waypoints[cur_waypoint_num].y;
@@ -303,7 +303,8 @@ void setpoint_t::update_setpoint_from_waypoint()
             if (cur_waypoint_num >= (path.len - 1))
             {
                 //printf("\nDisable wp");
-                en_waypoint_update = false;
+                //en_waypoint_update = false;
+				waypoint_state_machine.disable_update();
 			}
             break;
         case POS_TRANSITION_FLAG:

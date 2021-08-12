@@ -138,7 +138,8 @@ static void __imu_isr(void)
     // Update the state machine
     if (user_input.flight_mode == AUTONOMOUS)
     {
-        sm_transition(&waypoint_state_machine, (sm_alphabet)xbeeMsg.sm_event);
+        //sm_transition(&waypoint_state_machine, (sm_alphabet)xbeeMsg.sm_event);
+        waypoint_state_machine.march();
         if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
     }
 

@@ -18,6 +18,7 @@
 #include "setpoint_guidance.hpp"
 #include "input_manager.hpp"
 #include "state_estimator.h"
+#include "xbee_receive.h"
 
 #include "state_machine.hpp"
 
@@ -34,14 +35,14 @@ static const char* sm_alph_strings[] = {
     "NO_EVENT",
 };
 
-state_machine_t waypoint_state_machine = STATE_MACHINE_INITIALIZER;
+state_machine_t waypoint_state_machine{};
 
-static char waypoint_filename[200];
+//static char waypoint_filename[200];
 
 /**
  * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
  */
-static void __build_waypoit_filename(char* dest, char* folder, char* file)
+static void state_machine_t::build_waypoit_filename(char* dest, char* folder, char* file)
 {
     dest[0] = '\0';
     strcat(dest, folder);
@@ -51,29 +52,64 @@ static void __build_waypoit_filename(char* dest, char* folder, char* file)
 /**
  * @brief Initialize statemachine to PARKED state
  */
-int sm_init(state_machine_t* sm)
+int state_machine_t::init(void)
 {
-    sm->current_state = PARKED;
-    sm->state_transition_time = 0;
-    sm->changedState = false;
-    setpoint.en_waypoint_update = 0;
+    current_state               = PARKED;
+    state_transition_time       = 0;
+    changedState                = false;
+    en_update                   = false;
     return 1;
 }
+
+int state_machine_t::enable_update(void)
+{
+    if (!en_update)
+    {
+        en_update       = true;
+        changedState    = false;
+    }
+    return 0;
+}
+
+int state_machine_t::diable_update(void)
+{
+    if (en_update)
+    {
+        en_update = false;
+        //changedState = false;
+    }
+    return 0;
+}
+
+bool state_machine_t::is_en(void)
+{
+    return en_update;
+}
+
+int state_machine_t::march(void)
+{
+    if (en_update)
+    {
+        transition(user_input.flight_mode, (sm_alphabet)xbeeMsg.sm_event);
+    }
+    return 0;
+}
+
 
 /**
  * @brief Parse the input and transition to new state if applicable
  */
-void sm_transition(state_machine_t* sm, sm_alphabet input)
+void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
 {
 
     // Unique things that should be done for each state
-    switch (sm->current_state)
+    switch (current_state)
     {
         case PARKED:
             switch (input)
             {
                 case ENTER_PARKED:
-                    if (user_input.flight_mode == AUTONOMOUS)
+                    if (flight_mode == AUTONOMOUS)
                     {
                         setpoint.yaw = state_estimate.continuous_yaw;
                     }
@@ -81,15 +117,15 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     if (setpoint_guidance.is_Z_en()) setpoint_guidance.reset_Z();
                     break;
                 case ENTER_TAKEOFF:
-                    sm->current_state = TAKEOFF;
-                    sm->changedState = true;
+                    current_state = TAKEOFF;
+                    changedState = true;
                     break;
                 case ENTER_LANDING:
                     //do nothing
                     break;
                 case ENTER_GUIDED:
-                    sm->current_state = GUIDED;
-                    sm->changedState = true;
+                    current_state = GUIDED;
+                    changedState = true;
                     break;
 
                 default:
@@ -110,32 +146,32 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     break;
 
                 case ENTER_TAKEOFF:
-                    sm->current_state       = TAKEOFF;
-                    sm->changedState        = true;
+                    current_state       = TAKEOFF;
+                    changedState        = true;
                     break;
                 case ENTER_GUIDED:
-                    sm->current_state   = GUIDED;
-                    sm->changedState    = true;
+                    current_state   = GUIDED;
+                    changedState    = true;
                     break;
 
                 case ENTER_LANDING:
-                    sm->current_state   = LANDING;
-                    sm->changedState    = true;
+                    current_state   = LANDING;
+                    changedState    = true;
                     break;
 
                 case ENTER_LOITER:
-                    sm->current_state   = LOITER;
-                    sm->changedState    = true;
+                    current_state   = LOITER;
+                    changedState    = true;
                     break;
 
                 case ENTER_SQUARE:
-                    sm->current_state   = SQUARE;
-                    sm->changedState    = true;
+                    current_state   = SQUARE;
+                    changedState    = true;
                     break;
 
                 case ENTER_RETURN:
-                    sm->current_state   = RETURN;
-                    sm->changedState    = true;
+                    current_state   = RETURN;
+                    changedState    = true;
                     break;
 
                 default:
@@ -152,9 +188,9 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
         case TAKEOFF:
 
             // Actions associated with this state
-            if (sm->changedState)
+            if (changedState)
             {
-                sm->changedState = false;
+                changedState = false;
 
                 //terminate all the previous guidance jobs and clean up
                 setpoint_guidance.reset_XY();
@@ -174,33 +210,33 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     break;
 
                 case ENTER_STANDBY:
-                    sm->current_state   = STANDBY;
-                    sm->changedState    = true;
+                    current_state   = STANDBY;
+                    changedState    = true;
                     break;
 
                 case ENTER_GUIDED:
-                    sm->current_state   = GUIDED;
-                    sm->changedState    = true;
+                    current_state   = GUIDED;
+                    changedState    = true;
                     break;
 
                 case ENTER_LANDING:
-                    sm->current_state   = LANDING;
-                    sm->changedState    = true;
+                    current_state   = LANDING;
+                    changedState    = true;
                     break;
 
                 case ENTER_LOITER:
-                    sm->current_state   = LOITER;
-                    sm->changedState    = true;
+                    current_state   = LOITER;
+                    changedState    = true;
                     break;
 
                 case ENTER_SQUARE:
-                    sm->current_state   = SQUARE;
-                    sm->changedState    = true;
+                    current_state   = SQUARE;
+                    changedState    = true;
                     break;
 
                 case ENTER_RETURN:
-                    sm->current_state   = RETURN;
-                    sm->changedState    = true;
+                    current_state   = RETURN;
+                    changedState    = true;
                     break;
 
                 default:
@@ -215,13 +251,13 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
          */
         case GUIDED:
             // Actions associated with this state
-            if (sm->changedState)
+            if (changedState)
             {
                 //terminate all the previous guidance jobs and clean up
                 setpoint_guidance.reset_XY();
                 setpoint_guidance.reset_Z();
                 //start new job
-                __build_waypoit_filename(
+                build_waypoit_filename(
                     waypoint_filename, settings.wp_folder, settings.wp_guided_filename);
 
                 if (setpoint.set_new_path(waypoint_filename) == -1)
@@ -230,8 +266,7 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     break;
                 }
 
-                setpoint.en_waypoint_update = 1;
-                sm->changedState = false;
+                if (!waypoint_state_machine.is_en()) waypoint_state_machine.enable_update();
             }
 
             // State transition
@@ -241,29 +276,29 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                     break;
 
                 case ENTER_STANDBY:
-                    sm->current_state = STANDBY;
-                    sm->changedState = true;
+                    current_state = STANDBY;
+                    changedState = true;
                     break;
 
                 case ENTER_LANDING:
-                    sm->current_state   = LANDING;
-                    sm->changedState    = true;
+                    current_state   = LANDING;
+                    changedState    = true;
                     break;
 
                 case ENTER_LOITER:
-                    sm->current_state   = LOITER;
-                    sm->changedState    = true;
+                    current_state   = LOITER;
+                    changedState    = true;
                     break;
 
                 case ENTER_SQUARE:
-                    sm->current_state   = SQUARE;
-                    sm->changedState    = true;
+                    current_state   = SQUARE;
+                    changedState    = true;
                     // TODO: Load waypoints from SQUARE file
                     break;
 
                 case ENTER_RETURN:
-                    sm->current_state = RETURN;
-                    sm->changedState = true;
+                    current_state = RETURN;
+                    changedState = true;
                     // TODO: Load waypoints from RETURN file
                     break;
 
@@ -279,7 +314,7 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
          */
         case LANDING:
             // Actions associated with this state
-            if (sm->changedState)
+            if (changedState)
             {
                 //terminate all the previous guidance jobs and clean up
                 setpoint_guidance.reset_XY();
@@ -287,20 +322,20 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                 //start new job
                 setpoint_guidance.restart_land();
 
-                sm->changedState = false;
+                changedState = false;
             }
 
             // State transition
             switch (input)
             {
                 case ENTER_STANDBY:
-                    sm->current_state = STANDBY;
-                    sm->changedState = true;
+                    current_state = STANDBY;
+                    changedState = true;
                     break;
 
                 case ENTER_TAKEOFF:
-                    sm->current_state = TAKEOFF;
-                    sm->changedState = true;
+                    current_state = TAKEOFF;
+                    changedState = true;
                     break;
 
                 case ENTER_LANDING:
@@ -310,8 +345,8 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                         {
                             setpoint_guidance.reset_Z(); //should never get here, but just in case
                         }
-                        sm->current_state               = PARKED;
-                        sm->changedState                = true;
+                        current_state               = PARKED;
+                        changedState                = true;
                         user_input.requested_arm_mode   = DISARMED;
                         // should be on the ground at this point
                     }
@@ -329,7 +364,7 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
              */
         case LOITER:
             // Actions associated with this state
-            if (sm->changedState)
+            if (changedState)
             {
                 //terminate all the previous guidance jobs and clean up
                 setpoint_guidance.reset_XY();
@@ -337,19 +372,19 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                 //start new job
                 setpoint_guidance.restart_circ(); 
 
-                sm->changedState = false;
+                changedState = false;
             }
 
             // State transition
             switch (input)
             {
             case ENTER_STANDBY:
-                sm->current_state = STANDBY;
-                sm->changedState = true;
+                current_state = STANDBY;
+                changedState = true;
                 break;
             case ENTER_LANDING:
-                sm->current_state = LANDING;
-                sm->changedState = true;
+                current_state = LANDING;
+                changedState = true;
                 break;
 
             case ENTER_LOITER:
@@ -368,7 +403,7 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
         */
         case SQUARE:
             // Actions associated with this state
-            if (sm->changedState)
+            if (changedState)
             {
                 //terminate all the previous guidance jobs and clean up
                 setpoint_guidance.reset_XY();
@@ -376,19 +411,19 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
                 //start new job
                 setpoint_guidance.restart_square();
 
-                sm->changedState = false;
+                changedState = false;
             }
 
             // State transition
             switch (input)
             {
             case ENTER_STANDBY:
-                sm->current_state = STANDBY;
-                sm->changedState = true;
+                current_state = STANDBY;
+                changedState = true;
                 break;
             case ENTER_LANDING:
-                sm->current_state = LANDING;
-                sm->changedState = true;
+                current_state = LANDING;
+                changedState = true;
                 break;
 
             case ENTER_SQUARE:
@@ -407,8 +442,8 @@ void sm_transition(state_machine_t* sm, sm_alphabet input)
             fprintf(stderr,
                 "\nRETURN mode not yet implemented. Switching state to STANDBY. Input: %s\n",
                 sm_alph_strings[input]);
-            sm->current_state = STANDBY;
-            sm->changedState = true;
+            current_state = STANDBY;
+            changedState = true;
             break;
     }
 }

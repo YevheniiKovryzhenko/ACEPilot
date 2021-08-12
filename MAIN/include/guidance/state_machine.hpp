@@ -13,11 +13,6 @@
 #ifndef __STATE_MACHINE__
 #define __STATE_MACHINE__
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
     /**
      * @brief List of possible states for the state machine. States can be added as needed for new
      * functionality.
@@ -54,29 +49,36 @@ extern "C"
     /**
      * @brief
      */
-    typedef struct state_machine_t
+    class state_machine_t
     {
+    private:
         uint32_t state_transition_time;  // Time this state was transitioned into
         sm_states current_state;
         bool changedState;  // True if state has transitioned based on input event
-    } state_machine_t;
+        bool en_update;
+        char waypoint_filename[200];
 
-    /**
-     * @brief       Initial values for state_machine_t
-     */
-#define STATE_MACHINE_INITIALIZER                                                   \
-    {                                                                               \
-        .state_transition_time = 0, .current_state = STANDBY, .changedState = false \
-    }
+        /**
+        * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
+        */
+        void build_waypoit_filename(char* dest, char* folder, char* file);
+
+        /**
+        * @brief Parse the input and transition to new state if applicable
+        */
+        void transition(flight_mode_t flight_mode, sm_alphabet input);
+    public:
+        int init(void);
+        int enable_update(void);
+        int disable_update(void);
+        bool is_en(void);
+        int march(void);
+        
+    };
     extern state_machine_t waypoint_state_machine;
 
-    int sm_init(state_machine_t* sm);
-    void sm_transition(state_machine_t* sm, sm_alphabet input);
-
-
-#ifdef __cplusplus
-}
-#endif
+    //int sm_init(state_machine_t* sm);
+    //void sm_transition(state_machine_t* sm, sm_alphabet input);
 
 #endif /*__STATE_MACHINE__ */
 
