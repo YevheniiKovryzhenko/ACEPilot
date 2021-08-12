@@ -77,9 +77,6 @@
     };
     extern state_machine_t waypoint_state_machine;
 
-    //int sm_init(state_machine_t* sm);
-    //void sm_transition(state_machine_t* sm, sm_alphabet input);
-
 #endif /*__STATE_MACHINE__ */
 
 /* @} end group StateMachine */

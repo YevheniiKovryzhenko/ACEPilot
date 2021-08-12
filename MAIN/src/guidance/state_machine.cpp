@@ -42,7 +42,7 @@ state_machine_t waypoint_state_machine{};
 /**
  * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
  */
-static void state_machine_t::build_waypoit_filename(char* dest, char* folder, char* file)
+void state_machine_t::build_waypoit_filename(char* dest, char* folder, char* file)
 {
     dest[0] = '\0';
     strcat(dest, folder);
@@ -71,7 +71,7 @@ int state_machine_t::enable_update(void)
     return 0;
 }
 
-int state_machine_t::diable_update(void)
+int state_machine_t::disable_update(void)
 {
     if (en_update)
     {

@@ -61,6 +61,7 @@
 #include "setpoint_guidance.hpp"
 #include "tools.h"
 #include "feedback.hpp"
+#include "state_machine.hpp"
 
 #include "setpoint_manager.hpp"
 

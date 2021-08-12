@@ -398,7 +398,7 @@ int main(int argc, char** argv)
 
     // Initialize waypoint state machine
     printf("\ninitializing waypoint state machine");
-    if (sm_init(&waypoint_state_machine) < 0)
+    if (waypoint_state_machine.init() < 0)
     {
         FAIL("\nERROR: failed to init waypoint state machine");
     }
