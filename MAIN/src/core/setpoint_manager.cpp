@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/10/2020 (MM/DD/YYYY)
+ * Last Edit:  08/13/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -54,7 +54,6 @@
 #include "rc_pilot_defs.h"
 #include "input_manager.hpp"
 #include "settings.h"
-#include "path.h"
 #include "state_estimator.h"
 #include "flight_mode.h"
 #include "xbee_receive.h"
@@ -195,134 +194,11 @@ bool setpoint_t::is_initialized(void)
 	return initialized;
 }
 
-/**
-* @brief   Externally order setpoint manager to follow new path from path_file
-*
-* @return  0 on success, -1 if unsuccessful
-*/
-int setpoint_t::set_new_path(const char* file_name)
-{
-    if (path_load_from_file(file_name) == -1)
-    {
-        fprintf(stderr, "ERROR: could not load new path file\n");
-        return -1;
-    }
-
-    reset_waypoint_counter();
-    return 0;
-}
-
-
-
-/**
-* @brief   Logic for starting to follow path, reset time and waypoint counter
-*/
-void setpoint_t::start_waypoint_counter()
-{
-    // If this is the first time in autonomous mode and armed, save the current time
-    if (!auto_armed_set)
-    {
-        // If the system is armed and autonomous mode is set, record time in
-        // time_auto_set
-        auto_armed_set = true;
-        time_auto_set = rc_nanos_since_boot();
-
-		path.waypoints_init.x		= X;
-        path.waypoints_init.y		= Y;
-        path.waypoints_init.z		= Z;
-        path.waypoints_init.roll	= roll;
-        path.waypoints_init.pitch	= pitch;
-        if (fabs(yaw - state_estimate.continuous_yaw) >= M_PI/18.0)
-        {
-            yaw = state_estimate.continuous_yaw;
-            printf("\nWARNING: High yaw error, overwriting setpoint");
-		}
-		
-        path.waypoints_init.yaw = yaw;
-    }
-
-    waypoint_time = finddt_s(time_auto_set);
-	return;
-}
-
-void setpoint_t::stop_waypoint_counter()
-{
-    // If the system is disarmed or out of auto reset the auto_armed_set flag
-    // and change the current waytpoint to zero
-    auto_armed_set = false;
-    cur_waypoint_num = 0;
-	return;
-}
-
-void setpoint_t::reset_waypoint_counter()
-{
-    stop_waypoint_counter();
-    start_waypoint_counter();
-	return;
-}
-
-
-/**
-* @brief Update the setpoint for the next waypoint
-*/
-void setpoint_t::update_setpoint_from_waypoint()
-{
-    start_waypoint_counter();
-    // Break out of function if the current waypoint is the last point in the path
-    //printf("\n cur_waypoint_num = %" PRId64 "", cur_waypoint_num);
-    if (cur_waypoint_num == path.len)
-    {
-        return;
-    }
-
-    // Parse waypoint flag
-    //printf("\n path.waypoints[cur_waypoint_num].flag = %d",
-    //    path.waypoints[cur_waypoint_num].flag);
-    switch ((int)path.waypoints[cur_waypoint_num].flag)
-    {
-        case TIME_TRANSITION_FLAG:
-            // Check if there are additional waypoints and advnace control
-            // to the next waytoint if it is time to do so.  If there are no additional waypoints,
-            // keep controlling to the previous point
-            if (cur_waypoint_num < (path.len - 1) &&
-                waypoint_time >= path.waypoints[cur_waypoint_num + 1].t)
-            {
-                ++cur_waypoint_num;
-
-				// Set the desired x, y, and z if allowed
-                if (waypoint_state_machine.is_en())
-                {
-					X		= path.waypoints_init.x		+ path.waypoints[cur_waypoint_num].x;
-					Y		= path.waypoints_init.y		+ path.waypoints[cur_waypoint_num].y;
-					Z		= path.waypoints_init.z		+ path.waypoints[cur_waypoint_num].z;
-					roll	= path.waypoints_init.roll	+ path.waypoints[cur_waypoint_num].roll;
-					pitch	= path.waypoints_init.pitch + path.waypoints[cur_waypoint_num].pitch;
-					yaw		= path.waypoints_init.yaw	+ path.waypoints[cur_waypoint_num].yaw;
-				}
-                
-            }
-            if (cur_waypoint_num >= (path.len - 1))
-            {
-                //printf("\nDisable wp");
-                //en_waypoint_update = false;
-				waypoint_state_machine.disable_update();
-			}
-            break;
-        case POS_TRANSITION_FLAG:
-            // TODO: determine position error and compare to convergence tolerance
-            //       (? who sets/determines/stores convergence tolerance ?)
-            assert(0);
-            break;
-        default:
-            fprintf(stderr, "ERROR: unrecognized waypoint flag\n");
-    }
-    //printf("\n waypoint_time = %f time = %f",
-    //    waypoint_time, path.waypoints[cur_waypoint_num + 1].t);
-}
-
 
 int setpoint_t::update_setpoints(void)
 {
+	if (user_input.flight_mode != AUTONOMOUS) waypoint_state_machine.disable_update();
+
 	// finally, switch between flight modes and adjust setpoint properly
 	switch (user_input.flight_mode) {
 
@@ -584,13 +460,7 @@ int setpoint_t::update_setpoints(void)
 		en_XY_vel_ctrl = true;
 		en_XY_pos_ctrl = true;
 
-		//Test functions:
-		
-
-		update_setpoint_from_waypoint();
-		//printf("\nsp.x = %f and st.x = %f, sp.y = %f and st.y = %f, sp.z = %f, st.z = %f sp.yaw=%f and st.yaw = %f\n",
-		//    X, state_estimate.X, Y, state_estimate.Y, Z,
-		//    state_estimate.Z, yaw, state_estimate.yaw);
+		waypoint_state_machine.enable_update();
 
 		break;
 

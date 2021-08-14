@@ -62,6 +62,7 @@ target_link_libraries(rc_pilot PRIVATE Threads::Threads) #just including pthread
 # extra parameters (the later is not configured with CMake but using Visual Studio settings.
 # Make sure to copy "Settings"" folder to the build directory:
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/Settings" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/")
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/trajectories" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/")
 
 ### Only Visual Studio Related ###
 # To add any extra options for a file at run right click on the file (main.cpp), select 

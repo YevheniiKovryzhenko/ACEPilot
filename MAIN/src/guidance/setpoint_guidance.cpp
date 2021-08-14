@@ -41,6 +41,8 @@
 #include "tools.h"
 #include "input_manager.hpp"
 #include "state_estimator.h"
+#include "state_machine.hpp"
+#include "path.hpp"
 
 #include "setpoint_guidance.hpp"
 
@@ -49,17 +51,6 @@
 #define likely(x)	__builtin_expect (!!(x), 1)
 
 setpoint_guidance_t setpoint_guidance{};
-
-/*
-void setpoint_guidance_t::circ_traj(double R, double T, double dt)
-{
-    double omega    = 2.0 * M_PI / T; //angular velocity in a turn
-    dX_CIRC         = R * sin(omega * dt);
-    dY_CIRC         = R * cos(omega * dt);
-    dYaw_CIRC       = -omega * dt;
-    return;
-}
-*/
 
 
 void cubic_guide_t::set(double new_xi, double new_xf, double new_xdoti, double new_xdotf, float new_tt)
@@ -651,6 +642,7 @@ int setpoint_guidance_t::march_square(void)
         printf("\nWARNING in march_square: trying to do_square while not enabled");
         return 0;
     }
+    bool tmp1, tmp2;
 
     // begin main sequence -- use waypoints for transition
     switch (XY_waypt)
@@ -674,7 +666,9 @@ int setpoint_guidance_t::march_square(void)
         }
     case 1:
         // move to first corner
-        if (Y_cubic.march(setpoint.Y) && X_cubic.march(setpoint.X))
+        tmp1 = Y_cubic.march(setpoint.Y); // always march both
+        tmp2 = X_cubic.march(setpoint.X);
+        if (tmp1 && tmp2)
         {
             XY_waypt = 2;
             XY_time_ns = rc_nanos_since_boot();
@@ -798,7 +792,9 @@ int setpoint_guidance_t::march_square(void)
         }
     case 11:
         // move back to the origin:
-        if (Y_cubic.march(setpoint.Y) && X_cubic.march(setpoint.X))
+        tmp1 = Y_cubic.march(setpoint.Y);
+        tmp2 = X_cubic.march(setpoint.X);
+        if (tmp1 && tmp2)
         {
             XY_waypt = 12;
             XY_time_ns = rc_nanos_since_boot();
@@ -1040,361 +1036,6 @@ int setpoint_guidance_t::restart_circ(void) //intended as a trigger (do not run 
     return 0;
 }
 
-/*
-
-void AUTO_LIFTOFF_HOWER_TEST(void)
-{
-    /* -------------- AUTONOMOUS XY TRACKING-----------//
-    This algorithm performs simple take-off to a set altitude,
-    performs simple square trajectory and lands.
-    The basic logic is as the following:
-    1. Assume AUTONOMOUS has just been activated on the ground
-        1.1 initialization
-        1.2 perform automated ascent
-        1.3 stabilize to hover
-        1.4 log final time and position
-    2. Stabilize to hover (might need to write a separate funtion for this)
-    3. Land
-    
-    static int initialized;
-    if (setpoint.en_AUTO_LIFTOFF_HOWER_TEST)
-    {
-        // check if flagged as completed
-        if (setpoint.st_AUTO)
-        {
-            initialized = 0;  // reset status flag for the next time the algorithm is initiated
-            setpoint.en_AUTO_LIFTOFF_HOWER_TEST = 0;  // finish algorithm
-            return;
-        }
-        // initialization
-        if (initialized == 0)
-        {
-            setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time of initialization
-            initialized = 1;                                   // flag that AUTO is active now
-            setpoint.st_AUTO    = 0;                           // reset success flag
-            setpoint.AUTO_wp    = 0;                           // reset waypoint flag
-
-            // set constants -- move these out later
-            // take-off:
-            setpoint.dZ_takeoff = -settings.height_takeoff;  // lift-off height above initial point
-            setpoint.t_takeoff  = settings.t_takeoff;
-            // landing:
-            setpoint.V_max_land = settings.V_max_land;  // for testing
-            // trajectory:
-            setpoint.t_AUTO = 10.0;
-        }
-        if (finddt_s(setpoint.AUTO_time_ns) > 0.3 && setpoint.AUTO_wp < 1)
-        {
-            setpoint.AUTO_wp = 1;
-        }
-        // begin main sequence -- use waypoints for transition
-        switch (setpoint.AUTO_wp)
-        {
-            case 1:
-                setpoint.en_Z_takeoff = 1;  // start take-off algorithm
-                setpoint.st_takeoff = 0;
-                setpoint.AUTO_wp = 2;
-                break;
-
-            case 2:
-                if (AUTO_TAKEOFF())
-                {
-                    setpoint.AUTO_wp = 3;
-                }
-                else
-                {
-                    break;
-                }
-                // end lift-off
-            //-----------------------//
-            case 3:
-                setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time
-                setpoint.AUTO_wp = 4;
-            case 4:
-                // stabilize
-                setpoint.X_dot = 0;
-                setpoint.Y_dot = 0;
-
-                if (finddt_s(setpoint.AUTO_time_ns) >= setpoint.t_AUTO)
-                {
-                    setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time
-                    setpoint.X_dot = 0;
-                    setpoint.Y_dot = 0;
-                    setpoint.AUTO_wp = 6;
-                }
-                break;
-            //---------End of trajectory-------------//
-            case 6:
-                if (finddt_s(setpoint.AUTO_time_ns) > 1)
-                {
-                    setpoint.en_Z_land = 1;  // start landing algorithm
-                    setpoint.AUTO_wp = 7;
-                }
-                break;
-
-            case 7:
-                if (AUTO_LAND())
-                {
-                    setpoint.AUTO_wp = 12;
-                    setpoint.st_AUTO = 1;  // done
-                    user_input.requested_arm_mode = DISARMED;
-                    // should be on the ground at this point
-                    return;
-                }
-                return;
-        }
-    }
-    return;
-}
-
-void AUTO_XY_SQUARE_TEST(void)
-{
-    /* -------------- AUTONOMOUS XY TRACKING-----------//
-    This algorithm performs simple take-off to a set altitude,
-    performs simple square trajectory and lands.
-    The basic logic is as the following:
-    1. Assume AUTONOMOUS has just been activated on the ground
-        1.1 initialization
-        1.2 perform automated ascent
-        1.3 stabilize to hover
-        1.4 log final time and position
-    2. Assuming Hover state, execute the trajectory
-        2.1 using initial time and position apply dv
-        2.f stabilize to hover (might need to write a separate funtion for this)
-    3. 	Land
-    
-    static double t_X;
-    static double t_Y;
-    static int initialized;
-
-    if (setpoint.en_XY_SQUARE_TEST)
-    {
-        // check if flagged as completed
-        if (setpoint.st_AUTO)
-        {
-            initialized = 0;  // reset status flag for the next time the algorithm is initiated
-            setpoint.en_XY_SQUARE_TEST = 0;  // finish algorithm
-            return;
-        }
-        // initialization
-        if (initialized == 0)
-        {
-            setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time of initialization
-            initialized = 1;                                // flag that AUTO is active now
-            setpoint.st_AUTO = 0;                           // reset success flag
-            setpoint.AUTO_wp = 0;                           // reset waypoint flag
-
-            // set constants -- move these out later
-            // take-off:
-            setpoint.dZ_takeoff = -settings.height_takeoff;  // lift-off height above initial point
-            setpoint.t_takeoff  = settings.t_takeoff;
-            // landing:
-            setpoint.V_max_land = settings.V_max_land;
-            // trajectory:
-            setpoint.dX_AUTO = 1.5;
-            setpoint.dY_AUTO = 3.0;
-            setpoint.t_AUTO = 30.0;
-
-            t_X = setpoint.t_AUTO / (2 * (setpoint.dY_AUTO / setpoint.dX_AUTO + 1));
-            t_Y = setpoint.t_AUTO / (2 * (setpoint.dX_AUTO / setpoint.dY_AUTO + 1));
-        }
-        if (finddt_s(setpoint.AUTO_time_ns) > 0.3 && setpoint.AUTO_wp < 1)
-        {
-            setpoint.AUTO_wp = 1;
-        }
-        // begin main sequence -- use waypoints for transition
-        switch (setpoint.AUTO_wp)
-        {
-            case 1:
-                setpoint.en_Z_takeoff = 1;  // start take-off algorithm
-                setpoint.st_takeoff = 0;
-                setpoint.AUTO_wp = 2;
-                break;
-
-            case 2:
-                if (AUTO_TAKEOFF())
-                {
-                    setpoint.AUTO_wp = 3;
-                }
-                else
-                {
-                    break;
-                }
-                // end lift-off
-            //-----------------------//
-            case 3:
-                setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time
-                setpoint.AUTO_wp = 4;
-            case 4:
-                // stabilize
-                setpoint.X_dot = 0;
-                setpoint.Y_dot = 0;
-                if (finddt_s(setpoint.AUTO_time_ns) >= 5)
-                {
-                    setpoint.AUTO_wp = 5;
-                    setpoint.en_XY_SQUARE = 1;
-                }
-                else
-                {
-                    break;
-                }
-            case 5:
-                if (XY_SQUARE(setpoint.dX_AUTO, setpoint.dY_AUTO, t_X, t_Y))
-                {
-                    setpoint.X_dot = 0;
-                    setpoint.Y_dot = 0;
-                    setpoint.AUTO_wp = 9;
-                    setpoint.AUTO_time_ns = rc_nanos_since_boot();
-                }
-                break;
-            //---------End of trajectory-------------//
-            case 9:
-                if (finddt_s(setpoint.AUTO_time_ns) > 1)
-                {
-                    setpoint.en_Z_land = 1;  // start landing algorithm
-                    setpoint.AUTO_wp = 10;
-                }
-                break;
-
-            case 10:
-                if (AUTO_LAND())
-                {
-                    setpoint.AUTO_wp = 12;
-                    setpoint.st_AUTO = 1;  // done
-                    user_input.requested_arm_mode = DISARMED;
-                    // should be on the ground at this point
-                    return;
-                }
-                return;
-        }
-    }
-    return;
-}
-
-void AUTO_XY_CIRC_TEST(void)
-{
-    /* -------------- AUTONOMOUS XY TRACKING-----------//
-    This algorithm performs simple take-off to a set altitude,
-    performs simple square trajectory and lands.
-    The basic logic is as the following:
-    1. Assume AUTONOMOUS has just been activated on the ground
-        1.1 initialization
-        1.2 perform automated ascent
-        1.3 stabilize to hover
-        1.4 log final time and position
-    2. Do circular trajectory
-    3. Stabilize to hover
-    4. Land
-    
-    static int initialized;
-    if (setpoint.en_XY_CIRC_TEST)
-    {
-        // check if flagged as completed
-        if (setpoint.st_AUTO)
-        {
-            initialized = 0;  // reset status flag for the next time the algorithm is initiated
-            setpoint.en_XY_CIRC_TEST = 0;  // finish algorithm
-            return;
-        }
-        // initialization
-        if (initialized == 0)
-        {
-            setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time of initialization
-            initialized = 1;                                // flag that AUTO is active now
-            setpoint.st_AUTO = 0;                           // reset success flag
-            setpoint.AUTO_wp = 0;                           // reset waypoint flag
-
-            // set constants -- move these out later
-            // take-off:
-            setpoint.dZ_takeoff = -settings.height_takeoff;  // lift-off height above initial point
-            setpoint.t_takeoff = settings.t_takeoff;
-            // landing:
-            setpoint.V_max_land = settings.V_max_land;  // for testing
-            // trajectory:
-            setpoint.dX_AUTO = 0.0;
-            setpoint.dY_AUTO = 0.0;
-            setpoint.t_AUTO = 3.0;
-
-            // circular:
-            setpoint.R_CIRC = 1.0;
-            setpoint.T_CIRC = 20.0;
-        }
-        if (finddt_s(setpoint.AUTO_time_ns) > 0.3 && setpoint.AUTO_wp < 1)
-        {
-            setpoint.AUTO_wp = 1;
-        }
-        // begin main sequence -- use waypoints for transition
-        switch (setpoint.AUTO_wp)
-        {
-            case 1:
-                setpoint.en_Z_takeoff = 1;  // start take-off algorithm
-                setpoint.st_takeoff = 0;
-                setpoint.AUTO_wp = 2;
-                break;
-
-            case 2:
-                if (AUTO_TAKEOFF())
-                {
-                    setpoint.AUTO_wp = 3;
-                }
-                else
-                {
-                    break;
-                }
-                // end lift-off
-            //-----------------------//
-            case 3:
-                setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time
-                setpoint.AUTO_wp = 4;
-            case 4:
-                // stabilize
-                setpoint.X_dot = 0;
-                setpoint.Y_dot = 0;
-
-                if (finddt_s(setpoint.AUTO_time_ns) >= setpoint.t_AUTO)
-                {
-                    setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time
-                    setpoint.X_dot = 0;
-                    setpoint.Y_dot = 0;
-                    setpoint.AUTO_wp = 5;
-                    setpoint.en_XY_CIRC = 1;
-                }
-                break;
-            case 5:
-                if (XY_CIRC(setpoint.R_CIRC,setpoint.T_CIRC))
-                {
-                    setpoint.en_XY_CIRC = 0;
-                    setpoint.AUTO_time_ns = rc_nanos_since_boot();  // capture time
-                    setpoint.X_dot = 0;
-                    setpoint.Y_dot = 0;
-                    setpoint.AUTO_wp = 6;
-                }
-                break;
-            //---------End of trajectory-------------//
-            case 6:
-                if (finddt_s(setpoint.AUTO_time_ns) > 1)
-                {
-                    setpoint.en_Z_land = 1;  // start landing algorithm
-                    setpoint.AUTO_wp = 7;
-                }
-                break;
-
-            case 7:
-                if (AUTO_LAND())
-                {
-                    setpoint.AUTO_wp = 12;
-                    setpoint.st_AUTO = 1;  // done
-                    user_input.requested_arm_mode = DISARMED;
-                    // should be on the ground at this point
-                    return;
-                }
-                return;
-        }
-    }
-    return;
-}
-*/
-
 int setpoint_guidance_t::init(void)
 {
     if (unlikely(initialized))
@@ -1415,6 +1056,12 @@ int setpoint_guidance_t::init(void)
         return -1;
     }
 
+    if (unlikely(path.init() == -1))
+    {
+        printf("\nERROR in init: failed to intialize path guidance");
+        return -1;
+    }
+
     initialized = true;
 
     return 0;
@@ -1427,6 +1074,25 @@ int setpoint_guidance_t::march(void)
     {
         printf("\nERROR in march: not initialized");
         return -1;
+    }
+
+    if (user_input.flight_mode != AUTONOMOUS)
+    {
+        if (en_Z) reset_Z();
+        if (en_XY) reset_XY();
+        if (path.is_en()) path.stop();
+    }
+
+    if (path.is_en())
+    {
+        if (en_Z) reset_Z();
+        if (en_XY) reset_XY();
+        if (unlikely(path.update_setpoint_from_waypoint_NH(setpoint, waypoint_state_machine) == -1))
+        {
+            printf("\nERROR in march: failed to update setpoint from waypoint");
+            return -1;
+        }
+
     }
 
     if (en_Z && setpoint.en_Z_ctrl)

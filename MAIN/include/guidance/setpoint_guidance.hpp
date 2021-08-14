@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/10/2020 (MM/DD/YYYY)
+ * Last Edit:  08/13/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Contains all the automated trajectory guidance and related functionality
@@ -31,6 +31,7 @@
 
 #ifndef TRAJECTORIES_COMMON_H
 #define TRAJECTORIES_COMMON_H
+#include "path.hpp"
 
 class cubic_guide_t
 {
@@ -241,58 +242,6 @@ public:
 };
 
 extern setpoint_guidance_t setpoint_guidance;
-
-/**
-	* @brief		circular trajectory
-	*
-	* @return     uses turn radius, period and time elapsed
-	*/
-	//void circ_traj(double R, double T, double dt);
-
-	/**
-	* @brief		automated descent to landing
-	*
-	* @return     uses velocity and maximum XY error
-	*/
-//int AUTO_LAND(void);
-
-
-//int AUTO_TAKEOFF(void);
-
-/**
-	* @brief		guidance allong a rectangular trajectory
-	*
-	* @return     uses time and XY coordinates of each corner
-	*/
-//int XY_SQUARE(double dX, double dY, double t_X, double t_Y);
-
-/**
-	* @brief		guidance allong a circular trajectory
-	*
-	* @return     uses turn radius, period and time elapsed
-	*/
-//int XY_CIRC(double R, double T);
-
-/**
-	* @brief		simple liftoff and hover testing
-	*
-	* @return     uses automated liftoff to a set altitude
-	*/
-//void AUTO_LIFTOFF_HOWER_TEST(void);
-
-/**
-	* @brief		testing guidance allong a rectangular trajectory
-	*
-	* @return     uses automated rectangular trajectory with ascent and descent
-	*/
-//void AUTO_XY_SQUARE_TEST(void);
-
-/**
-	* @brief		testing guidance allong a circular trajectory
-	*
-	* @return     uses turn radius, period and time elapsed
-	*/
-//void AUTO_XY_CIRC_TEST(void);
 
 
 #endif /* TRAJECTORIES_COMMON_H */

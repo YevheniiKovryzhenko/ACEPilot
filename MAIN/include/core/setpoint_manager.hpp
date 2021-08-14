@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/3/2020 (MM/DD/YYYY)
+ * Last Edit:  08/13/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -74,12 +74,6 @@ private:
 	* Function only used locally
 	*/
 	int update_setpoints(void);
-	/**
-	* @brief   Logic for starting to follow path, reset time and waypoint counter
-	*/
-	void start_waypoint_counter();
-	void stop_waypoint_counter();
-	void reset_waypoint_counter();
 public:
 	/** @name general */
 	///< @{
@@ -143,27 +137,6 @@ public:
 	double Z_dot_ff;		///< feedforward vertical velocity (m/s)
 	double Z_throttle_0;	/// hover throttle
 
-	
-	/** @name auto-land/take-off logic */
-	///< @{
-	/*
-	bool en_Z_land;				///< enable landing algorithm.
-	bool en_Z_takeoff;			///< enable take-off algorithm.
-	bool st_land;				///< landing status (failure/success) - use it externally for automated algorithms
-	bool st_takeoff;				///< take-off status (failure/success) - use it externally for automated algorithms
-	bool last_en_land;    		///< landing algorithm running flag
-	bool last_en_takeoff;    	///< take-off algorithm running flag
-	uint64_t land_time_ns;		///< time since boot when landing was initiated
-	uint64_t takeoff_time_ns;	///< time since boot when take-off was initiated
-	double t_land;				///< time to land (seconds)
-	double t_takeoff;			///< time for take-off (seconds)	
-	double V_max_land;			///< vertical velocity for landing
-	double Z_init_takeoff;		///< altitude when take-off is initiated
-	double dZ_takeoff;			///< take off increment from the initial altitude  		
-	*/
-	///< @}
-	///< @}
-
 	/** @name horizontal velocity setpoint */
 	///< @{
 	bool en_XY_vel_ctrl;
@@ -178,48 +151,6 @@ public:
 	bool en_XY_pos_ctrl;
 	double X;
 	double Y;
-
-	/** @name automated trajectory */
-	///< @{
-	//int en_XY_AUTO;					///< enable/disable automated trajectory
-	//int en_XY_AUTO_TEST;			///< enable/disable automated testing trajectory
-	/*
-	bool en_AUTO_LIFTOFF_HOWER_TEST; ///< enable/disable automated liftoff trajectory
-	bool en_XY_SQUARE_TEST;			///< enable/disable automated square trajectory
-	bool en_XY_CIRC_TEST;			///< enable/disable automated circular trajectory
-
-	bool st_AUTO;				///< algorithm status (falure/success) - use it externally for automated algorithms
-	uint64_t AUTO_time_ns;		///< time since boot when algorithm was initiated
-	int	AUTO_wp;				///< waypoint progress flag (used internally)
-	double dX_AUTO;				///< increment in X
-	double dY_AUTO;				///< increment in Y	
-	double t_AUTO;				///< total tome for auto
-
-	//Square:
-	bool en_XY_SQUARE;
-	bool st_XY_SQUARE;
-
-	//Circular:
-	bool en_XY_CIRC;			///< enable/disable automated trajectory
-	bool st_XY_CIRC;			///< algorithm status (falure/success) - use it externally for automated algorithms
-	double dX_CIRC;             ///< increment in X
-	double dY_CIRC;             ///< increment in Y
-	double dYaw_CIRC;			///< increment in Yaw
-	double T_CIRC;				///< time/period for circular trajectory
-	double R_CIRC;				///< radius of a circle to make
-	*/
-	/**
-	* @name Waypoint Management
-	*
-	*/
-	///< @{
-	uint64_t time_auto_set;     ///< time autonomous mode is set and armed
-	double waypoint_time;       ///< current time to compare to waypoint times
-	bool auto_armed_set;         ///< flag to manage time auto + armed is set
-	bool en_waypoint_update;		///< flag to control whether path command is actually being applied to the setpoint 
-	uint64_t cur_waypoint_num;  ///< current waypoint to control to
-	// int en_hover;               ///< enable hover feedback controller mode
-	///< @}
 
 
 	/**
@@ -251,11 +182,6 @@ public:
 	* @return  0 on success, -1 if unsuccessful
 	*/
 	int set_new_path(const char* path_file);
-
-	/**
-	* @brief Update the setpoint for the next waypoint
-	*/
-	void update_setpoint_from_waypoint();
 
 	/* Functions which should be called exterally to update setpoints based on radio input:*/
 	void update_yaw(void);
