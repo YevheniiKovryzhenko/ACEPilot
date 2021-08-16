@@ -353,13 +353,11 @@ int path_t::start_waypoint_counter_NH(setpoint_t &init_setpoint)
         // read new waypoint from file:
         if (unlikely(read_waypoint_NH() == -1))
         {
-            printf("ERROR in start_waypoint_counter_NH: failed to read waypoint");
+            printf("ERROR in start_waypoint_counter_NH: failed to read 0th waypoint");
             cleanup_NH();
         }
         en = true;
     }
-
-    waypoint_time_s = finddt_s(time_ns);
     return 0;
 }
 
@@ -401,7 +399,6 @@ int path_t::start_waypoint_counter(setpoint_t& init_setpoint)
         en = true;
     }
 
-    waypoint_time_s = finddt_s(time_ns);
     return 0;
 }
 
@@ -422,13 +419,7 @@ int path_t::update_setpoint_from_waypoint(setpoint_t& cur_setpoint, state_machin
         path_cleanup();
         return 0;
     }
-
-    if (unlikely(start_waypoint_counter(cur_setpoint) == -1))
-    {
-        printf("\nERROR in update_setpoint_from_waypoint: failed to start waypoint counter");
-        path_cleanup();
-        return -1;
-    }
+    
     // Break out of function if the current waypoint is the last point in the path
     if (cur_waypoint_num == len)
     {
@@ -436,6 +427,17 @@ int path_t::update_setpoint_from_waypoint(setpoint_t& cur_setpoint, state_machin
         path_cleanup();
         return 0;
     }
+
+    if (unlikely(reached_EOF))
+    {
+        //should never reach this, just a failsafe
+        printf("ERROR in update_setpoint_from_waypoint: reached EOF");
+        path_cleanup();
+        return -1;
+    }
+
+    //update time since activation:
+    waypoint_time_s = finddt_s(time_ns);
 
     // Parse waypoint flag
     switch ((int)waypoints[cur_waypoint_num].flag)
@@ -488,12 +490,6 @@ int path_t::update_setpoint_from_waypoint_NH(setpoint_t& cur_setpoint, state_mac
         return 0;
     }
 
-    if (unlikely(start_waypoint_counter_NH(cur_setpoint) == -1))
-    {
-        printf("\nERROR in update_setpoint_from_waypoint_NH: failed to start waypoint counter");
-        cleanup_NH();
-        return -1;
-    }
     // Break out of function if the current waypoint is the last point in the path
     if (cur_waypoint_num >= len)
     {
@@ -501,6 +497,17 @@ int path_t::update_setpoint_from_waypoint_NH(setpoint_t& cur_setpoint, state_mac
         cleanup_NH();
         return 0;
     }
+
+    if (unlikely(reached_EOF))
+    {
+        //should never reach this, just a failsafe
+        printf("ERROR in update_setpoint_from_waypoint_NH: reached EOF");
+        cleanup_NH();
+        return -1;
+    }
+
+    //update time since activation:
+    waypoint_time_s = finddt_s(time_ns);
 
     // Parse waypoint flag
     switch ((int)waypoint.flag)
@@ -515,12 +522,12 @@ int path_t::update_setpoint_from_waypoint_NH(setpoint_t& cur_setpoint, state_mac
             // Set the desired x, y, and z if allowed
             if (state_machine.is_en())
             {
-                cur_setpoint.X = waypoints_init.x + waypoints[cur_waypoint_num].x;
-                cur_setpoint.Y = waypoints_init.y + waypoints[cur_waypoint_num].y;
-                cur_setpoint.Z = waypoints_init.z + waypoints[cur_waypoint_num].z;
-                cur_setpoint.roll = waypoints_init.roll + waypoints[cur_waypoint_num].roll;
-                cur_setpoint.pitch = waypoints_init.pitch + waypoints[cur_waypoint_num].pitch;
-                cur_setpoint.yaw = waypoints_init.yaw + waypoints[cur_waypoint_num].yaw;
+                cur_setpoint.X = waypoints_init.x + waypoint.x;
+                cur_setpoint.Y = waypoints_init.y + waypoint.y;
+                cur_setpoint.Z = waypoints_init.z + waypoint.z;
+                cur_setpoint.roll = waypoints_init.roll + waypoint.roll;
+                cur_setpoint.pitch = waypoints_init.pitch + waypoint.pitch;
+                cur_setpoint.yaw = waypoints_init.yaw + waypoint.yaw;
             }
             // read new waypoint from file:
             read_waypoint_NH();

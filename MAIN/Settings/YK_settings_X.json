@@ -98,7 +98,7 @@
 
 	"dsm_timeout_ms": 200,
 
-	"wp_folder": "/home/debian/RC-Pilot/trajectories/",
+	"wp_folder": "trajectories/",
 	"wp_takeoff_filename": "takeoff_waypoints.cfg",
 	"wp_guided_filename": "trajectory_square_60s.cfg",
 	"wp_landing_filename": "landing_waypoints.cfg",

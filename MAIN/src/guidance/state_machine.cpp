@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/13/2020 (MM/DD/YYYY)
+ * Last Edit:  08/16/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -93,7 +93,7 @@ int state_machine_t::enable_update(void)
     if (!en_update)
     {
         en_update       = true;
-        changedState    = false;
+        changedState    = true;
     }
     return 0;
 }
@@ -103,7 +103,7 @@ int state_machine_t::disable_update(void)
     if (en_update)
     {
         en_update = false;
-        //changedState = false;
+        changedState = false;
     }
     return 0;
 }
@@ -289,17 +289,31 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
 
                 if (path.set_new_path_NH(waypoint_filename) == -1)
                 {
+                    path.stop();
                     printf("\nERROR: failed to set new path");
                     break;
                 }
 
-                //if (!waypoint_state_machine.is_en()) waypoint_state_machine.enable_update();
+                if (path.start_waypoint_counter_NH(setpoint) == -1)
+                {
+                    path.stop();
+                    printf("\nERROR: failed to start the counter");
+                    break;
+                }
             }
 
             // State transition
             switch (input)
             {
                 case ENTER_GUIDED:
+                    if (path.is_en())
+                    {
+                        if (path.update_setpoint_from_waypoint_NH(setpoint, *this) == -1)
+                        {
+                            printf("\nERROR in transition: failed to update setpoint from waypoint");
+                            path.stop();
+                        }
+                    }
                     break;
 
                 case ENTER_STANDBY:
