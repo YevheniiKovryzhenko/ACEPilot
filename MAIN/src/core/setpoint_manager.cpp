@@ -470,8 +470,8 @@ int setpoint_t::update_setpoints(void)
 		en_rpy_ctrl = true;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = true;
-		en_XY_pos_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
 
 		//Assign Setpoints
 		roll = 0;
