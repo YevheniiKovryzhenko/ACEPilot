@@ -125,7 +125,7 @@ int path_t::read_waypoints(FILE* fd)
     return 0;
 }
 
-int path_t::read_waypoint_NH(void)
+int path_t::read_waypoint_NH(FILE* fd)
 {
     if (unlikely(!loaded))
     {
@@ -137,16 +137,16 @@ int path_t::read_waypoint_NH(void)
     {
         return 0;
     }
-
+    
     // Read formated file line (13 doubles and 1 int)
-    int rcount = fscanf(fd_NH, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf ", \
-        waypoint.t, waypoint.x, \
-        waypoint.y, waypoint.z, \
-        waypoint.xd, waypoint.yd, \
-        waypoint.zd, waypoint.roll, \
-        waypoint.pitch, waypoint.yaw, \
-        waypoint.p, waypoint.q, \
-        waypoint.r, waypoint.flag);
+    int rcount = fscanf(fd, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf ", \
+        &waypoint.t, &waypoint.x, \
+        &waypoint.y, &waypoint.z, \
+        &waypoint.xd, &waypoint.yd, \
+        &waypoint.zd, &waypoint.roll, \
+        &waypoint.pitch, &waypoint.yaw, \
+        &waypoint.p, &waypoint.q, \
+        &waypoint.r, &waypoint.flag);
 
     // If not end of file, but an invalid read (waypoints have 14 values)
     if (rcount != EOF && rcount != 14)
@@ -166,7 +166,7 @@ int path_t::read_waypoint_NH(void)
 int path_t::path_load_from_file(const char* file_path)
 {
     // Clear any previously stored path, set init to 0
-    path_cleanup();
+    cleanup();
 
     // Check for valid file
     if (access(file_path, F_OK) != 0)
@@ -192,7 +192,7 @@ int path_t::path_load_from_file(const char* file_path)
     // Read waypoints from file
     if (read_waypoints(fd) < 0)
     {
-        path_cleanup(); //Added to prevent potential memory leak
+        cleanup(); //Added to prevent potential memory leak
         fprintf(stderr, "ERROR: failed reading waypoint file\n");
         return -1;
     }
@@ -220,19 +220,14 @@ int path_t::load_file_NH(const char* file_path)
     
 
     loaded = true;
+    //printf("\nSuccesfully loaded path %s", &file_path);
     return 0;
 }
 
-void path_t::path_cleanup(void)
+void path_t::cleanup(void)
 {
-    free(waypoints);
-    reset();
-    return;
-}
-
-void path_t::cleanup_NH(void)
-{
-    fclose(fd_NH);
+    if (waypoints != NULL) free(waypoints);
+    if (fd_NH != NULL) fclose(fd_NH);
     reset();
     return;
 }
@@ -241,7 +236,6 @@ int path_t::init(void)
 {
     if (!initialized)
     {
-        waypoints = NULL;
         reset();
 
         initialized = true;
@@ -283,7 +277,7 @@ int path_t::set_new_path(const char* file_name)
         printf("\nERROR in set_new_path: not initialized");
         return -1;
     }
-    path_cleanup();
+    cleanup();
 
     if (path_load_from_file(file_name) == -1)
     {
@@ -300,7 +294,7 @@ int path_t::set_new_path_NH(const char* file_name)
         printf("\nERROR in set_new_path_NH: not initialized");
         return -1;
     }
-    cleanup_NH();
+    cleanup();
 
     if (load_file_NH(file_name) == -1)
     {
@@ -325,7 +319,7 @@ int path_t::start_waypoint_counter_NH(setpoint_t &init_setpoint)
     if (unlikely(!loaded))
     {
         printf("\nERROR in start_waypoint_counter_NH: path not loaded");
-        cleanup_NH();
+        cleanup();
         return -1;
     }
     // If this is the first time in autonomous mode and armed, save the current time
@@ -351,10 +345,10 @@ int path_t::start_waypoint_counter_NH(setpoint_t &init_setpoint)
         waypoints_init.yaw = init_setpoint.yaw;
 
         // read new waypoint from file:
-        if (unlikely(read_waypoint_NH() == -1))
+        if (unlikely(read_waypoint_NH(fd_NH) == -1))
         {
             printf("ERROR in start_waypoint_counter_NH: failed to read 0th waypoint");
-            cleanup_NH();
+            cleanup();
         }
         en = true;
     }
@@ -371,7 +365,7 @@ int path_t::start_waypoint_counter(setpoint_t& init_setpoint)
     if (unlikely(!loaded))
     {
         printf("\nERROR in start_waypoint_counter: path not loaded");
-        path_cleanup();
+        cleanup();
         return -1;
     }
 
@@ -416,7 +410,7 @@ int path_t::update_setpoint_from_waypoint(setpoint_t& cur_setpoint, state_machin
     if (unlikely(!loaded))
     {
         printf("\nERROR in update_setpoint_from_waypoint: trying to update when not file is not loaded");
-        path_cleanup();
+        cleanup();
         return 0;
     }
     
@@ -424,7 +418,7 @@ int path_t::update_setpoint_from_waypoint(setpoint_t& cur_setpoint, state_machin
     if (cur_waypoint_num == len)
     {
         printf("\nTrajectory completed");
-        path_cleanup();
+        cleanup();
         return 0;
     }
 
@@ -432,7 +426,7 @@ int path_t::update_setpoint_from_waypoint(setpoint_t& cur_setpoint, state_machin
     {
         //should never reach this, just a failsafe
         printf("ERROR in update_setpoint_from_waypoint: reached EOF");
-        path_cleanup();
+        cleanup();
         return -1;
     }
 
@@ -486,7 +480,7 @@ int path_t::update_setpoint_from_waypoint_NH(setpoint_t& cur_setpoint, state_mac
     if (unlikely(!loaded))
     {
         printf("\nERROR in update_setpoint_from_waypoint_NH: trying to update when not file is not loaded");
-        cleanup_NH();
+        cleanup();
         return 0;
     }
 
@@ -494,7 +488,7 @@ int path_t::update_setpoint_from_waypoint_NH(setpoint_t& cur_setpoint, state_mac
     if (cur_waypoint_num >= len)
     {
         printf("\nTrajectory completed");
-        cleanup_NH();
+        cleanup();
         return 0;
     }
 
@@ -502,7 +496,7 @@ int path_t::update_setpoint_from_waypoint_NH(setpoint_t& cur_setpoint, state_mac
     {
         //should never reach this, just a failsafe
         printf("ERROR in update_setpoint_from_waypoint_NH: reached EOF");
-        cleanup_NH();
+        cleanup();
         return -1;
     }
 
@@ -530,7 +524,7 @@ int path_t::update_setpoint_from_waypoint_NH(setpoint_t& cur_setpoint, state_mac
                 cur_setpoint.yaw = waypoints_init.yaw + waypoint.yaw;
             }
             // read new waypoint from file:
-            read_waypoint_NH();
+            read_waypoint_NH(fd_NH);
             ++cur_waypoint_num;
         }
         break;

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/16/2020 (MM/DD/YYYY)
  */
 
 #ifndef MAIN_HPP
@@ -73,5 +73,6 @@
 #include "benchmark.h"
 #include "feedback.hpp"
 #include "mix_servos.hpp"
+#include "path.hpp"
 
 #endif //MAIN_HPP

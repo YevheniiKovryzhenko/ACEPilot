@@ -118,8 +118,8 @@ typedef enum dsm_kill_mode_t {
 
 
 // Files
-//#define LOG_DIR		"/home/debian/rc_pilot_logs/"
-#define LOG_DIR		"../rc_pilot_logs/"
+#define LOG_DIR		"/home/debian/rc_pilot_logs/"
+//#define LOG_DIR		"../rc_pilot_logs/"
 
 // for future modes, not used yet
 #define LAND_TIMEOUT		0.3

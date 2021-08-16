@@ -478,6 +478,7 @@ int main(int argc, char** argv)
     printf_cleanup();
     log_entry.cleanup();
     rc_encoder_cleanup();
+    path.cleanup();
     if (sstate.is_initialized()) sstate.cleanup();
 
 

@@ -286,61 +286,68 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                 //start new job
                 build_waypoit_filename(
                     waypoint_filename, settings.wp_folder, settings.wp_guided_filename);
+                path.cleanup();
 
                 if (path.set_new_path_NH(waypoint_filename) == -1)
                 {
-                    path.stop();
+                    path.cleanup();
                     printf("\nERROR: failed to set new path");
-                    break;
                 }
-
+                
                 if (path.start_waypoint_counter_NH(setpoint) == -1)
                 {
-                    path.stop();
+                    path.cleanup();
                     printf("\nERROR: failed to start the counter");
-                    break;
                 }
+                
+                changedState = false;
             }
 
             // State transition
             switch (input)
             {
                 case ENTER_GUIDED:
+                    
                     if (path.is_en())
                     {
                         if (path.update_setpoint_from_waypoint_NH(setpoint, *this) == -1)
                         {
                             printf("\nERROR in transition: failed to update setpoint from waypoint");
-                            path.stop();
+                            path.cleanup();
                         }
+                        
                     }
+                    
                     break;
 
                 case ENTER_STANDBY:
                     current_state = STANDBY;
                     changedState = true;
+                    path.cleanup();
                     break;
 
                 case ENTER_LANDING:
                     current_state   = LANDING;
                     changedState    = true;
+                    path.cleanup();
                     break;
 
                 case ENTER_LOITER:
                     current_state   = LOITER;
                     changedState    = true;
+                    path.cleanup();
                     break;
 
                 case ENTER_SQUARE:
                     current_state   = SQUARE;
                     changedState    = true;
-                    // TODO: Load waypoints from SQUARE file
+                    path.cleanup();
                     break;
 
                 case ENTER_RETURN:
                     current_state = RETURN;
                     changedState = true;
-                    // TODO: Load waypoints from RETURN file
+                    path.cleanup();
                     break;
 
                 default:

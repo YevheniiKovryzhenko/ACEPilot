@@ -88,13 +88,7 @@ private:
     * @return  0 on success, -1 on failure
     */
     int read_waypoints(FILE* fd);
-    int read_waypoint_NH(void); //no heap version
-
-    /**
-    * @brief       Frees memory allocated in path and "unitializes" path variable
-    */
-    void path_cleanup(void);
-    void cleanup_NH(void); //no heap version
+    int read_waypoint_NH(FILE* fd); //no heap version
 
     /**
     * @brief       Read waypoint file and initialize path
@@ -136,6 +130,12 @@ public:
 
     bool is_en(void);
     void stop(void);
+
+
+    /**
+    * @brief       Frees memory allocated in path and "unitializes" path variable, closes open files
+    */
+    void cleanup(void);
 };
 
 extern path_t path;
