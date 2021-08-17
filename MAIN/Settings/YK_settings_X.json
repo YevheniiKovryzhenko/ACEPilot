@@ -100,7 +100,7 @@
 
 	"wp_folder": "/home/debian/rc_pilot/MAIN/trajectories/",
 	"wp_takeoff_filename": "takeoff_waypoints.cfg",
-	"wp_guided_filename": "exp_path_1_x4.cfg",
+	"wp_guided_filename": "exp_path_1_x4_yaw.cfg",
 	"wp_landing_filename": "landing_waypoints.cfg",
 
 	"V_max_land": 0.3,
