@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/16/2020 (MM/DD/YYYY)
+ * Last Edit:  08/18/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -63,6 +63,9 @@
 #include "state_machine.hpp"
 
 #include "setpoint_manager.hpp"
+ // preposessor macros
+#define unlikely(x)	__builtin_expect (!!(x), 0)
+#define likely(x)	__builtin_expect (!!(x), 1)
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
@@ -70,7 +73,40 @@
 setpoint_t setpoint{}; // extern variable in setpoint_manager.hpp
 
 /***********************************/
-/* Functions which should be called exterally to update setpoints based on radio input:*/
+int setpoint_t::init_trans(void)
+{
+	pitch_stick_int = RC_FILTER_INITIALIZER;
+	if (unlikely(rc_filter_integrator(&pitch_stick_int, DT) == -1))
+	{
+		printf("\nERROR in init_trans: failed to create integrator");
+		return -1;
+	}
+
+	last_en_trans = false;
+	return 0;
+}
+
+int setpoint_t::update_trans(void)
+{
+	if (!last_en_trans)
+	{
+		rc_filter_reset(&pitch_stick_int);
+	}
+	double tmp = rc_filter_march(&pitch_stick_int, user_input.get_pitch_stick());
+	roll_tr = tmp;
+	pitch_tr = tmp;
+	yaw_tr = tmp;
+
+	roll_servo_tr = tmp;
+	pitch_servo_tr = tmp;
+	yaw_servo_tr = tmp;
+
+	last_en_trans = true;
+	return 0;
+}
+
+
+/* Functions which should be called internally to update setpoints based on radio input:*/
 void setpoint_t::update_yaw(void)
 {
 	// if throttle stick is down all the way, probably landed, so
@@ -84,6 +120,39 @@ void setpoint_t::update_yaw(void)
 	// and move yaw setpoint
 	yaw_dot = user_input.get_yaw_stick() * MAX_YAW_RATE;
 	yaw += yaw_dot*DT;
+	return;
+}
+
+void setpoint_t::update_rp(void)
+{
+	roll = user_input.get_roll_stick();
+	pitch = user_input.get_pitch_stick();
+	
+	return;
+}
+
+void setpoint_t::update_th(void)
+{
+	Z_throttle = -user_input.get_thr_stick() / \
+		(cos(state_estimate.roll) * cos(state_estimate.pitch));
+	return;
+}
+
+void setpoint_t::update_rpy_rate(void)
+{
+	roll_dot = user_input.get_roll_stick() * MAX_ROLL_RATE;
+	pitch_dot = user_input.get_pitch_stick() * MAX_PITCH_RATE;
+	yaw_dot = user_input.get_yaw_stick() * MAX_YAW_RATE;
+
+	return;
+}
+
+void setpoint_t::update_rpy_servo(void)
+{
+	roll_servo = user_input.get_roll_stick();
+	pitch_servo = user_input.get_pitch_stick();
+	yaw_servo = user_input.get_yaw_stick();
+
 	return;
 }
 
@@ -175,14 +244,20 @@ void setpoint_t::update_XY_pos(void)
 */
 int setpoint_t::init(void)
 {
-	if(initialized){
+	if(unlikely(initialized)){
 		fprintf(stderr, "\nERROR in setpoint_manager_init, already initialized");
 		return -1;
 	}
 
-	if (setpoint_guidance.init() == -1)
+	if (unlikely(init_trans() == -1))
 	{
-		fprintf(stderr, "\nERROR in setpoint_manager_init, failed to initialize setpoint guidance");
+		fprintf(stderr, "\nERROR in init: failed to initialize transition functions");
+		return -1;
+	}
+
+	if (unlikely(setpoint_guidance.init() == -1))
+	{
+		fprintf(stderr, "\nERROR in init, failed to initialize setpoint guidance");
 		return -1;
 	}
 
@@ -198,6 +273,7 @@ bool setpoint_t::is_initialized(void)
 int setpoint_t::update_setpoints(void)
 {
 	if (user_input.flight_mode != AUTONOMOUS) waypoint_state_machine.disable_update();
+	if (user_input.flight_mode != ZEPPELIN) last_en_trans = false;
 
 	// finally, switch between flight modes and adjust setpoint properly
 	switch (user_input.flight_mode) {
@@ -207,11 +283,19 @@ int setpoint_t::update_setpoints(void)
 		// configure which controllers are enabled
 		en_6dof = false;
 		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = false;
+		en_rpy_trans = false;
 		en_Z_ctrl = false;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
 
 		roll_throttle = user_input.get_roll_stick();
 		pitch_throttle = user_input.get_pitch_stick();
@@ -229,11 +313,19 @@ int setpoint_t::update_setpoints(void)
 		// configure which controllers are enabled
 		en_6dof = true;
 		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = false;
+		en_rpy_trans = false;
 		en_Z_ctrl = false;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
 
 
 		roll_throttle = 0.0;
@@ -248,11 +340,19 @@ int setpoint_t::update_setpoints(void)
 		// configure which controllers are enabled
 		en_6dof = false;
 		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = false;
+		en_rpy_trans = false;
 		en_Z_ctrl = false;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
 
 
 		roll_throttle = 0.0;
@@ -267,33 +367,46 @@ int setpoint_t::update_setpoints(void)
 		roll_servo_throttle = (user_input.get_roll_stick() + 1.0) / 2.0;	//map [-1 1] into [0 1]
 		pitch_servo_throttle = (user_input.get_pitch_stick() + 1.0) / 2.0;	//map [-1 1] into [0 1]
 		yaw_servo_throttle = (user_input.get_yaw_stick() + 1.0) / 2.0;		//map [-1 1] into [0 1]
-		Z_servo_throttle = user_input.get_thr_stick();
+		Z_servo_throttle = -user_input.get_thr_stick();
 		break;
 
 	case ACRO:
 		en_6dof = false;
 		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = false;
+		en_rpy_trans = false;
 		en_Z_ctrl = false;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
 
-		roll_dot = user_input.get_roll_stick() * MAX_ROLL_RATE;
-		pitch_dot = user_input.get_pitch_stick() * MAX_PITCH_RATE;
-		yaw_dot = user_input.get_yaw_stick() * MAX_YAW_RATE;
-		Z_throttle = -user_input.get_thr_stick() / \
-			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		update_rpy_rate();
+		update_th();
 		break;
 
 	case MANUAL_S:
 		en_6dof = false;
 		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = false;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
 
 		roll = user_input.get_roll_stick();
 		pitch = user_input.get_pitch_stick();
@@ -306,28 +419,43 @@ int setpoint_t::update_setpoints(void)
 	case MANUAL_F:
 		en_6dof = false;
 		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = false;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
 
-		roll = user_input.get_roll_stick();
-		pitch = user_input.get_pitch_stick();
-		Z_throttle = -user_input.get_thr_stick() / \
-			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
 
+
+		update_rp();
+		update_th();
 		update_yaw();
 		break;
 
 	case DIRECT_THROTTLE_6DOF:
 		en_6dof = true;
 		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = false;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
 
 		X_throttle = -user_input.get_pitch_stick();
 		Y_throttle = user_input.get_roll_stick();
@@ -338,15 +466,21 @@ int setpoint_t::update_setpoints(void)
 	case ALT_HOLD_SS:
 		en_6dof = false;
 		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
 
-		roll = user_input.get_roll_stick();
-		pitch = user_input.get_pitch_stick();
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
 
+		update_rp();
 		update_Z();
 		update_yaw();
 		break;
@@ -354,15 +488,22 @@ int setpoint_t::update_setpoints(void)
 	case ALT_HOLD_FS:
 		en_6dof = false;
 		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
 
-		roll = user_input.get_roll_stick();
-		pitch = user_input.get_pitch_stick();
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
 
+
+		update_rp();
 		update_Z();
 		update_yaw();
 		break;
@@ -370,15 +511,22 @@ int setpoint_t::update_setpoints(void)
 	case ALT_HOLD_FF:
 		en_6dof = false;
 		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = true;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
 
-		roll = user_input.get_roll_stick();
-		pitch = user_input.get_pitch_stick();
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
 
+
+		update_rp();
 		update_Z();
 		update_yaw();
 		break;
@@ -386,92 +534,116 @@ int setpoint_t::update_setpoints(void)
 	case POSITION_CONTROL_SSS:
 		en_6dof = false;
 		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = true;
 
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
 		//check validity of the velocity command, construct virtual setpoint
 		update_XY_pos();
 		update_Z();
 		update_yaw();
-
-		//printf("\nM2  X=%f Y=%f Z=%f with altitude of %f \n",X,Y,Z,state_estimate.Z);
 		break;
 
 	case POSITION_CONTROL_FSS:
 		en_6dof = false;
 		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = false;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = true;
 
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
 		//check validity of the velocity command, construct virtual setpoint
 		update_XY_pos();
 		update_Z();
 		update_yaw();
-
-		//printf("\nM2  X=%f Y=%f Z=%f with altitude of %f \n",X,Y,Z,state_estimate.Z);
 		break;
 
 	case POSITION_CONTROL_FFS:
 		en_6dof = false;
 		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = true;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = true;
 
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
 		//check validity of the velocity command, construct virtual setpoint
 		update_XY_pos();
 		update_Z();
 		update_yaw();
-
-		//printf("\nM2  X=%f Y=%f Z=%f with altitude of %f \n",X,Y,Z,state_estimate.Z);
 		break;
 
 	case POSITION_CONTROL_FFF:
 		en_6dof = false;
 		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = true;
 		en_XY_vel_ctrl = true;
 		en_XY_pos_ctrl = true;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
 
 		//check validity of the velocity command, construct virtual setpoint
 		update_XY_pos();
 		update_Z();
 		update_yaw();
-
-		//printf("\nM2  X=%f Y=%f Z=%f with altitude of %f \n",X,Y,Z,state_estimate.Z);
-		break;
-
-	case AUTONOMOUS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_ctrl = true;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = true;
-		en_XY_pos_ctrl = true;
-
-		waypoint_state_machine.enable_update();
-
 		break;
 
 	case EMERGENCY_LAND:
 		en_6dof = false;
 		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
 		en_rpy_ctrl = true;
+		en_rpy_trans = false;
 		en_Z_ctrl = true;
 		en_Z_rate_ctrl = true;
 		en_XY_vel_ctrl = false;
 		en_XY_pos_ctrl = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
 
 		//Assign Setpoints
 		roll = 0;
@@ -481,6 +653,59 @@ int setpoint_t::update_setpoints(void)
 
 		update_yaw();
 		break;
+
+	case AUTONOMOUS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = true;
+		en_XY_pos_ctrl = true;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		waypoint_state_machine.enable_update();
+
+		break;
+
+	case ZEPPELIN:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = false;
+		en_rpy_trans = true;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_6dof_servo = true;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = true;
+
+		roll_throttle = user_input.get_roll_stick();
+		pitch_throttle = user_input.get_pitch_stick();
+		yaw_throttle = user_input.get_yaw_stick();
+		Z_throttle = -user_input.get_thr_stick(); //update_th();
+		
+		roll_servo_throttle = user_input.get_roll_stick();
+		pitch_servo_throttle = user_input.get_pitch_stick();
+		yaw_servo_throttle = user_input.get_yaw_stick();
+		X_servo_throttle = user_input.get_yaw_stick();
+		Y_servo_throttle = 0.0;
+		Z_servo_throttle = user_input.get_thr_stick();
+		update_trans();
+
 	default: // should never get here
 		fprintf(stderr, "ERROR in setpoint_manager thread, unknown flight mode\n");
 		break;

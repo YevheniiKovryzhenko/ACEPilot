@@ -182,6 +182,10 @@ static int __parse_layout(void)
 	else if(strcmp(tmp_str, "LAYOUT_8X")==0){
 		settings.num_rotors = 8;
 		settings.layout = LAYOUT_8X;
+		}
+	else if (strcmp(tmp_str, "LAYOUT_4X_ZEPPELIN") == 0) {
+		settings.num_rotors = 4;
+		settings.layout = LAYOUT_4X_ZEPPELIN;
 	}
 	else{
 		fprintf(stderr,"ERROR: invalid layout string\n");
@@ -210,7 +214,11 @@ static int __parse_servo_layout(void)
 	tmp_str = (char*)json_object_get_string(tmp);
 	if (strcmp(tmp_str, "LAYOUT_4xDIRECT_TEST") == 0) {
 		settings.num_servos = 6;
-		settings.servo_layout = LAYOUT_4xDIRECT_TEST;
+		settings.servo_layout = LAYOUT_6xDIRECT_TEST;
+	}
+	else if (strcmp(tmp_str, "LAYOUT_16xZEPPELIN") == 0) {
+		settings.num_servos = 16;
+		settings.servo_layout = LAYOUT_16xZEPPELIN;
 	}
 	else {
 		fprintf(stderr, "ERROR: invalid layout string\n");

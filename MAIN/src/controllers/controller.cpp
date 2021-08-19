@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/05/2020 (MM/DD/YYYY)
+ * Last Edit:  08/18/2020 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -128,14 +128,20 @@ int feedback_controller_t::rpy_march(void)
 		D_yaw_i.gain = D_yaw_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
+	double err_roll, err_pitch, err_yaw;
+	err_roll = setpoint.roll - state_estimate.roll;
+	err_pitch = setpoint.pitch - state_estimate.pitch;
+	err_yaw = setpoint.yaw - state_estimate.continuous_yaw;
+	//use smooth transition if control blending is enabled:
+	if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw); //zero out ff terms?
 
 	// 1) Attitude -> Attitude Rate
-	setpoint.roll_dot = rc_filter_march(&D_roll_pd, setpoint.roll - state_estimate.roll)
-		+ rc_filter_march(&D_roll_i, setpoint.roll - state_estimate.roll) + setpoint.roll_dot_ff;
-	setpoint.pitch_dot = rc_filter_march(&D_pitch_pd, setpoint.pitch - state_estimate.pitch)
-		+ rc_filter_march(&D_pitch_i, setpoint.pitch - state_estimate.pitch) + setpoint.pitch_dot_ff;
-	setpoint.yaw_dot = rc_filter_march(&D_yaw_pd, setpoint.yaw - state_estimate.continuous_yaw)
-		+ rc_filter_march(&D_yaw_i, setpoint.yaw - state_estimate.continuous_yaw) + setpoint.yaw_dot_ff;
+	setpoint.roll_dot = rc_filter_march(&D_roll_pd, err_roll)
+		+ rc_filter_march(&D_roll_i, err_roll) + setpoint.roll_dot_ff;
+	setpoint.pitch_dot = rc_filter_march(&D_pitch_pd, err_pitch)
+		+ rc_filter_march(&D_pitch_i, err_pitch) + setpoint.pitch_dot_ff;
+	setpoint.yaw_dot = rc_filter_march(&D_yaw_pd, err_yaw)
+		+ rc_filter_march(&D_yaw_i, err_yaw) + setpoint.yaw_dot_ff;
 
 	
 
@@ -176,6 +182,15 @@ int feedback_controller_t::rpy_reset(void)
     rc_filter_prefill_inputs(&D_roll_pd, -state_estimate.roll);
     rc_filter_prefill_inputs(&D_pitch_pd, -state_estimate.pitch);
     return 0;
+}
+
+int feedback_controller_t::rpy_transition(double& roll_err, \
+	double& pitch_err, double& yaw_err)
+{
+	roll_err = roll_err * (tanh(7.0 + setpoint.roll_dot_tr / 0.06) + 1.0) / 2.0;
+	pitch_err = pitch_err * (tanh(4.9 + setpoint.pitch_dot_tr / 0.12) + 1.0) / 2.0;
+	yaw_err = yaw_err * (tanh(4.9 + setpoint.yaw_dot_tr / 0.12) + 1.0) / 2.0;
+	return 0;
 }
 
 
@@ -258,13 +273,21 @@ int feedback_controller_t::rpy_rate_march(void)
 		D_yaw_rate_i.gain = D_yaw_rate_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
-	// Attitude rate errors -> Torque errors
-	setpoint.roll_throttle = rc_filter_march(&D_roll_rate_pd, setpoint.roll_dot - state_estimate.roll_dot)
-		+ rc_filter_march(&D_roll_rate_i, setpoint.roll_dot - state_estimate.roll_dot);
-	setpoint.pitch_throttle = rc_filter_march(&D_pitch_rate_pd, setpoint.pitch_dot - state_estimate.pitch_dot)
-		+ rc_filter_march(&D_pitch_rate_i, setpoint.pitch_dot - state_estimate.pitch_dot);
-	setpoint.yaw_throttle = rc_filter_march(&D_yaw_rate_pd, setpoint.yaw_dot - state_estimate.yaw_dot)
-		+ rc_filter_march(&D_yaw_rate_i, setpoint.yaw_dot - state_estimate.yaw_dot);
+	double err_roll_dot, err_pitch_dot, err_yaw_dot;
+	err_roll_dot = setpoint.roll_dot - state_estimate.roll_dot;
+	err_pitch_dot = setpoint.pitch_dot - state_estimate.pitch_dot;
+	err_yaw_dot = setpoint.yaw_dot - state_estimate.yaw_dot;
+
+	//use smooth transition if control blending is enabled:
+	if (setpoint.en_rpy_rate_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
+
+	// Attitude rate error -> Torque cmd.
+	setpoint.roll_throttle = rc_filter_march(&D_roll_rate_pd, err_roll_dot)
+		+ rc_filter_march(&D_roll_rate_i, err_roll_dot);
+	setpoint.pitch_throttle = rc_filter_march(&D_pitch_rate_pd, err_pitch_dot)
+		+ rc_filter_march(&D_pitch_rate_i, err_pitch_dot);
+	setpoint.yaw_throttle = rc_filter_march(&D_yaw_rate_pd, err_yaw_dot)
+		+ rc_filter_march(&D_yaw_rate_i, err_yaw_dot);
 
 	last_en_rpy_rate_ctrl = true;
 	return 0;
@@ -291,6 +314,16 @@ int feedback_controller_t::rpy_rate_reset(void)
 	rc_filter_prefill_inputs(&D_roll_rate_pd, -state_estimate.roll_dot);
 	rc_filter_prefill_inputs(&D_pitch_rate_pd, -state_estimate.pitch_dot);
 	rc_filter_prefill_inputs(&D_yaw_rate_pd, -state_estimate.yaw_dot);
+	return 0;
+}
+
+
+int feedback_controller_t::rpy_rate_transition(double& roll_dot_err,\
+	double& pitch_dot_err, double& yaw_dot_err)
+{
+	roll_dot_err = roll_dot_err * (tanh(7.0 + setpoint.roll_dot_tr / 0.06) + 1.0) / 2.0;
+	pitch_dot_err = pitch_dot_err * (tanh(4.9 + setpoint.pitch_dot_tr / 0.12) + 1.0) / 2.0;
+	yaw_dot_err = yaw_dot_err * (tanh(4.9 + setpoint.yaw_dot_tr / 0.12) + 1.0) / 2.0;
 	return 0;
 }
 
@@ -792,10 +825,9 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
     }
 
 
-	/* Make sure Altitude controller flag is set to off if was not used or if
-	switching between flight modes in flight: Has to make last_en_Z_ctrl = 0
-	if not using altitude control - we want to make sure controller is being
-	reset every time flight mode is switched to altitude control.
+	/* Make sure controller flags are set to off when not used for proper
+	switching between flight modes - we want to make sure controllers are being
+	reset every time flight mode is switched.
 	*/
 	if (!setpoint.en_rpy_ctrl) last_en_rpy_ctrl = false;
 	if (!setpoint.en_rpy_rate_ctrl) last_en_rpy_rate_ctrl = false;
@@ -827,13 +859,17 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
 	// run attitude controllers if enabled
 	if (setpoint.en_rpy_ctrl)
 	{
-		rpy_march(); //marches only attitude ctrl.
+		rpy_march(); //marches only attitude ctrl. + transition
+	}
+	else if (setpoint.en_rpy_trans)
+	{
+		rpy_transition(setpoint.roll_throttle, setpoint.pitch_throttle, setpoint.yaw_throttle);
 	}
 
 	// run attitude rate controllers if enabled
 	if (setpoint.en_rpy_rate_ctrl)
 	{
-		rpy_rate_march(); //marches only attitude rates ctrl.
+		rpy_rate_march(); //marches only attitude rates ctrl. + transition
 	}
 
 	// now use motor mixing matrix to get individual motor inputs in [0 1] range

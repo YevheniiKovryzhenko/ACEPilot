@@ -101,10 +101,12 @@ private:
 	int rpy_init(void);
 	int rpy_march(void);
 	int rpy_reset(void);
+	int rpy_transition(double& roll_err, double& pitch_err, double& yaw_err);
 
 	int rpy_rate_init(void);
 	int rpy_rate_march(void);
 	int rpy_rate_reset(void);
+	int rpy_rate_transition(double& roll_dot_err, double& pitch_dot_err, double& yaw_dot_err);
 
 	int xy_init(void);
 	int xy_march(void);

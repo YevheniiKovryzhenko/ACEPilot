@@ -61,37 +61,47 @@ typedef enum dsm_kill_mode_t {
 #define VEC_YAW			5
 
 // user control parameters
-#define YAW_DEADZONE		0.02
-#define THROTTLE_DEADZONE	0.02
-#define SOFT_START_SECONDS	0.8		// controller soft start seconds
-#define ALT_CUTOFF_FREQ		2.0
-#define BMP_RATE_DIV		10		// optionally sample bmp less frequently than mpu
+#define YAW_DEADZONE				0.02
+#define THROTTLE_DEADZONE			0.02
+#define SOFT_START_SECONDS			0.8		// controller soft start seconds
+#define ALT_CUTOFF_FREQ				2.0
+#define BMP_RATE_DIV				10		// optionally sample bmp less frequently than mpu
 
 // Intermediate Controller Value Limits
-#define MAX_ROLL_RATE		1.5		// rad/s
-#define MAX_PITCH_RATE		1.5		// rad/s
-#define MAX_YAW_RATE		1.5		// rad/s
-#define MAX_ROLL_SETPOINT	0.75	// rad
-#define MAX_PITCH_SETPOINT	0.75	// rad
-#define MAX_XY_VELOCITY		2.0     // m/s
-#define MAX_Z_VELOCITY		2.0     // m/s
-#define MAX_XY_ACCELERATION 5.0		// m/s^2
-#define MAX_Z_ACCELERATION	5.0		// m/s^2
+#define MAX_ROLL_RATE				1.5		// rad/s
+#define MAX_PITCH_RATE				1.5		// rad/s
+#define MAX_YAW_RATE				1.5		// rad/s
+#define MAX_ROLL_SETPOINT			0.75	// rad
+#define MAX_PITCH_SETPOINT			0.75	// rad
+#define MAX_XY_VELOCITY				2.0     // m/s
+#define MAX_Z_VELOCITY				2.0     // m/s
+#define MAX_XY_ACCELERATION			5.0		// m/s^2
+#define MAX_Z_ACCELERATION			5.0		// m/s^2
+
+#define MAX_SERVO_ROLL_RATE			1.5		// rad/s
+#define MAX_SERVO_PITCH_RATE		1.5		// rad/s
+#define MAX_SERVO_YAW_RATE			1.5		// rad/s
+#define MAX_SERVO_ROLL_SETPOINT		0.75	// rad
+#define MAX_SERVO_PITCH_SETPOINT	0.75	// rad
+#define MAX_SERVO_XY_VELOCITY		2.0     // m/s
+#define MAX_SERVO_Z_VELOCITY		2.0     // m/s
+#define MAX_SERVO_XY_ACCELERATION	5.0		// m/s^2
+#define MAX_SERVO_Z_ACCELERATION	5.0		// m/s^2
 
 // controller absolute limits
-#define MAX_ROLL_COMPONENT	0.4
-#define MAX_PITCH_COMPONENT	0.4
-#define MAX_YAW_COMPONENT	0.4
-#define MAX_X_COMPONENT		1.0
-#define MAX_Y_COMPONENT		1.0
-#define XYZ_MAX_ERROR		0.5  ///< meters.
+#define MAX_ROLL_COMPONENT			0.4
+#define MAX_PITCH_COMPONENT			0.4
+#define MAX_YAW_COMPONENT			0.4
+#define MAX_X_COMPONENT				1.0
+#define MAX_Y_COMPONENT				1.0
+#define XYZ_MAX_ERROR				0.5  ///< meters.
 /**
  * MAX_THRUST_COMPONENT is really "lowest power state" or idle value. Note that
  * after the thrust mapping a different value will actually be sent to the motors.
  * The sign is inverted because these are control values in NED coordinates
  */
-#define MAX_THRUST_COMPONENT	-0.05
-#define MIN_THRUST_COMPONENT	-0.75
+#define MAX_THRUST_COMPONENT		-0.05
+#define MIN_THRUST_COMPONENT		-0.75
 
 
 /*
@@ -103,17 +113,23 @@ typedef enum dsm_kill_mode_t {
 * The control/manual inputs will be mapped into
 * ranges specified below:
 */
-#define MAX_SERVO_THRUST_COMPONENT	1.0
+#define MAX_SERVO_THRUST_COMPONENT	-1.0
 #define MIN_SERVO_THRUST_COMPONENT	0.0
 
-#define MAX_SERVO_ROLL_COMPONENT	1.0
-#define MIN_SERVO_ROLL_COMPONENT	-1.0
+// controller absolute limits
+#define MAX_SERVO_ROLL_COMPONENT	0.4
+#define MIN_SERVO_ROLL_COMPONENT	-0.4
 
-#define MAX_SERVO_PITCH_COMPONENT	1.0
-#define MIN_SERVO_PITCH_COMPONENT	-1.0
+#define MAX_SERVO_PITCH_COMPONENT	0.4
+#define MIN_SERVO_PITCH_COMPONENT	-0.4
 
-#define MAX_SERVO_YAW_COMPONENT		1.0
-#define MIN_SERVO_YAW_COMPONENT		-1.0
+#define MAX_SERVO_YAW_COMPONENT		0.4
+#define MIN_SERVO_YAW_COMPONENT		-0.4
+
+#define MAX_SERVO_X_COMPONENT		1.0
+#define MIN_SERVO_X_COMPONENT		-1.0
+#define MAX_SERVO_Y_COMPONENT		1.0
+#define MIN_SERVO_Y_COMPONENT		-1.0
 
 
 
@@ -127,15 +143,15 @@ typedef enum dsm_kill_mode_t {
 
 // terminal emulator control sequences
 #define WRAP_DISABLE	"\033[?7l"
-#define WRAP_ENABLE	"\033[?7h"
-#define KNRM		"\x1B[0m"	// "normal" to return to default after colour
-#define KRED		"\x1B[31m"
-#define KGRN		"\x1B[32m"
-#define KYEL		"\x1B[33m"
-#define KBLU		"\x1B[34m"
-#define KMAG		"\x1B[35m"
-#define KCYN		"\x1B[36m"
-#define KWHT		"\x1B[37m"
+#define WRAP_ENABLE		"\033[?7h"
+#define KNRM			"\x1B[0m"	// "normal" to return to default after colour
+#define KRED			"\x1B[31m"
+#define KGRN			"\x1B[32m"
+#define KYEL			"\x1B[33m"
+#define KBLU			"\x1B[34m"
+#define KMAG			"\x1B[35m"
+#define KCYN			"\x1B[36m"
+#define KWHT			"\x1B[37m"
 
 
 #define TWO_PI (M_PI*2.0)

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/18/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Functions to mix orthogonal inputs to motor controls
@@ -49,7 +49,7 @@ servo_mix_t servo_mix{};	// extern variable in mix_servos.hpp
  * columns: X Y Z Roll Pitch Yaw
  * rows: motors 1-6
  */
-static double mix_4xdirect_test[][MAX_SERVO_INPUTS] = { \
+static double mix_6x_direct_test[][MAX_SERVO_INPUTS] = { \
 {-1.0,   0.0,	0.0,	0.0,	0.0,	0.0},\
 {0.0,   -1.0,	0.0,	0.0,	0.0,	0.0},\
 {0.0,   0.0,	-1.0,	0.0,	0.0,	0.0},\
@@ -57,6 +57,31 @@ static double mix_4xdirect_test[][MAX_SERVO_INPUTS] = { \
 {0.0,	0.0,	0.0,	0.0,	-1.0,	0.0}, \
 {0.0,   0.0,	0.0,	0.0,	0.0,	-1.0} };
 
+/*
+* Droneship Zeppelin 16 servo mixing matrix.
+* top view:
+*  1   2       cw ccw      X   Z down
+*    X                     ^
+*  3   4       ccw cw      + > Y
+* columns:	X(2nd Yaw)	Y		Z		Roll	Pitch	Yaw		
+*/
+static double mix_16x_zeppelin[][MAX_SERVO_INPUTS] = { \
+{0.0,	0.0,	-1.0,	1.0,	1.0,	-1.0},\
+{0.0,	0.0,	-1.0,	-1.0,	-1.0,	1.0},\
+{0.0,	0.0,	-1.0,	-1.0,	1.0,	1.0},\
+{0.0,	0.0,	-1.0,	1.0,	-1.0,	-1.0},\
+{0.0,	0.0,	-1.0,	1.0,	-1.0,	-1.0},\
+{0.0,	0.0,	-1.0,	-1.0,	1.0,	1.0},\
+{0.0,	0.0,	-1.0,	-1.0,	-1.0,	1.0},\
+{0.0,	0.0,	-1.0,	1.0,	1.0,	-1.0},\
+{1.0,	0.0,	0.0,	0.0,	0.0,	0.0},\
+{1.0,	0.0,	0.0,	0.0,	0.0,	0.0},\
+{-1.0,	0.0,	0.0,	0.0,	0.0,	0.0},\
+{1.0,	0.0,	0.0,	0.0,	0.0,	0.0},\
+{1.0,	0.0,	0.0,	0.0,	0.0,	0.0},\
+{-1.0,	0.0,	0.0,	0.0,	0.0,	0.0},\
+{-1.0,	0.0,	0.0,	0.0,	0.0,	0.0},\
+{1.0,	0.0,	0.0,	0.0,	0.0,	0.0}};
 
 int servo_mix_t::init(servo_layout_t layout)
 {
@@ -66,11 +91,15 @@ int servo_mix_t::init(servo_layout_t layout)
 		return -1;
 	}
 	switch(layout){
-	case LAYOUT_4xDIRECT_TEST:
+	case LAYOUT_6xDIRECT_TEST:
 		servos = 6;
 		dof = 6;
-		mix_matrix = mix_4xdirect_test;
+		mix_matrix = mix_6x_direct_test;
 		break;
+	case LAYOUT_16xZEPPELIN:
+		servos = 16;
+		dof = 6;
+		mix_matrix = mix_16x_zeppelin;
 	default:
 		fprintf(stderr,"ERROR in init unknown servo layout\n");
 		return -1;

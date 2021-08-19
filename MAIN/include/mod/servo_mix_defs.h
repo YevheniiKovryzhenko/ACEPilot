@@ -34,7 +34,8 @@
 #define SERVO_MIX_DEFS_H
 
 typedef enum servo_layout_t {
-	LAYOUT_4xDIRECT_TEST
+	LAYOUT_6xDIRECT_TEST,
+	LAYOUT_16xZEPPELIN
 } servo_layout_t;
 
 #endif //SERVO_MIX_DEFS_H

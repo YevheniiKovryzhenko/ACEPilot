@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/16/2020 (MM/DD/YYYY)
+ * Last Edit:  08/18/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -52,6 +52,7 @@
 #include <rc/time.h> // for nanos
 #include <rc/start_stop.h>
 #include <rc/math/quaternion.h>
+#include <rc/math/filter.h>
 
 #ifndef SETPOINT_MANAGER_H
 #define SETPOINT_MANAGER_H
@@ -69,15 +70,30 @@ private:
 	bool initialized;	///< set to 1 once setpoint manager has initialized
 	///< @}
 
+	bool last_en_trans;
+	rc_filter_t pitch_stick_int;
 
 	/**
 	* Function only used locally
 	*/
+	int init_trans(void);
+	int update_trans(void);
 	int update_setpoints(void);
+
+	/* Functions which should be called internally to update setpoints based on radio input:*/
+	void update_th(void);
+	void update_rp(void);
+	void update_rpy_rate(void);
+	void update_yaw(void);
+	void update_Z(void);
+	void update_XY_pos(void);
+
+	void update_rpy_servo(void);
 public:
 	/** @name general */
 	///< @{
 	bool en_6dof;		///< enable 6DOF control features
+	bool en_6dof_servo;
 	///< @}
 
 	/** @name direct passthrough
@@ -100,28 +116,93 @@ public:
 	double yaw_servo_throttle;		///< final value which is being actually used for control mixing
 	///< @}
 
-	/** @name attitude rate setpoint */
+	/** @name attitude rate setpoints */
 	///< @{
-	bool en_rpy_rate_ctrl;		///< enable the roll pitch yaw rate controllers
-	double roll_dot;			///< roll angle rate (rad/s)
-	double pitch_dot;			///< pitch angle rate (rad/s)
-	double yaw_dot;				///< yaw angle rate (rad/s)
-	double roll_dot_ff;			///< feedforward roll rate (rad/s)
-	double pitch_dot_ff;		///< feedforward pitch rate (rad/s)
-	double yaw_dot_ff;			///< feedforward yaw rate (rad/s)
+	bool en_rpy_rate_ctrl;			///< enable the roll pitch yaw rate controllers
+	double roll_dot;				///< roll angle rate (rad/s)
+	double pitch_dot;				///< pitch angle rate (rad/s)
+	double yaw_dot;					///< yaw angle rate (rad/s)
+	double roll_dot_ff;				///< feedforward roll rate (rad/s)
+	double pitch_dot_ff;			///< feedforward pitch rate (rad/s)
+	double yaw_dot_ff;				///< feedforward yaw rate (rad/s)
 	///< @}
 
-	/** @name attitude setpoint */
+	/** @name attitude rate setpoints transition rates */
 	///< @{
-	bool en_rpy_ctrl;	///< enable the roll pitch yaw controllers
-	double roll;		///< roll angle (positive tip right) (rad)
-	double pitch;		///< pitch angle (positive tip back) (rad)
-	double yaw;               ///< glabal yaw angle, positive left
-	double roll_ff;           ///< feedforward roll angle (rad)
-	double pitch_ff;          ///< feedforward pitch angle (rad)
+	bool en_rpy_rate_trans;			///< enable the roll pitch yaw rate transition functions
+	double roll_dot_tr;				///< roll angle rate transition gain
+	double pitch_dot_tr;			///< pitch angle rate transition gain
+	double yaw_dot_tr;				///< yaw angle rate transition gain
+	double roll_dot_ff_tr;			///< feedforward roll rate transition gain
+	double pitch_dot_ff_tr;			///< feedforward pitch rate transition gain
+	double yaw_dot_ff_tr;			///< feedforward yaw rate transition gain
 	///< @}
 
-	/** @name acceleration setpoint */
+	/** @name attitude rate servo setpoints */
+	///< @{
+	bool en_rpy_rate_servo_ctrl;	///< enable the roll pitch yaw rate controllers
+	double roll_dot_servo;			///< roll angle rate (rad/s)
+	double pitch_dot_servo;			///< pitch angle rate (rad/s)
+	double yaw_dot_servo;			///< yaw angle rate (rad/s)
+	double roll_dot_ff_servo;		///< feedforward roll rate (rad/s)
+	double pitch_dot_ff_servo;		///< feedforward pitch rate (rad/s)
+	double yaw_dot_ff_servo;		///< feedforward yaw rate (rad/s)
+	///< @}
+
+	/** @name attitude rate servo setpoints transition rates */
+	///< @{
+	bool en_rpy_rate_servo_trans;	///< enable the roll pitch yaw rate transition functions
+	double roll_dot_servo_tr;		///< roll angle rate transition gain
+	double pitch_dot_servo_tr;		///< pitch angle rate transition gain
+	double yaw_dot_servo_tr;		///< yaw angle rate transition gain
+	double roll_dot_ff_servo_tr;	///< feedforward roll rate transition gain
+	double pitch_dot_ff_servo_tr;	///< feedforward pitch rate transition gain
+	double yaw_dot_ff_servo_tr;		///< feedforward yaw rate transition gain
+	///< @}
+
+	/** @name attitude setpoints */
+	///< @{
+	bool en_rpy_ctrl;				///< enable the roll pitch yaw controllers
+	double roll;					///< roll angle (positive tip right) (rad)
+	double pitch;					///< pitch angle (positive tip back) (rad)
+	double yaw;						///< glabal yaw angle, positive left
+	double roll_ff;					///< feedforward roll angle (rad)
+	double pitch_ff;				///< feedforward pitch angle (rad)
+	///< @}
+
+	/** @name attitude setpoint transition rates */
+	///< @{
+	bool en_rpy_trans;				///< enable the roll pitch yaw transition functions
+	double roll_tr;					///< roll angle transition gain
+	double pitch_tr;				///< pitch angle transition gain
+	double yaw_tr;					///< yaw angle transition gain
+	double roll_ff_tr;				///< feedforward roll transition gain
+	double pitch_ff_tr;				///< feedforward pitch transition gain
+	double yaw_ff_tr;				///< feedforward yaw transition gain
+	///< @}
+	 
+	/** @name attitude servo setpoints*/
+	///< @{
+	bool en_rpy_servo_ctrl;			///< enable the roll pitch yaw controllers
+	double roll_servo;				///< roll angle (positive tip right) (rad)
+	double pitch_servo;				///< pitch angle (positive tip back) (rad)
+	double yaw_servo;				///< glabal yaw angle, positive left
+	double roll_ff_servo;			///< feedforward roll angle (rad)
+	double pitch_ff_servo;			///< feedforward pitch angle (rad)
+	///< @}
+
+	/** @name attitude servo setpoint transition rates */
+	///< @{
+	bool en_rpy_servo_trans;		///< enable the roll pitch yaw transition functions
+	double roll_servo_tr;			///< roll angle transition gain
+	double pitch_servo_tr;			///< pitch angle transition gain
+	double yaw_servo_tr;			///< yaw angle transition gain
+	double roll_ff_servo_tr;		///< feedforward roll transition gain
+	double pitch_ff_servo_tr;		///< feedforward pitch transition gain
+	double yaw_ff_servo_tr;			///< feedforward yaw transition gain
+	///< @}
+
+	/** @name acceleration setpoints */
 	///< @{
 	double X_ddot;
 	double Y_ddot;
@@ -142,8 +223,8 @@ public:
 	bool en_XY_vel_ctrl;
 	double X_dot;
 	double Y_dot;
-	double X_dot_ff;    ///< feedforward x velocity (m/s)
-	double Y_dot_ff;    ///< feedforward y velocity (m/s)
+	double X_dot_ff;		///< feedforward x velocity (m/s)
+	double Y_dot_ff;		///< feedforward y velocity (m/s)
 	///< @}
 
 	/** @name horizontal position setpoint */
@@ -151,6 +232,26 @@ public:
 	bool en_XY_pos_ctrl;
 	double X;
 	double Y;
+	///< @}
+	/** @name horizontal position setpoint transition rates */
+	///< @{
+	bool en_XY_pos_ctrl_trans;		///< enable the XY transition functions
+	double X_tr;					///< X transition gain
+	double Y_tr;					///< Y transition gain
+	///< @}
+	 
+	/** @name horizontal position servo setpoint */
+	///< @{
+	bool en_XY_servo_pos_ctrl;
+	double X_servo;
+	double Y_servo;
+	///< @}
+	/** @name horizontal position setpoint transition rates */
+	///< @{
+	bool en_XY_pos_servo_ctrl_trans;///< enable the XY transition functions
+	double X_servo_tr;				///< X transition gain
+	double Y_servo_tr;				///< Y transition gain
+	///< @}
 
 
 	/**
@@ -183,10 +284,7 @@ public:
 	*/
 	int set_new_path(const char* path_file);
 
-	/* Functions which should be called exterally to update setpoints based on radio input:*/
-	void update_yaw(void);
-	void update_Z(void);
-	void update_XY_pos(void);
+	
 
 };
 

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/28/2020 (MM/DD/YYYY)
+ * Last Edit:  08/18/2020 (MM/DD/YYYY)
  */
 
 #ifndef SERVO_CONTROLLER_HPP
@@ -43,6 +43,30 @@ class feedback_servo_controller_t
 {
 private:
 	bool initialized;
+
+	// for in-flight flight mode switching :
+	bool last_en_rpy_ctrl;
+	bool last_en_rpy_rate_ctrl;
+
+
+
+	int rpy_init(void);
+	int rpy_march(void);
+	int rpy_reset(void);
+	int rpy_transition(double& roll_err, double& pitch_err, double& yaw_err);
+	int r_transition(double& roll_err);
+	int p_transition(double& pitch_err);
+	int y_transition(double& yaw_err);
+
+	int rpy_rate_init(void);
+	int rpy_rate_march(void);
+	int rpy_rate_reset(void);
+	int rpy_rate_transition(double& roll_dot_err, double& pitch_dot_err, double& yaw_dot_err);
+	int r_rate_transition(double& roll_dot_err);
+	int p_rate_transition(double& pitch_dot_err);
+	int y_rate_transition(double& yaw_dot_err);
+
+	int xy_transition(double& x_err, double& y_err);
 
 	int mix_all_control(double(&u)[MAX_SERVO_INPUTS], double(&mot)[MAX_SERVOS]);
 

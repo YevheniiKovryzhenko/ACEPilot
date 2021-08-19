@@ -129,6 +129,20 @@ static double mix_6dof_5inch_monocoque[][MAX_INPUTS] = { \
 { 0.4742,   -0.0000,   -1.0000,    0.2296,   -0.0000,    0.2296},\
 {-0.2296,   -0.2296,   -1.0000,    0.2289,    0.2296,   -0.2221}};
 
+/*
+* Droneship Zeppelin 4 motor mixing matrix.
+* top view:
+*  1   2       cw ccw      X   Z down
+*    X                     ^
+*  3   4       ccw cw      + > Y
+* columns:	X		Y		Z		Roll	Pitch	Yaw
+*/
+static double mix_4x_zeppelin[][MAX_INPUTS] = { \
+{0.0,	0.0,	-1.0,	0.5,	0.5,	0.0},\
+{0.0,	0.0,	-1.0,	-0.5,	0.5,	0.0},\
+{0.0,	0.0,	-1.0,	0.5,	-0.5,	0.0},\
+{0.0,	0.0,	-1.0,	-0.5,	-0.5,	0.0} };
+
 
 static double (*mix_matrix)[6];
 static int initialized;
@@ -174,6 +188,10 @@ int mix_init(rotor_layout_t layout)
 		dof = 6;
 		mix_matrix = mix_6dof_5inch_monocoque;
 		break;
+	case LAYOUT_4X_ZEPPELIN:
+		rotors = 4;
+		dof = 4;
+		mix_matrix = mix_4x_zeppelin;
 	default:
 		fprintf(stderr,"ERROR in mix_init() unknown rotor layout\n");
 		return -1;
@@ -194,8 +212,8 @@ int mix_all_controls(double u[MAX_INPUTS], double* mot)
 	// sum control inputs
 	for(i=0;i<rotors;i++){
 		mot[i]=0.0;
-		for(j=0;j<6;j++){
-			mot[i]+=mix_matrix[i][j]*u[j];
+		for (j = 0; j < 6; j++) {
+			mot[i] += mix_matrix[i][j] * u[j];
 		}
 	}
 	// ensure saturation, should not need to do this if mix_check_saturation

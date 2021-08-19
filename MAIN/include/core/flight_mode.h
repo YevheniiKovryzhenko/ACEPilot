@@ -107,7 +107,11 @@ typedef enum flight_mode_t{
 	 /**
 	 * Fully autoomous position control mode. No external user input 
 	 */
-	 AUTONOMOUS
+	 AUTONOMOUS,
+	 /*
+	 * Zeppelin mixed servo/esc control with thrust vectoring
+	 */
+	 ZEPPELIN
 } flight_mode_t;
 
 
