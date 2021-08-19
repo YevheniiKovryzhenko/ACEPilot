@@ -71,6 +71,7 @@ typedef struct settings_t{
 	/** @name physical parameters */
 	///@{
 	bool enable_servos;
+	bool en_servo_ch_pool_sat;
 	int servo_i2c_driver_id;
 	int num_servos;
 	double servos_arm_time_s;

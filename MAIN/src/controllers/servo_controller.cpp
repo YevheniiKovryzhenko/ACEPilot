@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/18/2020 (MM/DD/YYYY)
+ * Last Edit:  08/19/2020 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -34,7 +34,7 @@
 #include "input_manager.hpp"
 #include "setpoint_manager.hpp"
 #include "mix_servos.hpp"
-//#include "state_estimator.h"
+#include "settings.h"
 
 #include "servo_controller.hpp"
 
@@ -232,46 +232,81 @@ int feedback_servo_controller_t::mix_all_control(double(&u)[MAX_SERVO_INPUTS], d
 	servo_mix.add_input(u[VEC_Z], VEC_Z, mot);
 
 
-	/* 2. Roll (X) Control */
-	servo_mix.check_saturation(VEC_ROLL, mot, &min, &max);
-	if (max > MAX_SERVO_ROLL_COMPONENT)  max = MAX_SERVO_ROLL_COMPONENT;
-	if (min < MIN_SERVO_ROLL_COMPONENT) min = MIN_SERVO_ROLL_COMPONENT;
+	/* 2. Roll (X-rotation) Control */
 	u[VEC_ROLL] = setpoint.roll_servo_throttle;
-	rc_saturate_double(&u[VEC_ROLL], min, max);
+	if (settings.en_servo_ch_pool_sat)
+	{
+		servo_mix.check_saturation(VEC_ROLL, mot, &min, &max);
+		if (max > MAX_SERVO_ROLL_COMPONENT)  max = MAX_SERVO_ROLL_COMPONENT;
+		if (min < MIN_SERVO_ROLL_COMPONENT) min = MIN_SERVO_ROLL_COMPONENT;
+		rc_saturate_double(&u[VEC_ROLL], min, max);
+	}
+	else
+	{
+		rc_saturate_double(&u[VEC_ROLL], MIN_SERVO_ROLL_COMPONENT, MAX_SERVO_ROLL_COMPONENT);
+	}	
 	servo_mix.add_input(u[VEC_ROLL], VEC_ROLL, mot);
 
-	/* 2. Pitch (Y) Control */
-	servo_mix.check_saturation(VEC_PITCH, mot, &min, &max);
-	if (max > MAX_SERVO_PITCH_COMPONENT)  max = MAX_SERVO_PITCH_COMPONENT;
-	if (min < MIN_SERVO_PITCH_COMPONENT) min = MIN_SERVO_PITCH_COMPONENT;
+	/* 2. Pitch (Y-rotation) Control */
 	u[VEC_PITCH] = setpoint.pitch_servo_throttle;
-	rc_saturate_double(&u[VEC_PITCH], min, max);
+	if (settings.en_servo_ch_pool_sat)
+	{
+		servo_mix.check_saturation(VEC_PITCH, mot, &min, &max);
+		if (max > MAX_SERVO_PITCH_COMPONENT)  max = MAX_SERVO_PITCH_COMPONENT;
+		if (min < MIN_SERVO_PITCH_COMPONENT) min = MIN_SERVO_PITCH_COMPONENT;
+		rc_saturate_double(&u[VEC_PITCH], min, max);
+	}
+	else
+	{
+		rc_saturate_double(&u[VEC_PITCH], MIN_SERVO_PITCH_COMPONENT, MAX_SERVO_PITCH_COMPONENT);
+	}
 	servo_mix.add_input(u[VEC_PITCH], VEC_PITCH, mot);
 	
-	/* 3. Yaw (Z) Control */
-	servo_mix.check_saturation(VEC_YAW, mot, &min, &max);
-	if (max > MAX_SERVO_YAW_COMPONENT)  max = MAX_SERVO_YAW_COMPONENT;
-	if (min < MIN_SERVO_YAW_COMPONENT) min = MIN_SERVO_YAW_COMPONENT;
+	/* 3. Yaw (Z-rotation) Control */
 	u[VEC_YAW] = setpoint.yaw_servo_throttle;
-	rc_saturate_double(&u[VEC_YAW], min, max);
+	if (settings.en_servo_ch_pool_sat)
+	{
+		servo_mix.check_saturation(VEC_YAW, mot, &min, &max);
+		if (max > MAX_SERVO_YAW_COMPONENT)  max = MAX_SERVO_YAW_COMPONENT;
+		if (min < MIN_SERVO_YAW_COMPONENT) min = MIN_SERVO_YAW_COMPONENT;
+		rc_saturate_double(&u[VEC_YAW], min, max);
+	}
+	else
+	{
+		rc_saturate_double(&u[VEC_YAW], MIN_SERVO_YAW_COMPONENT, MAX_SERVO_YAW_COMPONENT);
+	}	
 	servo_mix.add_input(u[VEC_YAW], VEC_YAW, mot);
 
 	// for 6dof systems, add X and Y
 	if (setpoint.en_6dof_servo) {
 		// X
-		servo_mix.check_saturation(VEC_X, mot, &min, &max);
-		if (max > MAX_SERVO_X_COMPONENT)  max = MAX_SERVO_X_COMPONENT;
-		if (min < MIN_SERVO_X_COMPONENT) min = MIN_SERVO_X_COMPONENT;
 		u[VEC_X] = setpoint.X_servo_throttle;
-		rc_saturate_double(&u[VEC_X], min, max);
+		if (settings.en_servo_ch_pool_sat)
+		{
+			servo_mix.check_saturation(VEC_X, mot, &min, &max);
+			if (max > MAX_SERVO_X_COMPONENT)  max = MAX_SERVO_X_COMPONENT;
+			if (min < MIN_SERVO_X_COMPONENT) min = MIN_SERVO_X_COMPONENT;
+			rc_saturate_double(&u[VEC_X], min, max);
+		}
+		else
+		{
+			rc_saturate_double(&u[VEC_X], MIN_SERVO_X_COMPONENT, MAX_SERVO_X_COMPONENT);
+		}
 		servo_mix.add_input(u[VEC_X], VEC_X, mot);
 
 		// Y
-		servo_mix.check_saturation(VEC_Y, mot, &min, &max);
-		if (max > MAX_SERVO_Y_COMPONENT)  max = MAX_SERVO_Y_COMPONENT;
-		if (min < MIN_SERVO_Y_COMPONENT) min = MIN_SERVO_Y_COMPONENT;
 		u[VEC_Y] = setpoint.Y_servo_throttle;
-		rc_saturate_double(&u[VEC_Y], min, max);
+		if (settings.en_servo_ch_pool_sat)
+		{
+			servo_mix.check_saturation(VEC_Y, mot, &min, &max);
+			if (max > MAX_SERVO_Y_COMPONENT)  max = MAX_SERVO_Y_COMPONENT;
+			if (min < MIN_SERVO_Y_COMPONENT) min = MIN_SERVO_Y_COMPONENT;
+			rc_saturate_double(&u[VEC_Y], min, max);
+		}
+		else
+		{
+			rc_saturate_double(&u[VEC_Y], MIN_SERVO_Y_COMPONENT, MAX_SERVO_Y_COMPONENT);
+		}		
 		servo_mix.add_input(u[VEC_Y], VEC_Y, mot);
 	}
 

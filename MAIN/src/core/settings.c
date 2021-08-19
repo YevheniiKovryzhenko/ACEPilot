@@ -212,7 +212,7 @@ static int __parse_servo_layout(void)
 		return -1;
 	}
 	tmp_str = (char*)json_object_get_string(tmp);
-	if (strcmp(tmp_str, "LAYOUT_4xDIRECT_TEST") == 0) {
+	if (strcmp(tmp_str, "LAYOUT_6xDIRECT_TEST") == 0) {
 		settings.num_servos = 6;
 		settings.servo_layout = LAYOUT_6xDIRECT_TEST;
 	}
@@ -338,6 +338,9 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	}
 	else if(strcmp(tmp_str, "AUTONOMOUS")==0){
 		*mode = AUTONOMOUS;
+	}
+	else if (strcmp(tmp_str, "ZEPPELIN") == 0) {
+		*mode = ZEPPELIN;
 	}
 	else{
 		fprintf(stderr,"ERROR: invalid flight mode\n");
@@ -716,6 +719,7 @@ int settings_load_from_file(char* path)
 
 	//Servo settings
 	PARSE_BOOL(enable_servos);
+	PARSE_BOOL(en_servo_ch_pool_sat);
 	PARSE_INT(servo_i2c_driver_id);
 	PARSE_DOUBLE_MIN_MAX(servos_arm_time_s, 0.0, 120.0);
 

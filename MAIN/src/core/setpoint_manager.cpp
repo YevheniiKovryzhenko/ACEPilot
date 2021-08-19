@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/18/2020 (MM/DD/YYYY)
+ * Last Edit:  08/19/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -364,9 +364,9 @@ int setpoint_t::update_setpoints(void)
 
 
 		//servos:
-		roll_servo_throttle = (user_input.get_roll_stick() + 1.0) / 2.0;	//map [-1 1] into [0 1]
-		pitch_servo_throttle = (user_input.get_pitch_stick() + 1.0) / 2.0;	//map [-1 1] into [0 1]
-		yaw_servo_throttle = (user_input.get_yaw_stick() + 1.0) / 2.0;		//map [-1 1] into [0 1]
+		roll_servo_throttle = user_input.get_roll_stick();	//map [-1 1] into [0 1]
+		pitch_servo_throttle = user_input.get_pitch_stick();	//map [-1 1] into [0 1]
+		yaw_servo_throttle = user_input.get_yaw_stick();		//map [-1 1] into [0 1]
 		Z_servo_throttle = -user_input.get_thr_stick();
 		break;
 
@@ -703,8 +703,10 @@ int setpoint_t::update_setpoints(void)
 		yaw_servo_throttle = user_input.get_yaw_stick();
 		X_servo_throttle = user_input.get_yaw_stick();
 		Y_servo_throttle = 0.0;
-		Z_servo_throttle = user_input.get_thr_stick();
+		Z_servo_throttle = -user_input.get_thr_stick();
 		update_trans();
+		
+		break;
 
 	default: // should never get here
 		fprintf(stderr, "ERROR in setpoint_manager thread, unknown flight mode\n");

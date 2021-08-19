@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  08/10/2020 (MM/DD/YYYY)
+ * Last Edit:  08/19/2020 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -171,7 +171,17 @@ static void __imu_isr(void)
     if (settings.log_benchmark) benchmark_timers.tCTR = rc_nanos_since_boot();
 
     //Save data to log file
-    if (settings.enable_logging) log_entry.add_new();
+    if (settings.log_only_while_armed)
+    {
+        if (fstate.get_arm_state() == ARMED)
+        {
+            log_entry.add_new();
+        }
+    }
+    else
+    {
+        log_entry.add_new();
+    }
     if (settings.log_benchmark) benchmark_timers.tLOG = rc_nanos_since_boot();
 
     //Currently, this only reads from the BMP pressure sensor
@@ -343,13 +353,10 @@ int main(int argc, char** argv)
     // initialize log_manager if enabled in settings
     if (settings.enable_logging)
     {
-        if (!settings.log_only_while_armed)
+        printf("\ninitializing log manager");
+        if (log_entry.init() < 0)
         {
-            printf("\ninitializing log manager");
-            if (log_entry.init() < 0)
-            {
-                FAIL("\nERROR: failed to initialize log manager")
-            }
+            FAIL("\nERROR: failed to initialize log manager")
         }
     }
 

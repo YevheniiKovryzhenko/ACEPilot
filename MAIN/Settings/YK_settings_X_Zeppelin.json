@@ -24,6 +24,7 @@
 	"arm_time_s": 3.0,
 
 	"enable_servos": true,
+	"en_servo_ch_pool_sat": false,
 	"servo_i2c_driver_id": 1,
 	"servo_layout": "LAYOUT_16xZEPPELIN",
 	"servos_arm_time_s": 1.0,
@@ -39,7 +40,7 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "ZEPPELIN",
+	"flight_mode_1": "TEST_6xSERVOS_DIRECT",
 	"flight_mode_2": "ZEPPELIN",
 	"flight_mode_3": "ZEPPELIN",
 

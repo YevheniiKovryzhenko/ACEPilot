@@ -293,34 +293,34 @@ int printf_cleanup()
 int print_flight_mode(flight_mode_t mode){
 	switch(mode){
 	case TEST_BENCH_4DOF:
-		printf("%sTEST_BENCH_4DOF%s",KYEL,KNRM);
+		printf("%sTEST_BENCH_4DOF       %s",KYEL,KNRM);
 		return 0;
 	case TEST_BENCH_6DOF:
-		printf("%sTEST_BENCH_6DOF%s",KYEL,KNRM);
+		printf("%sTEST_BENCH_6DOF       %s",KYEL,KNRM);
 		return 0;
 	case TEST_6xSERVOS_DIRECT:
-		printf("%sTEST_6xSERVOS_DIRECT%s", KYEL, KNRM);
+		printf("%sTEST_6xSERVOS_DIRECT  %s", KYEL, KNRM);
 		return 0;
 	case ACRO:
-		printf("%sACRO%s", KCYN, KNRM);
+		printf("%sACRO                  %s", KCYN, KNRM);
 		return 0;
 	case MANUAL_S:
-		printf("%sMANUAL_S%s",KCYN,KNRM);
+		printf("%sMANUAL_S              %s",KCYN,KNRM);
 		return 0;
 	case MANUAL_F:
-		printf("%sMANUAL_F%s", KCYN, KNRM);
+		printf("%sMANUAL_F              %s", KCYN, KNRM);
 		return 0;
 	case DIRECT_THROTTLE_6DOF:
-		printf("%sDIR_THRTLE_6DOF%s",KCYN,KNRM);
+		printf("%sDIR_THRTLE_6DOF       %s",KCYN,KNRM);
 		return 0;
 	case ALT_HOLD_SS:
-		printf("%sALT_HOLD_SS  %s",KBLU,KNRM);
+		printf("%sALT_HOLD_SS           %s",KBLU,KNRM);
 		return 0;
 	case ALT_HOLD_FS:
-		printf("%sALT_HOLD_FS  %s", KBLU, KNRM);
+		printf("%sALT_HOLD_FS           %s", KBLU, KNRM);
 		return 0;
 	case ALT_HOLD_FF:
-		printf("%sALT_HOLD_FF  %s", KBLU, KNRM);
+		printf("%sALT_HOLD_FF           %s", KBLU, KNRM);
 		return 0;
 	case POSITION_CONTROL_SSS:
 		printf("%sPOSITION_CONTROL_SSS  %s", KBLU, KNRM);
@@ -335,10 +335,13 @@ int print_flight_mode(flight_mode_t mode){
 		printf("%sPOSITION_CONTROL_FFF  %s", KBLU, KNRM);
 		return 0;
 	case EMERGENCY_LAND:
-		printf("%sEMERGENCY_LAND  %s", KBLU, KNRM);
+		printf("%sEMERGENCY_LAND        %s", KBLU, KNRM);
 		return 0;
 	case AUTONOMOUS:
-		printf("%sAUTONOMOUS  %s",KBLU,KNRM);
+		printf("%sAUTONOMOUS            %s",KBLU,KNRM);
+		return 0;
+	case ZEPPELIN:
+		printf("%sZEPPELIN              %s", KBLU, KNRM);
 		return 0;
 	default:
 		fprintf(stderr,"ERROR in print_flight_mode, unknown flight mode\n");

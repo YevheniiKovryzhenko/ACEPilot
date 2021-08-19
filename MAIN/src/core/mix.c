@@ -192,6 +192,7 @@ int mix_init(rotor_layout_t layout)
 		rotors = 4;
 		dof = 4;
 		mix_matrix = mix_4x_zeppelin;
+		break;
 	default:
 		fprintf(stderr,"ERROR in mix_init() unknown rotor layout\n");
 		return -1;

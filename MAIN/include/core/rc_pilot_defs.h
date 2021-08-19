@@ -113,18 +113,18 @@ typedef enum dsm_kill_mode_t {
 * The control/manual inputs will be mapped into
 * ranges specified below:
 */
-#define MAX_SERVO_THRUST_COMPONENT	-1.0
-#define MIN_SERVO_THRUST_COMPONENT	0.0
+#define MAX_SERVO_THRUST_COMPONENT	0.0
+#define MIN_SERVO_THRUST_COMPONENT	-1.0
 
 // controller absolute limits
-#define MAX_SERVO_ROLL_COMPONENT	0.4
-#define MIN_SERVO_ROLL_COMPONENT	-0.4
+#define MAX_SERVO_ROLL_COMPONENT	1.0
+#define MIN_SERVO_ROLL_COMPONENT	-1.0
 
-#define MAX_SERVO_PITCH_COMPONENT	0.4
-#define MIN_SERVO_PITCH_COMPONENT	-0.4
+#define MAX_SERVO_PITCH_COMPONENT	1.0
+#define MIN_SERVO_PITCH_COMPONENT	-1.0
 
-#define MAX_SERVO_YAW_COMPONENT		0.4
-#define MIN_SERVO_YAW_COMPONENT		-0.4
+#define MAX_SERVO_YAW_COMPONENT		1.0
+#define MIN_SERVO_YAW_COMPONENT		-1.0
 
 #define MAX_SERVO_X_COMPONENT		1.0
 #define MIN_SERVO_X_COMPONENT		-1.0
