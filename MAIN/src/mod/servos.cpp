@@ -202,6 +202,19 @@ int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
             return -1;
         }
     }
+    /*
+    * this should be part of the calibration, not initialization
+    if (unlikely(set_min_us(3, SERVO_MAX_US) == -1))
+    {
+        printf("\nERROR in init: failed to set new min for servos");
+        return -1;
+    }
+    if (unlikely(set_max_us(3, SERVO_MIN_US) == -1))
+    {
+        printf("\nERROR in init: failed to set new max for servos");
+        return -1;
+    }
+    */
 
     set_nom_pulse();
 
