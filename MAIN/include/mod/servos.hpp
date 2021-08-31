@@ -39,9 +39,12 @@
 #define MAX_SERVOS 16
 #endif // !MAX_SERVOS
 
-#define SERVO_MAX_US 2000.0		///< Default maximum pulse width in microseconds
-#define SERVO_NOM_US 1500.0		///< Default nominal pulse width in microseconds
-#define SERVO_MIN_US 650.0		///< Default minimum pulse width in microseconds
+#define SERVO_MAX_US 2400.0		///< Default maximum pulse width in microseconds
+#define SERVO_NOM_US 900.0		///< Default nominal pulse width in microseconds
+#define SERVO_MIN_US 600.0		///< Default minimum pulse width in microseconds
+
+// 1800us / 180deg = 10us/deg
+#define SERVO_DEG_US_INC 10
 
 /*!
  *  @brief  Class that stores state and functions for interacting with servo motors
@@ -128,6 +131,8 @@ private:
 	*/
 	/* Returns 0 on success or -1 on failure */
 	int cmnd_signal_saturate(int i, double signal);
+
+	int set_servo_calibration(void);
 
 public:
 	

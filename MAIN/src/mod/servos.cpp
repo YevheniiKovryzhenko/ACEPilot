@@ -135,6 +135,52 @@ int servo_state_t::init(int driver_bus_id)
     return (init(driver_bus_id, DEF_I2C_ADDRESS));
 }
 
+int servo_state_t::set_servo_calibration(void)
+{
+    for (int i = 0; i < 8; i+=2)
+    {
+        if (unlikely(set_min_us(i, SERVO_MIN_US) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new min for servo %d", i);
+            return -1;
+        }
+        if (unlikely(set_max_us(i, SERVO_MIN_US + SERVO_DEG_US_INC * 150) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i);
+            return -1;
+        }
+        if (unlikely(set_nom_us(i, SERVO_MIN_US + SERVO_DEG_US_INC * 20) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i);
+            return -1;
+        }
+
+        if (unlikely(set_min_us(i + 1, SERVO_MAX_US) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new min for servo %d", i + 1);
+            return -1;
+        }
+        if (unlikely(set_max_us(i + 1, SERVO_MAX_US - SERVO_DEG_US_INC * 150) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i + 1);
+            return -1;
+        }
+        if (unlikely(set_nom_us(i + 1, SERVO_MAX_US - SERVO_DEG_US_INC * 20) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i + 1);
+            return -1;
+        }
+    }
+    
+    printf("\nCalibration for servos is set to:");
+    printf("\nservo      min         nom         max");
+    for (int i = 0; i < MAX_SERVOS; i++)
+    {
+        printf("\n%d    %f     %f   %f", i, min_us[i], nom_us[i], max_us[i]);
+    }
+    
+    return 0;
+}
 
 /*
 * This is how the user should initialize
@@ -202,19 +248,12 @@ int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
             return -1;
         }
     }
-    /*
-    * this should be part of the calibration, not initialization
-    if (unlikely(set_min_us(3, SERVO_MAX_US) == -1))
+
+    if (unlikely(set_servo_calibration() == -1))
     {
-        printf("\nERROR in init: failed to set new min for servos");
+        printf("\nERROR: failed to initialize servos");
         return -1;
     }
-    if (unlikely(set_max_us(3, SERVO_MIN_US) == -1))
-    {
-        printf("\nERROR in init: failed to set new max for servos");
-        return -1;
-    }
-    */
 
     set_nom_pulse();
 
@@ -234,6 +273,16 @@ int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
 #endif
     printf("\nSuccess, servos initialized");
     initialized = true;
+
+    //send servo signals using Pulse Width in microseconds
+    for (int i = 0; i < MAX_SERVOS; i++) {
+        if (unlikely(servo_driver.writeMicroseconds(i, m_us[i]) == -1))
+        {
+            printf("\nERROR in march: failed to write signal in us");
+            return -1;
+        }
+    }
+
     return 0;
 }
 
@@ -304,7 +353,11 @@ int servo_state_t::return_to_nominal(void)
 
     //send servo signals using Pulse Width in microseconds
     for (int i = 0; i < MAX_SERVOS; i++) {
-        if (unlikely(march(i, m_us[i]) == -1)) return -1;
+        if (unlikely(servo_driver.writeMicroseconds(i, m_us[i]) == -1))
+        {
+            printf("\nERROR in march: failed to write signal in us");
+            return -1;
+        }
     }
     return 0;
 }
@@ -322,7 +375,11 @@ int servo_state_t::disarm(void)
     }
     //send servo signals using Pulse Width in microseconds
     for (int i = 0; i < MAX_SERVOS; i++) {
-        if (unlikely(march(i, m_us[i]) == -1)) return -1;
+        if (unlikely(servo_driver.writeMicroseconds(i, m_us[i]) == -1))
+        {
+            printf("\nERROR in march: failed to write signal in us");
+            return -1;
+        }
     }
 
     //power-off servo rail: //if running on BBB rail
