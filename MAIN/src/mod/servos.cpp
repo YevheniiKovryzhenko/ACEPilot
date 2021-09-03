@@ -94,10 +94,12 @@ int servo_state_t::set_max_pulse(void)
 
 
 /*
-* This function coverts commanded signal
+* This function converts commanded signal
 * in [0 1] range into pulse width in
-* miroseconds for motor i
+* miroseconds for motor i with respect to
+* calibrated min and max.
 */
+/* Returns 0 on success or -1 on failure */
 int servo_state_t::cmnd2us(int i)
 {
     // sanity check
@@ -124,6 +126,57 @@ int servo_state_t::cmnd2us(int i)
     return 0;
 }
 
+
+
+/*
+* This function converts commanded signal
+* in [-1 1] range into pulse width in
+* miroseconds for motor i with respect to
+* the calibrated center, min and max.
+*/
+/* Returns 0 on success or -1 on failure */
+int servo_state_t::cmnd2us_centered(int i)
+{
+    // sanity check
+    if (unlikely(m_centered[i] > 1.0 || m_centered[i] < -1.0))
+    {
+        printf("\nERROR: in CMD2PWM, command signal must be between -1.0 & 1.0");
+        return -1;
+    }
+
+    // return quickly for boundary conditions and center
+    if (m_centered[i] == -1.0)
+    {
+        m_us[i] = min_us[i];
+        return 0;
+    }
+    if (m_centered[i] == 1.0)
+    {
+        m_us[i] = max_us[i];
+        return 0;
+    }
+    if (m_centered[i] == 0.0)
+    {
+        m_us[i] = nom_us[i];
+        return 0;
+    }
+
+    // Map [-1 1] signal to servo pulse width with respect to calibarted min, max and center
+    if (m_centered[i] > 0.0)
+    {
+        m_us[i] = m_centered[i] * (max_us[i] - nom_us[i]) + nom_us[i];
+        return 0;
+    }
+    if (m_centered[i] < 0.0)
+    {
+        m_us[i] = -m_centered[i] * (min_us[i] - nom_us[i]) + nom_us[i];
+        return 0;
+    }
+    
+    printf("\nERROR: something went wrong in cmnd2us_centered");
+    return -1;
+}
+
 /*
 * This is how the user should initialize
 * servos. Initializes both the servo driver
@@ -137,6 +190,7 @@ int servo_state_t::init(int driver_bus_id)
 
 int servo_state_t::set_servo_calibration(void)
 {
+    
     for (int i = 0; i < 8; i+=2)
     {
         if (unlikely(set_min_us(i, SERVO_MIN_US) == -1))
@@ -144,12 +198,12 @@ int servo_state_t::set_servo_calibration(void)
             printf("\nERROR in set_servo_calibration: failed to set new min for servo %d", i);
             return -1;
         }
-        if (unlikely(set_max_us(i, SERVO_MIN_US + SERVO_DEG_US_INC * 150) == -1))
+        if (unlikely(set_max_us(i, SERVO_MIN_US + SERVO_DEG_US_INC * 300) == -1))
         {
             printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i);
             return -1;
         }
-        if (unlikely(set_nom_us(i, SERVO_MIN_US + SERVO_DEG_US_INC * 20) == -1))
+        if (unlikely(set_nom_us(i, SERVO_MIN_US + SERVO_DEG_US_INC * 150) == -1))
         {
             printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i);
             return -1;
@@ -160,16 +214,53 @@ int servo_state_t::set_servo_calibration(void)
             printf("\nERROR in set_servo_calibration: failed to set new min for servo %d", i + 1);
             return -1;
         }
-        if (unlikely(set_max_us(i + 1, SERVO_MAX_US - SERVO_DEG_US_INC * 150) == -1))
+        if (unlikely(set_max_us(i + 1, SERVO_MAX_US - SERVO_DEG_US_INC * 300) == -1))
         {
             printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i + 1);
             return -1;
         }
-        if (unlikely(set_nom_us(i + 1, SERVO_MAX_US - SERVO_DEG_US_INC * 20) == -1))
+        if (unlikely(set_nom_us(i + 1, SERVO_MAX_US - SERVO_DEG_US_INC * 150) == -1))
         {
             printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i + 1);
             return -1;
         }
+    }
+    
+    for (int i = 8; i < MAX_SERVOS; i += 2)
+    {
+        if (unlikely(set_min_us(i, SERVO_MAX_US) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new min for servo %d", i);
+            return -1;
+        }
+        if (unlikely(set_max_us(i, SERVO_MAX_US - SERVO_DEG_US_INC * 80) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i);
+            return -1;
+        }
+        if (unlikely(set_nom_us(i, SERVO_MAX_US - SERVO_DEG_US_INC * 40) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i);
+            return -1;
+        }
+
+        if (unlikely(set_min_us(i + 1, SERVO_MIN_US) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new min for servo %d", i + 1);
+            return -1;
+        }
+        if (unlikely(set_max_us(i + 1, SERVO_MIN_US + SERVO_DEG_US_INC * 80) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i + 1);
+            return -1;
+        }
+        if (unlikely(set_nom_us(i + 1, SERVO_MIN_US + SERVO_DEG_US_INC * 40) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i + 1);
+            return -1;
+        }
+        
+
     }
     
     printf("\nCalibration for servos is set to:");
@@ -365,7 +456,7 @@ int servo_state_t::return_to_nominal(void)
 int servo_state_t::disarm(void)
 {
     // need to set each of the servos to their nominal positions:
-    set_nom_pulse(); //won't work, need extra time before power is killed
+    set_nom_pulse(); //won't work, need extra time before power is killed if using beaglebone
 
     if (arm_state == DISARMED)
     {
@@ -425,17 +516,7 @@ int servo_state_t::set_cmnd_signal(int i, double signal)
 /* Returns 0 on success or -1 on failure */
 int servo_state_t::cmnd_signal_saturate(int i, double signal)
 {
-    if (signal < 1.0 && signal > 0.0)
-    {
-        m[i] = signal;
-        return 0;
-    }
-    else if (signal == 0.0)
-    {
-        m[i] = signal;
-        return 0;
-    }
-    else if (signal == 1.0)
+    if (signal <= 1.0 && signal >= 0.0)
     {
         m[i] = signal;
         return 0;
@@ -448,6 +529,35 @@ int servo_state_t::cmnd_signal_saturate(int i, double signal)
     else if (signal < 0.0)
     {
         m[i] = 0.0;
+        return 0;
+    }
+    else
+    {
+        printf("\nERROR in cmnd_signal_saturate: unknown signal command.");
+        return -1;
+    }
+}
+
+/*
+* This is a simple saturation function which
+* limits the signal between -1 and 1.
+*/
+/* Returns 0 on success or -1 on failure */
+int servo_state_t::cmnd_signal_saturate_center(int i, double signal)
+{
+    if (signal <= 1.0 && signal >= -1.0)
+    {
+        m_centered[i] = signal;
+        return 0;
+    }
+    else if (signal > 1.0)
+    {
+        m_centered[i] = 1.0;
+        return 0;
+    }
+    else if (signal < -1.0)
+    {
+        m_centered[i] = -1.0;
         return 0;
     }
     else
@@ -489,7 +599,7 @@ int servo_state_t::march(int i, double signal)
 #endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
 
     
-    // need to do mapping between [0 1] and servo signal in us
+    // need to check saturation between [0 1] and record the signal
     if (unlikely(cmnd_signal_saturate(i, signal) == -1))
     {
         printf("\nERROR in march: failed to set command signal");
@@ -509,6 +619,54 @@ int servo_state_t::march(int i, double signal)
     if (unlikely(servo_driver.writeMicroseconds(i, m_us[i]) == -1))
     {
         printf("\nERROR in march: failed to write signal in us");
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/*
+* This is how the user should march (apply)
+* servo command. Sends m[i] coverted into PWM
+* motor signal to motor i.
+*/
+/* Returns 0 on success or -1 on failure */
+int servo_state_t::march_with_centering(int i, double signal)
+{
+
+    if (unlikely(!initialized))
+    {
+        printf("\nERROR in march_with_centering: trying to march servos when not initialized");
+        return -1;
+    }
+
+#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+    if (unlikely(arm_state == DISARMED)) {
+        printf("WARNING: trying to march servos when servos disarmed\n");
+        return 0;
+    }
+#endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+
+    // need to check saturation between [-1 1] and record the signal
+    if (unlikely(cmnd_signal_saturate_center(i, signal) == -1))
+    {
+        printf("\nERROR in march_with_centering: failed to check saturation with respect to center");
+        return -1;
+    }
+
+    // need to do mapping between [0 1] and servo signal in us
+    if (unlikely(cmnd2us_centered(i) == -1))
+    {
+        printf("\nERROR in march_with_centering: failed to convert signal to us");
+        return -1;
+    }
+
+    //send servo signals using Pulse Width in microseconds
+    //if (rc_servo_send_pulse_us(i + 1, sstate.m_us[i]) == -1) return -1;
+    if (unlikely(servo_driver.writeMicroseconds(i, m_us[i]) == -1))
+    {
+        printf("\nERROR in march_with_centering: failed to write signal in us");
         return -1;
     }
 

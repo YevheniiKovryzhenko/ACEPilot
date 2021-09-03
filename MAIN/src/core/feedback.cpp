@@ -419,9 +419,10 @@ int feedback_state_t::march(void)
 			//printf("\nServo CMND: %f", tmp_s[i]);
 			// final saturation just to take care of possible rounding errors
 			// this should not change the values and is probably excessive
-			rc_saturate_double(&tmp_s[i], 0.0, 1.0);
+			rc_saturate_double(&tmp_s[i], -1.0, 1.0);
 			//send mapped into [0 1] control signals to servos:
-			sstate.march(i, tmp_s[i]);
+			//sstate.march(i, tmp_s[i]);
+			sstate.march_with_centering(i, tmp_s[i]);
 		}
 	}
 

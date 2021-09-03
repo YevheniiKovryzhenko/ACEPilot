@@ -82,6 +82,8 @@ int setpoint_t::init_trans(void)
 		return -1;
 	}
 
+	rc_filter_enable_saturation(&pitch_stick_int, -1.0, 1.0);
+
 	last_en_trans = false;
 	return 0;
 }
@@ -272,9 +274,6 @@ bool setpoint_t::is_initialized(void)
 
 int setpoint_t::update_setpoints(void)
 {
-	if (user_input.flight_mode != AUTONOMOUS) waypoint_state_machine.disable_update();
-	if (user_input.flight_mode != ZEPPELIN) last_en_trans = false;
-
 	// finally, switch between flight modes and adjust setpoint properly
 	switch (user_input.flight_mode) {
 
@@ -696,15 +695,16 @@ int setpoint_t::update_setpoints(void)
 		roll_throttle = user_input.get_roll_stick();
 		pitch_throttle = user_input.get_pitch_stick();
 		yaw_throttle = user_input.get_yaw_stick();
-		Z_throttle = -user_input.get_thr_stick(); //update_th();
+		Z_throttle = -user_input.get_thr_stick();
 		
 		roll_servo_throttle = user_input.get_roll_stick();
 		pitch_servo_throttle = user_input.get_pitch_stick();
 		yaw_servo_throttle = user_input.get_yaw_stick();
-		X_servo_throttle = user_input.get_yaw_stick();
-		Y_servo_throttle = 0.0;
-		Z_servo_throttle = -user_input.get_thr_stick();
 		update_trans();
+		X_servo_throttle = user_input.get_yaw_stick();
+		Y_servo_throttle = pitch_servo_tr;
+		Z_servo_throttle = 0.0;
+		
 		
 		break;
 
@@ -739,12 +739,18 @@ int setpoint_t::update(void)
 	// if PAUSED or UNINITIALIZED, do nothing
 	if(rc_get_state()!=RUNNING) return 0;
 
+	if (user_input.flight_mode != AUTONOMOUS) waypoint_state_machine.disable_update();
+
 	// shutdown feedback on kill switch
 	if (user_input.requested_arm_mode == DISARMED)
 	{
-		if (fstate.get_arm_state() != DISARMED) fstate.disarm(), \
-			setpoint_guidance.reset_Z(), \
+		if (fstate.get_arm_state() != DISARMED) 
+		{
+			fstate.disarm();
+			last_en_trans = false;
+			setpoint_guidance.reset_Z();
 			setpoint_guidance.reset_XY();
+		}
 		return 0;
 	}
 

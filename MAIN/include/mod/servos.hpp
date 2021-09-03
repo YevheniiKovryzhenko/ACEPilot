@@ -41,10 +41,9 @@
 
 #define SERVO_MAX_US 2400.0		///< Default maximum pulse width in microseconds
 #define SERVO_NOM_US 900.0		///< Default nominal pulse width in microseconds
-#define SERVO_MIN_US 600.0		///< Default minimum pulse width in microseconds
+#define SERVO_MIN_US 500.0		///< Default minimum pulse width in microseconds
 
-// 1800us / 180deg = 10us/deg
-#define SERVO_DEG_US_INC 10
+#define SERVO_DEG_US_INC 1900.0/300.0
 
 /*!
  *  @brief  Class that stores state and functions for interacting with servo motors
@@ -72,13 +71,13 @@ private:
 	disarmed. Signal should be in the range of [500 2500]us.
 	For details, see rc_servo_send_pulse_us().
 	*/
-	double max_us[MAX_SERVOS];	///< servo maximum PWM calibrated value
-	double nom_us[MAX_SERVOS];	///< servo nominal PWM calibrated value
-	double min_us[MAX_SERVOS];	///< servo minimum PWM calibrated value
+	double max_us[MAX_SERVOS];			///< servo maximum PWM calibrated value
+	double nom_us[MAX_SERVOS];			///< servo nominal PWM calibrated value
+	double min_us[MAX_SERVOS];			///< servo minimum PWM calibrated value
 
-	double m[MAX_SERVOS];		///< current servo motor signals for each pin in [0 1] range
-	double m_us[MAX_SERVOS];	///< current servo motor signals for each pin in PWM
-
+	double m[MAX_SERVOS];				///< current servo motor signals for each pin in [0 1] range
+	double m_centered[MAX_SERVOS];		///< current servo motor signals for each pin in [-1 1] range
+	double m_us[MAX_SERVOS];			///< current servo motor signals for each pin in PWM
 
 	/*
 	* This function should be used anytime
@@ -108,12 +107,23 @@ private:
 
 
 	/*
-	* This function coverts commanded signal 
+	* This function converts commanded signal 
 	* in [0 1] range into pulse width in 
-	* miroseconds for motor i
+	* miroseconds for motor i with respect to 
+	* calibrated min and max.
 	*/
 	/* Returns 0 on success or -1 on failure */
 	int cmnd2us(int i);
+
+	/*
+	* This function converts commanded signal
+	* in [-1 1] range into pulse width in
+	* miroseconds for motor i with respect to
+	* the calibrated center, min and max.
+	*/
+	/* Returns 0 on success or -1 on failure */
+	int cmnd2us_centered(int i);
+
 
 
 	/*
@@ -131,6 +141,13 @@ private:
 	*/
 	/* Returns 0 on success or -1 on failure */
 	int cmnd_signal_saturate(int i, double signal);
+
+	/*
+	* This is a simple saturation function which
+	* limits the signal between -1 and 1
+	*/
+	/* Returns 0 on success or -1 on failure */
+	int cmnd_signal_saturate_center(int i, double signal);
 
 	int set_servo_calibration(void);
 
@@ -166,6 +183,14 @@ public:
 	/* Returns 0 on success or -1 on failure */
 	int march(int i, double signal);
 
+	/*
+	* This is how the user should march (apply)
+	* servo command. Input is commanded signal in
+	* -1 to 1 rangle, which gets coverted into PWM
+	* motor signal for motor i.
+	*/
+	/* Returns 0 on success or -1 on failure */
+	int march_with_centering(int i, double signal);
 
 	/*
 	* This is how the user should preset minimum 

@@ -318,7 +318,7 @@ int feedback_servo_controller_t::march(double(&u)[MAX_SERVO_INPUTS], double(&mot
 {
     if (!initialized)
     {
-        printf("\nERROR in reset: feedback servo controller not initialized");
+        printf("\nERROR in march: feedback servo controller not initialized");
         return -1;
     }
 	
