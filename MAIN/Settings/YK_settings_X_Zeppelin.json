@@ -40,7 +40,7 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "TEST_6xSERVOS_DIRECT",
+	"flight_mode_1": "ZEPPELIN",
 	"flight_mode_2": "ZEPPELIN",
 	"flight_mode_3": "ZEPPELIN",
 

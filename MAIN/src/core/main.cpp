@@ -496,5 +496,6 @@ int main(int argc, char** argv)
         rc_led_blink(RC_LED_GREEN, 8.0, 2.0);
     }
 
+    rc_remove_pid_file();   // remove pid file LAST
     return 0;
 }

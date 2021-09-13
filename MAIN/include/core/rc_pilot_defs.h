@@ -45,7 +45,7 @@ typedef enum dsm_kill_mode_t {
 #define GPIO_INT_PIN_PIN  21
 
 // top safety
-#define ARM_TIP_THRESHOLD	0.2	///< radians from level to allow arming sequence
+#define ARM_TIP_THRESHOLD	1.2	///< radians from level to allow arming sequence
 #define TIP_ANGLE		1.5	///< radiands of roll or pitch to consider tipped over
 
 // math constants

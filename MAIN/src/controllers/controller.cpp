@@ -187,9 +187,9 @@ int feedback_controller_t::rpy_reset(void)
 int feedback_controller_t::rpy_transition(double& roll_err, \
 	double& pitch_err, double& yaw_err)
 {
-	roll_err = roll_err * (tanh(7.0 + setpoint.roll_dot_tr / 0.06) + 1.0) / 2.0;
-	pitch_err = pitch_err * (tanh(4.9 + setpoint.pitch_dot_tr / 0.12) + 1.0) / 2.0;
-	yaw_err = yaw_err * (tanh(4.9 + setpoint.yaw_dot_tr / 0.12) + 1.0) / 2.0;
+	roll_err = roll_err * (tanh(7.0 + setpoint.roll_tr / 0.06) + 1.0) / 2.0;
+	pitch_err = pitch_err * (tanh(4.9 + setpoint.pitch_tr / 0.12) + 1.0) / 2.0;
+	yaw_err = yaw_err * (tanh(4.9 + setpoint.yaw_tr / 0.12) + 1.0) / 2.0;
 	return 0;
 }
 

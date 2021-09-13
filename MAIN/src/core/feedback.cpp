@@ -133,13 +133,13 @@ int feedback_state_t::arm(void)
 {
 	if (unlikely(!initialized))
 	{
-		printf("\nERROR in arm: feedback state not initialized");
+		if (settings.warnings_en) printf("\nERROR in arm: feedback state not initialized");
 		return -1;
 	}
 
 	//printf("\n Arming!\n");
 	if (unlikely(arm_state == ARMED)) {
-		printf("WARNING: trying to arm when controller is already armed\n");
+		if (settings.warnings_en) printf("WARNING: trying to arm when controller is already armed\n");
 		return 0;
 	}
 	// start a new log file every time controller is armed, this may take some
@@ -170,12 +170,11 @@ int feedback_state_t::arm(void)
 
 	controller.reset();
 	
-	printf("\n WARNING: Waking up the ESCs....");
+	if (settings.warnings_en) printf("\n WARNING: Waking up the ESCs....");
 	do
 	{
 		send_motor_stop_pulse();
 	} while (finddt_s(arm_time_ns) < settings.arm_time_s);
-	printf("\n Done! Wake up time was: %f ", finddt_s(arm_time_ns));
 	
 	// set LEDs
 	rc_led_set(RC_LED_RED,0);

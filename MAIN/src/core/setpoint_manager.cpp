@@ -75,16 +75,116 @@ setpoint_t setpoint{}; // extern variable in setpoint_manager.hpp
 /***********************************/
 int setpoint_t::init_trans(void)
 {
-	pitch_stick_int = RC_FILTER_INITIALIZER;
-	if (unlikely(rc_filter_integrator(&pitch_stick_int, DT) == -1))
+	trans_stick_int = RC_FILTER_INITIALIZER;
+	if (unlikely(rc_filter_integrator(&trans_stick_int, DT) == -1))
 	{
-		printf("\nERROR in init_trans: failed to create integrator");
+		printf("\nERROR in init_trans: failed to create transition stick integrator");
+		return -1;
+	}
+	rc_filter_enable_saturation(&trans_stick_int, -1.0, 1.0);
+
+	last_en_trans = false;
+	return 0;
+}
+
+int setpoint_t::init_stick_trim(void)
+{
+	roll_stick_int = RC_FILTER_INITIALIZER;
+	pitch_stick_int = RC_FILTER_INITIALIZER;
+	yaw_stick_int = RC_FILTER_INITIALIZER;
+
+	if (unlikely(rc_filter_integrator(&roll_stick_int, DT) == -1))
+	{
+		printf("\nERROR in init_stick_trim: failed to create roll stick trim integrator");
 		return -1;
 	}
 
-	rc_filter_enable_saturation(&pitch_stick_int, -1.0, 1.0);
+	if (unlikely(rc_filter_integrator(&pitch_stick_int, DT) == -1))
+	{
+		printf("\nERROR in init_stick_trim: failed to create pitch stick trim integrator");
+		return -1;
+	}
 
-	last_en_trans = false;
+	if (unlikely(rc_filter_integrator(&yaw_stick_int, DT) == -1))
+	{
+		printf("\nERROR in init_stick_trim: failed to create yaw stick trim integrator");
+		return -1;
+	}
+
+	rc_filter_enable_saturation(&roll_stick_int, -1.0, 1.0);
+	rc_filter_enable_saturation(&pitch_stick_int, -1.0, 1.0);
+	rc_filter_enable_saturation(&yaw_stick_int, -1.0, 1.0);
+
+	roll_stick_trim = 0.0;
+	pitch_stick_trim = 0.0;
+	yaw_stick_trim = 0.0;
+	last_en_stick_trim = false;
+	return 0;
+}
+
+
+int setpoint_t::init_stick_filter(void)
+{
+	roll_stick_lpf = RC_FILTER_INITIALIZER;
+	pitch_stick_lpf = RC_FILTER_INITIALIZER;
+	yaw_stick_lpf = RC_FILTER_INITIALIZER;
+	roll_stick_hpf = RC_FILTER_INITIALIZER;
+	pitch_stick_hpf = RC_FILTER_INITIALIZER;
+	yaw_stick_hpf = RC_FILTER_INITIALIZER;
+
+	if (unlikely(rc_filter_first_order_lowpass(&roll_stick_lpf, DT, 0.1 * DT) == -1))
+	{
+		printf("\nERROR in init_stick_filter: failed to create roll stick low-pass filter");
+		return -1;
+	}
+
+	if (unlikely(rc_filter_first_order_lowpass(&pitch_stick_lpf, DT, 0.1 * DT) == -1))
+	{
+		printf("\nERROR in init_stick_filter: failed to create pitch stick low-pass filter");
+		return -1;
+	}
+
+	if (unlikely(rc_filter_first_order_lowpass(&yaw_stick_lpf, DT, 0.1 * DT) == -1))
+	{
+		printf("\nERROR in init_stick_filter: failed to create yaw stick high-pass filter");
+		return -1;
+	}
+
+	if (unlikely(rc_filter_first_order_highpass(&roll_stick_hpf, DT, 6.0 * DT) == -1))
+	{
+		printf("\nERROR in init_stick_filter: failed to create roll stick high-pass filter");
+		return -1;
+	}
+
+	if (unlikely(rc_filter_first_order_highpass(&pitch_stick_hpf, DT, 6.0 * DT) == -1))
+	{
+		printf("\nERROR in init_stick_filter: failed to create pitch stick high-pass filter");
+		return -1;
+	}
+
+	if (unlikely(rc_filter_first_order_highpass(&yaw_stick_hpf, DT, 6.0 * DT) == -1))
+	{
+		printf("\nERROR in init_stick_filter: failed to create yaw stick high-pass filter");
+		return -1;
+	}
+
+	rc_filter_enable_saturation(&roll_stick_lpf, -1.0, 1.0);
+	rc_filter_enable_saturation(&pitch_stick_lpf, -1.0, 1.0);
+	rc_filter_enable_saturation(&yaw_stick_lpf, -1.0, 1.0);
+
+	rc_filter_enable_saturation(&roll_stick_hpf, -1.0, 1.0);
+	rc_filter_enable_saturation(&pitch_stick_hpf, -1.0, 1.0);
+	rc_filter_enable_saturation(&yaw_stick_hpf, -1.0, 1.0);
+
+	roll_stick_lp = 0.0;
+	pitch_stick_lp = 0.0;
+	yaw_stick_lp = 0.0;
+	roll_stick_hp = 0.0;
+	pitch_stick_hp = 0.0;
+	yaw_stick_hp = 0.0;
+	last_en_stick_filter_lp = false;
+	last_en_stick_filter_hp = false;
+
 	return 0;
 }
 
@@ -92,18 +192,92 @@ int setpoint_t::update_trans(void)
 {
 	if (!last_en_trans)
 	{
-		rc_filter_reset(&pitch_stick_int);
-	}
-	double tmp = rc_filter_march(&pitch_stick_int, user_input.get_pitch_stick());
-	roll_tr = tmp;
-	pitch_tr = tmp;
-	yaw_tr = tmp;
+		rc_filter_reset(&trans_stick_int);
 
-	roll_servo_tr = tmp;
-	pitch_servo_tr = tmp;
-	yaw_servo_tr = tmp;
+		last_en_stick_trim = false;
+		last_en_stick_filter_hp = false;
+		last_en_stick_filter_lp = false;
+	}
+
+	//update_stick_filter_lp(); //use low-pass to filter out the high frequency changes
+	//update_stick_filter_hp(); //use high-pass to get only constant signals
+	//update_stick_trim(roll_stick_lp, roll_stick_lp, yaw_stick_lp); //use filtered values for trim
+	update_stick_trim(0.05 * user_input.get_roll_stick(), 0.1 * user_input.get_pitch_stick(), 0.05 * user_input.get_yaw_stick());
+
+	double manual_trim = -rc_filter_march(&trans_stick_int,\
+		0.6 * (user_input.get_mode_stick() - 0.5) * 2.0);
+	roll_tr = manual_trim;
+	pitch_tr = manual_trim;
+	yaw_tr =  manual_trim;
+
+	roll_servo_tr = manual_trim;
+	pitch_servo_tr = manual_trim;
+	yaw_servo_tr = manual_trim;
 
 	last_en_trans = true;
+	return 0;
+}
+
+int setpoint_t::update_stick_trim(double roll_st, double pitch_st, double yaw_st)
+{
+	if (!last_en_stick_trim)
+	{
+		roll_stick_trim = 0.0;
+		pitch_stick_trim = 0.0;
+		yaw_stick_trim = 0.0;
+
+		rc_filter_reset(&roll_stick_int);
+		rc_filter_reset(&pitch_stick_int);
+		rc_filter_reset(&yaw_stick_int);
+	}
+
+	roll_stick_trim = rc_filter_march(&roll_stick_int, roll_st);
+	pitch_stick_trim = rc_filter_march(&pitch_stick_int, pitch_st);
+	yaw_stick_trim = rc_filter_march(&yaw_stick_int, yaw_st);
+
+	last_en_stick_trim = true;
+	return 0;
+}
+
+int setpoint_t::update_stick_filter_lp(void)
+{
+	if (!last_en_stick_filter_lp)
+	{
+		roll_stick_lp = 0.0;
+		pitch_stick_lp = 0.0;
+		yaw_stick_lp = 0.0;
+
+		rc_filter_reset(&roll_stick_lpf);
+		rc_filter_reset(&pitch_stick_lpf);
+		rc_filter_reset(&yaw_stick_lpf);
+	}
+
+	roll_stick_lp = rc_filter_march(&roll_stick_lpf, user_input.get_roll_stick());
+	pitch_stick_lp = rc_filter_march(&pitch_stick_lpf, user_input.get_pitch_stick());
+	yaw_stick_lp = rc_filter_march(&yaw_stick_lpf, user_input.get_yaw_stick());
+
+	last_en_stick_filter_lp = true;
+	return 0;
+}
+
+int setpoint_t::update_stick_filter_hp(void)
+{
+	if (!last_en_stick_filter_hp)
+	{
+		roll_stick_hp = 0.0;
+		pitch_stick_hp = 0.0;
+		yaw_stick_hp = 0.0;
+
+		rc_filter_reset(&roll_stick_hpf);
+		rc_filter_reset(&pitch_stick_hpf);
+		rc_filter_reset(&yaw_stick_hpf);
+	}
+
+	roll_stick_hp = rc_filter_march(&roll_stick_hpf, user_input.get_roll_stick());
+	pitch_stick_hp = rc_filter_march(&pitch_stick_hpf, user_input.get_pitch_stick());
+	yaw_stick_hp = rc_filter_march(&yaw_stick_hpf, user_input.get_yaw_stick());
+
+	last_en_stick_filter_hp = true;
 	return 0;
 }
 
@@ -254,6 +428,18 @@ int setpoint_t::init(void)
 	if (unlikely(init_trans() == -1))
 	{
 		fprintf(stderr, "\nERROR in init: failed to initialize transition functions");
+		return -1;
+	}
+
+	if (unlikely(init_stick_trim() == -1))
+	{
+		fprintf(stderr, "\nERROR in init: failed to initialize stick trims");
+		return -1;
+	}
+
+	if (unlikely(init_stick_filter() == -1))
+	{
+		fprintf(stderr, "\nERROR in init: failed to initialize stick filters");
 		return -1;
 	}
 
@@ -692,16 +878,18 @@ int setpoint_t::update_setpoints(void)
 		en_rpy_servo_ctrl = false;
 		en_rpy_servo_trans = true;
 
-		roll_throttle = user_input.get_roll_stick();
-		pitch_throttle = user_input.get_pitch_stick();
-		yaw_throttle = user_input.get_yaw_stick();
+		update_trans(); //update transitions, filters and trims
+
+		roll_throttle = user_input.get_roll_stick() + roll_stick_trim;
+		pitch_throttle = user_input.get_pitch_stick(); // pitch_stick_hp;
+		yaw_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
 		Z_throttle = -user_input.get_thr_stick();
 		
-		roll_servo_throttle = user_input.get_roll_stick();
-		pitch_servo_throttle = user_input.get_pitch_stick();
-		yaw_servo_throttle = user_input.get_yaw_stick();
-		update_trans();
-		X_servo_throttle = user_input.get_yaw_stick();
+		roll_servo_throttle = user_input.get_roll_stick() + roll_stick_trim;
+		pitch_servo_throttle = user_input.get_pitch_stick(); // pitch_stick_hp;
+		yaw_servo_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
+		
+		X_servo_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
 		Y_servo_throttle = pitch_servo_tr;
 		Z_servo_throttle = 0.0;
 		

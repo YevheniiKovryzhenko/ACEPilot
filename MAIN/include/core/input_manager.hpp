@@ -60,6 +60,7 @@ private:
 	double roll_stick;		///< positive to the right
 	double pitch_stick;		///< positive forward
 
+	double mode_stick;		///< flight mode stick position
 	arm_state_t arm_switch; ///< actual position of the physical switch
 public:
 	
@@ -76,11 +77,13 @@ public:
 	double get_yaw_stick(void);
 	double get_roll_stick(void);
 	double get_pitch_stick(void);
+	double get_mode_stick(void);
 	
 	void set_thr_stick(double thr_st);
 	void set_yaw_stick(double yaw_st);
 	void set_roll_stick(double roll_st);
 	void set_pitch_stick(double pitch_st);
+	void set_mode_stick(double mode_st);
 
 	void reset_sticks(void); //sets all the sticks to their default positions
 

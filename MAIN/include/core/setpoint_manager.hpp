@@ -70,14 +70,45 @@ private:
 	bool initialized;	///< set to 1 once setpoint manager has initialized
 	///< @}
 
+	/* stick trim flags */
 	bool last_en_trans;
+	bool last_en_stick_trim;
+	bool last_en_stick_filter_lp;
+	bool last_en_stick_filter_hp;
+
+	/* stick trims */
+	double roll_stick_trim;
+	double pitch_stick_trim;
+	double yaw_stick_trim;
+	rc_filter_t roll_stick_int;
 	rc_filter_t pitch_stick_int;
+	rc_filter_t yaw_stick_int;
+	rc_filter_t trans_stick_int;
+	
+	/* stick filters */
+	double roll_stick_lp;
+	double pitch_stick_lp;
+	double yaw_stick_lp;
+	double roll_stick_hp;
+	double pitch_stick_hp;
+	double yaw_stick_hp;
+	rc_filter_t roll_stick_lpf;
+	rc_filter_t pitch_stick_lpf;
+	rc_filter_t yaw_stick_lpf;
+	rc_filter_t roll_stick_hpf;
+	rc_filter_t pitch_stick_hpf;
+	rc_filter_t yaw_stick_hpf;
 
 	/**
 	* Function only used locally
 	*/
 	int init_trans(void);
+	int init_stick_trim(void);
+	int init_stick_filter(void);
 	int update_trans(void);
+	int update_stick_trim(double roll_st, double pitch_st, double yaw_st);
+	int update_stick_filter_lp(void);
+	int update_stick_filter_hp(void);
 	int update_setpoints(void);
 
 	/* Functions which should be called internally to update setpoints based on radio input:*/

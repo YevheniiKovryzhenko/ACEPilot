@@ -211,6 +211,7 @@ void new_dsm_data_callback()
 	rc_saturate_double(&new_roll,  -1.0, 1.0);
 	rc_saturate_double(&new_pitch, -1.0, 1.0);
 	rc_saturate_double(&new_yaw,   -1.0, 1.0);
+	rc_saturate_double(&new_mode, -1.0, 1.0);
 
 	// pick flight mode
 	switch(settings.num_dsm_modes){
@@ -226,8 +227,8 @@ void new_dsm_data_callback()
 	case 3:
 		// 3-position switch will have the positions 0, 0.5, 1 when
 		// calibrated correctly. checking +- 0.5 is a safe cutoff
-		if(new_mode<0.5*settings.dsm_mode_pol) user_input.flight_mode = settings.flight_mode_3;
-		else if(new_mode>0.5*settings.dsm_mode_pol) user_input.flight_mode = settings.flight_mode_1;
+		if(new_mode<0.45*settings.dsm_mode_pol) user_input.flight_mode = settings.flight_mode_3;
+		else if(new_mode>0.55*settings.dsm_mode_pol) user_input.flight_mode = settings.flight_mode_1;
 		else user_input.flight_mode = settings.flight_mode_2;
 		break;
 	default:
@@ -281,6 +282,7 @@ void new_dsm_data_callback()
 		user_input.set_roll_stick(new_roll);
 		user_input.set_pitch_stick(new_pitch);
 		user_input.set_yaw_stick(new_yaw);
+		user_input.set_mode_stick(new_mode);
 		user_input.requested_arm_mode = user_input.get_arm_switch();
 	}
 	else{
@@ -312,6 +314,7 @@ void user_input_t::reset_sticks(void)
 	roll_stick = 0.0;
 	pitch_stick = 0.0;
 	yaw_stick = 0.0;
+	mode_stick = 0.0;
 }
 
 typedef struct disconnect_timer_t
@@ -436,6 +439,11 @@ double user_input_t::get_pitch_stick(void)
 	return pitch_stick;
 }
 
+double user_input_t::get_mode_stick(void)
+{
+	return mode_stick;
+}
+
 void user_input_t::set_thr_stick(double thr_st)
 {
 	thr_stick = thr_st;
@@ -457,6 +465,12 @@ void user_input_t::set_roll_stick(double roll_st)
 void user_input_t::set_pitch_stick(double pitch_st)
 {
 	pitch_stick = pitch_st;
+	return;
+}
+
+void user_input_t::set_mode_stick(double mode_st)
+{
+	mode_stick = mode_st;
 	return;
 }
 

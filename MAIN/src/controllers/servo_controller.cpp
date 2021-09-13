@@ -214,7 +214,7 @@ int feedback_servo_controller_t::init(void)
 {
     if (initialized)
     {
-        printf("\nWARNING in init: feedback servo controller already initialized");
+		if (settings.warnings_en) printf("\nWARNING in init: feedback servo controller already initialized");
         return 0;
     }
 

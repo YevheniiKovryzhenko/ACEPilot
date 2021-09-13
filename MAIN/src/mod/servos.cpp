@@ -38,6 +38,50 @@
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
 
+/*
+* Calibration matrix
+* 
+* 3 columns: servo min, nominal and max in us
+* MAX_SERVOS number of rows
+*/
+static double servo_cal_def[MAX_SERVOS][3] = { \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US},\
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US},\
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}, \
+{SERVO_MIN_US, SERVO_NOM_US, SERVO_MAX_US}\
+};
+
+static double servo_cal_zeppelin[MAX_SERVOS][3] = { \
+{SERVO_MIN_US,  1450, SERVO_MAX_US},\
+{SERVO_MAX_US, 1450, SERVO_MIN_US}, \
+{SERVO_MIN_US, 1450, SERVO_MAX_US}, \
+{SERVO_MAX_US, 1450, SERVO_MIN_US}, \
+{SERVO_MIN_US, 1450, SERVO_MAX_US}, \
+{SERVO_MAX_US, 1450, SERVO_MIN_US}, \
+{SERVO_MIN_US, 1450, SERVO_MAX_US}, \
+{SERVO_MAX_US, 1450, SERVO_MIN_US}, \
+{SERVO_MAX_US - SERVO_DEG_US_INC * 90, 1450, SERVO_MIN_US + SERVO_DEG_US_INC * 90}, \
+{SERVO_MIN_US + SERVO_DEG_US_INC * 90, 1450, SERVO_MAX_US - SERVO_DEG_US_INC * 90}, \
+{SERVO_MAX_US - SERVO_DEG_US_INC * 90, 1450, SERVO_MIN_US + SERVO_DEG_US_INC * 90}, \
+{SERVO_MIN_US + SERVO_DEG_US_INC * 90, 1450, SERVO_MAX_US - SERVO_DEG_US_INC * 90}, \
+{SERVO_MAX_US - SERVO_DEG_US_INC * 90, 1450, SERVO_MIN_US + SERVO_DEG_US_INC * 90}, \
+{SERVO_MIN_US + SERVO_DEG_US_INC * 90, 1450, SERVO_MAX_US - SERVO_DEG_US_INC * 90}, \
+{SERVO_MAX_US - SERVO_DEG_US_INC * 90, 1450, SERVO_MIN_US + SERVO_DEG_US_INC * 90 }, \
+{SERVO_MIN_US + SERVO_DEG_US_INC * 90, 1450, SERVO_MAX_US - SERVO_DEG_US_INC * 90}, \
+};
+
  /*!
   *  @brief  Class that stores state and functions for interacting with PCA9685
   * PWM chip
@@ -190,7 +234,7 @@ int servo_state_t::init(int driver_bus_id)
 
 int servo_state_t::set_servo_calibration(void)
 {
-    
+    /*
     for (int i = 0; i < 8; i+=2)
     {
         if (unlikely(set_min_us(i, SERVO_MIN_US) == -1))
@@ -203,7 +247,7 @@ int servo_state_t::set_servo_calibration(void)
             printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i);
             return -1;
         }
-        if (unlikely(set_nom_us(i, SERVO_MIN_US + SERVO_DEG_US_INC * 150) == -1))
+        if (unlikely(set_nom_us(i, SERVO_MIN_US + SERVO_DEG_US_INC * 150) == -1))//1450
         {
             printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i);
             return -1;
@@ -219,7 +263,7 @@ int servo_state_t::set_servo_calibration(void)
             printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i + 1);
             return -1;
         }
-        if (unlikely(set_nom_us(i + 1, SERVO_MAX_US - SERVO_DEG_US_INC * 150) == -1))
+        if (unlikely(set_nom_us(i + 1, SERVO_MAX_US - SERVO_DEG_US_INC * 150) == -1))//1450
         {
             printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i + 1);
             return -1;
@@ -238,7 +282,7 @@ int servo_state_t::set_servo_calibration(void)
             printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i);
             return -1;
         }
-        if (unlikely(set_nom_us(i, SERVO_MAX_US - SERVO_DEG_US_INC * 40) == -1))
+        if (unlikely(set_nom_us(i, SERVO_MAX_US - SERVO_DEG_US_INC * 40) == -1))//2146.(6)
         {
             printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i);
             return -1;
@@ -249,7 +293,7 @@ int servo_state_t::set_servo_calibration(void)
             printf("\nERROR in set_servo_calibration: failed to set new min for servo %d", i + 1);
             return -1;
         }
-        if (unlikely(set_max_us(i + 1, SERVO_MIN_US + SERVO_DEG_US_INC * 80) == -1))
+        if (unlikely(set_max_us(i + 1, SERVO_MIN_US + SERVO_DEG_US_INC * 80) == -1))//1006.(6)
         {
             printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i + 1);
             return -1;
@@ -262,7 +306,49 @@ int servo_state_t::set_servo_calibration(void)
         
 
     }
-    
+    */
+    double (*servo_cal)[3];
+#ifdef RC_PILOT_DEFS_H
+
+    switch (settings.servo_layout)
+    {
+    case LAYOUT_6xDIRECT_TEST:
+        servo_cal = servo_cal_def;
+        break;
+    case LAYOUT_16xZEPPELIN:
+        servo_cal = servo_cal_zeppelin;
+        break;
+    default:
+        fprintf(stderr, "ERROR in set_servo_calibration unknown servo layout\n");
+        return -1;
+    }
+
+#endif // RC_PILOT_DEFS_H
+#ifndef RC_PILOT_DEFS_H
+    servo_cal = servo_cal_def;
+#endif // !RC_PILOT_DEFS_H
+
+
+
+
+    for (int i = 0; i < MAX_SERVOS; i++)
+    {
+        if (unlikely(set_min_us(i, servo_cal[i][0]) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new min for servo %d", i);
+            return -1;
+        }
+        if (unlikely(set_max_us(i, servo_cal[i][2]) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new max for servo %d", i);
+            return -1;
+        }
+        if (unlikely(set_nom_us(i, servo_cal[i][1]) == -1))
+        {
+            printf("\nERROR in set_servo_calibration: failed to set new nom for servo %d", i);
+            return -1;
+        }
+    }
     printf("\nCalibration for servos is set to:");
     printf("\nservo      min         nom         max");
     for (int i = 0; i < MAX_SERVOS; i++)
@@ -318,6 +404,7 @@ int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
 
     usleep(10E3);
 
+    /*
     for (int i = 0; i < MAX_SERVOS; i++) {
         m[i] = 0; //zero everything out just in case
 
@@ -339,7 +426,7 @@ int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
             return -1;
         }
     }
-
+    */
     if (unlikely(set_servo_calibration() == -1))
     {
         printf("\nERROR: failed to initialize servos");
@@ -387,12 +474,12 @@ bool servo_state_t::is_initialized(void)
 int servo_state_t::arm(void)
 {
     if (unlikely(arm_state == ARMED)) {
-        printf("WARNING: trying to arm when servos are already armed\n");
+        printf("\nWARNING: trying to arm when servos are already armed");
         return 0;
     }
     if (unlikely(!initialized))
     {
-        printf("ERROR in arm: servos have not been initialized \n");
+        printf("\nERROR in arm: servos have not been initialized");
         return -1;
     }
     if (unlikely(controller.reset() == -1))
@@ -407,13 +494,13 @@ int servo_state_t::arm(void)
 
     arm_time_ns = rc_nanos_since_boot();
     arm_state = ARMED; //set servos to armed and powered
-    printf("\n WARNING: Waking up the servos....");
+    if (settings.warnings_en) printf("\nWARNING: Waking up the servos....");
+    
     do // at least once, but maybe more when specified
     {
         // need to set each of the servos to their nominal positions:
         return_to_nominal();
     } while (finddt_s(arm_time_ns) < settings.servos_arm_time_s);
-    printf("\nDone! Servo wake up time was %f", finddt_s(arm_time_ns));
 
     //enable power: //(if used of BBB servo rails)
     //rc_servo_power_rail_en(1);
@@ -461,7 +548,7 @@ int servo_state_t::disarm(void)
     if (arm_state == DISARMED)
     {
         //no need to proceed if already disarmed (no power to servo rail)
-        printf("WARNING: trying to disarm when servos are already disarmed\n");
+        if (settings.warnings_en) printf("WARNING: trying to disarm when servos are already disarmed\n");
         return 0;
     }
     //send servo signals using Pulse Width in microseconds
@@ -593,7 +680,7 @@ int servo_state_t::march(int i, double signal)
 
 #ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
     if (unlikely(arm_state == DISARMED)) {
-        printf("WARNING: trying to march servos when servos disarmed\n");
+        if (settings.warnings_en) printf("WARNING: trying to march servos when servos disarmed\n");
         return 0;
     }
 #endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
@@ -643,7 +730,7 @@ int servo_state_t::march_with_centering(int i, double signal)
 
 #ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
     if (unlikely(arm_state == DISARMED)) {
-        printf("WARNING: trying to march servos when servos disarmed\n");
+        if (settings.warnings_en) printf("WARNING: trying to march servos when servos disarmed\n");
         return 0;
     }
 #endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
