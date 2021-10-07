@@ -18,15 +18,15 @@
       "remoteCopySourcesMethod": "rsync"
     },
     {
-      "name": "WSL-GCC-Debug Debian",
+      "name": "WSL-GCC-Debug-Debian",
       "generator": "Ninja",
       "configurationType": "Debug",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "buildRoot": "${projectDir}\\out\\build\\",
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeExecutable": "cmake",
       "buildCommandArgs": "",
       "inheritEnvironments": [ "linux_x64" ],
-      "wslPath": "C:\\Users\\thesa\\AppData\\Local\\Microsoft\\WindowsApps\\debian.exe",
+      "wslPath": "${defaultWSLPath}",
       "variables": [
         {
           "name": "ENABLE_THREADING",
