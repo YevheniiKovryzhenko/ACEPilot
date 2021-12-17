@@ -171,17 +171,21 @@ static void __imu_isr(void)
     if (settings.log_benchmark) benchmark_timers.tCTR = rc_nanos_since_boot();
 
     //Save data to log file
-    if (settings.log_only_while_armed)
+    if (settings.enable_logging)
     {
-        if (fstate.get_arm_state() == ARMED)
+        if (settings.log_only_while_armed)
+        {
+            if (fstate.get_arm_state() == ARMED)
+            {
+                log_entry.add_new();
+            }
+        }
+        else
         {
             log_entry.add_new();
         }
     }
-    else
-    {
-        log_entry.add_new();
-    }
+    
     if (settings.log_benchmark) benchmark_timers.tLOG = rc_nanos_since_boot();
 
     //Currently, this only reads from the BMP pressure sensor

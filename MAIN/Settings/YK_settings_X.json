@@ -3,7 +3,7 @@
 
 	"warnings_en": true,
 	"delay_warnings_en": true,
-	"telem_warnings_en": false,
+	"telem_warnings_en": true,
 
 	"layout": "LAYOUT_4X",
 	"thrust_map": "RS2212_920_4S",
@@ -26,7 +26,7 @@
 	"enable_servos": false,
 	"en_servo_ch_pool_sat": false,
 	"servo_i2c_driver_id": 1,
-	"servo_layout": "LAYOUT_16xZEPPELIN",
+	"servo_layout": "LAYOUT_6xDIRECT_TEST",
 	"servos_arm_time_s": 1.0,
 
 	"enable_mocap_dropout_emergency_land": false,
@@ -77,7 +77,7 @@
 
 	"enable_logging": true,
 	"log_every_n_entry": 1,
-	"log_only_while_armed": false,
+	"log_only_while_armed": true,
 	"log_sensors": true,
 	"log_state": true,
 	"log_mocap": true,
@@ -101,7 +101,7 @@
 
 	"wp_folder": "/home/debian/rc_pilot/MAIN/trajectories/",
 	"wp_takeoff_filename": "takeoff_waypoints.cfg",
-	"wp_guided_filename": "exp_path_1_x6_yaw.cfg",
+	"wp_guided_filename": "exp_path_8_x1_yaw_FFS.cfg",
 	"wp_landing_filename": "landing_waypoints.cfg",
 
 	"V_max_land": 0.3,

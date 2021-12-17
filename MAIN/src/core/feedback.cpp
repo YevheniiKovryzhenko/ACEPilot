@@ -116,7 +116,7 @@ int feedback_state_t::disarm(void)
 		}
 	}
 
-	if (settings.log_only_while_armed)
+	if (settings.log_only_while_armed && settings.enable_logging)
 	{
 		log_entry.cleanup();
 	}
