@@ -133,7 +133,7 @@ void XBEE_readRingBuffer()
                 double dt_s = (rc_nanos_since_boot() - last_time) /
                               (1e9);  // calculate time since last successful reading
                 if (1.0 / dt_s < 20)
-                    printf("\nWARNING, Low update frequency of Xbee %f (Hz)\n",
+                    printf("WARNING, Low update frequency of Xbee %f (Hz)\n",
                         1.0 / dt_s);  // check the update frequency
             }
             
@@ -145,7 +145,7 @@ void XBEE_readRingBuffer()
 		    //check for xbee connection (move it out later)
             if (settings.telem_warnings_en && xbeeMsg.trackingValid == 0)
             {
-				printf("\nWARNING, MOCAP LOST VISUAL\n");
+				printf("WARNING, MOCAP LOST VISUAL\n");
 	        }
 	        //######################
 	

@@ -235,12 +235,12 @@ int Adafruit_PWMServoDriver_mod::setPWMFreq(float freq)
 		// Range output modulation frequency is dependant on oscillator
 		if (freq < 1)
 		{
-			printf("\nWARNING: trying to set PWM frequency less than 1, overwriting...");
+			printf("WARNING: trying to set PWM frequency less than 1, overwriting...\n");
 			freq = 1;
 		}
 		if (freq > 3500)
 		{
-			printf("\nWARNING: trying to set PWM frequency more than 3500 (50Hz), overwriting...");
+			printf("WARNING: trying to set PWM frequency more than 3500 (50Hz), overwriting...\n");
 			freq = 3500; // Datasheet limit is 3052=50MHz/(4*4096)
 		}
 

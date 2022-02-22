@@ -42,7 +42,10 @@ comms_manager_t comms_manager{};
 
 char comms_manager_t::init(void)
 {
-	if (initia)
+	if (unlikely(!initialized))
+	{
+		printf("ERROR:")
+	}
 	mocap_initialized = false;
 	mocap_active = false;
 	uint64_t mocap_time;

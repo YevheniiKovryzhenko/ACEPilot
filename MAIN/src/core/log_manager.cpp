@@ -563,7 +563,7 @@ int log_entry_t::cleanup(void)
 
     if (unlikely(!initialized))
     {
-        printf("\nWARNING: trying to cleanup when not initialized\n");
+        printf("WARNING: trying to cleanup when not initialized\n");
         return 0;
     }
 

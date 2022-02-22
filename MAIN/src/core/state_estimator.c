@@ -214,7 +214,7 @@ static void __imu_march(void)
 		last_mocap_dt = finddt_s(benchmark_timers.tNAV); //get time elapsed since last itter.
 		if (last_mocap_dt <= 0) //undefined division by zero, or if time is negative assume velocity did not change
 		{
-			printf("\nWARNING in __imu_march: undefined time step of %d", last_mocap_dt);
+			printf("WARNING in __imu_march: undefined time step of %d\n", last_mocap_dt);
 		}
 		else
 		{
