@@ -196,7 +196,7 @@ static void __imu_isr(void)
     if (settings.delay_warnings_en)
     {   //check the update frequency
         if (1 / finddt_s(state_estimate.imu_time_ns) < 90)
-            printf("\nWARNING, Low update frequency of __imu_isr %f (Hz)\n", 1 / finddt_s(state_estimate.imu_time_ns));
+            printf("WARNING, Low update frequency of __imu_isr %f (Hz)\n", 1 / finddt_s(state_estimate.imu_time_ns));
     }
 }
 
@@ -262,27 +262,27 @@ int main(int argc, char** argv)
     {
         if (rc_led_set(RC_LED_GREEN, 0) == -1)
         {
-            fprintf(stderr, "\nERROR in main(), failed to set RC_LED_GREEN");
+            fprintf(stderr, "ERROR in main(), failed to set RC_LED_GREEN\n");
             return -1;
         }
         if (rc_led_set(RC_LED_RED, 0) == -1)
         {
-            fprintf(stderr, "\nERROR in main() failed to set RC_LED_RED");
+            fprintf(stderr, "ERROR in main() failed to set RC_LED_RED\n");
             return -1;
         }
 
         // make sure IMU is calibrated
         if (!rc_mpu_is_gyro_calibrated()) {
-            FAIL("\nERROR, must calibrate gyroscope with rc_calibrate_gyro first")
+            FAIL("ERROR, must calibrate gyroscope with rc_calibrate_gyro first\n")
         }
         if (!rc_mpu_is_accel_calibrated()) {
-            FAIL("\nERROR, must calibrate accelerometer with rc_calibrate_accel first")
+            FAIL("ERROR, must calibrate accelerometer with rc_calibrate_accel first\n")
         }
         if (settings.enable_magnetometer && !rc_mpu_is_gyro_calibrated()) {
-            FAIL("\nERROR, must calibrate magnetometer with rc_calibrate_mag first")
+            FAIL("ERROR, must calibrate magnetometer with rc_calibrate_mag first\n")
         }
         if (!__rc_dsm_is_calibrated()) {
-            FAIL("\nERROR, must calibrate DSM with rc_calibrate_dsm first")
+            FAIL("ERROR, must calibrate DSM with rc_calibrate_dsm first\n")
         }
 
         // turn cpu freq to max for most consistent performance and lowest
@@ -290,40 +290,40 @@ int main(int argc, char** argv)
         // this also serves as an initial check for root access which is needed
         // by the PRU later. PRU root acces might get resolved in the future.
         if (rc_cpu_set_governor(RC_GOV_PERFORMANCE) < 0) {
-            FAIL("\nWARNING, can't set CPU governor, need to run as root")
+            FAIL("WARNING, can't set CPU governor, need to run as root\n")
         }
     }
     // do initialization not involving threads
-    printf("\ninitializing thrust map");
+    printf("initializing thrust map\n");
     if (thrust_map_init(settings.thrust_map) < 0) {
-        FAIL("\nERROR: failed to initialize thrust map")
+        FAIL("ERROR: failed to initialize thrust map\n")
     }
     printf("\ninitializing mixing matrix\n");
     if (mix_init(settings.layout) < 0) {
-        FAIL("\nERROR: failed to initialize mixing matrix")
+        FAIL("ERROR: failed to initialize mixing matrix\n")
     }
-    printf("\ninitializing servo mixing matrix");
+    printf("initializing servo mixing matrix\n");
     if (servo_mix.init(settings.servo_layout) < 0) {
-        FAIL("\nERROR: failed to initialize mixing matrix for servos")
+        FAIL("ERROR: failed to initialize mixing matrix for servos\n")
     }
-    printf("\ninitializing setpoint_manager");
+    printf("initializing setpoint_manager\n");
     if (setpoint.init() < 0) {
-        FAIL("\nERROR: failed to initialize setpoint_manager")
+        FAIL("ERROR: failed to initialize setpoint_manager\n")
     }
 
     // initialize cape hardware, this prints an error itself if unsuccessful
     if (RUNNING_ON_BBB)
     {
-        printf("\ninitializing servos");
+        printf("initializing servos\n");
         if (rc_servo_init() == -1) {
-            FAIL("\nERROR: failed to initialize servos, probably need to run as root")
+            FAIL("ERROR: failed to initialize servos, probably need to run as root\n")
         }
 
         if (settings.enable_servos)
         {
             if (sstate.init(settings.servo_i2c_driver_id) == -1)
             {
-                printf("\nERROR: failed to initialize servos");
+                printf("ERROR: failed to initialize servos\n");
                 return -1;
             }
         }        

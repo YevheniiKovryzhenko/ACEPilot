@@ -198,7 +198,7 @@ int feedback_state_t::init(void)
 {
 	if (unlikely(initialized))
 	{
-		printf("\nWARNING in init: feedback state already initialized");
+		printf("WARNING in init: feedback state already initialized\n");
 		return 0;
 	}
 

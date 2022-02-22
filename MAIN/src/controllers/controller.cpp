@@ -714,38 +714,38 @@ int feedback_controller_t::init(void)
 {
     if (initialized)
     {
-        printf("\nWARNING in init: feedback controller already initialized");
+        printf("WARNING in init: feedback controller already initialized\n");
         return 0;
     }
 
 	if (unlikely(rpy_init() == -1))
 	{
-		printf("\nError in init: failed to initialize rpy controller");
+		printf("Error in init: failed to initialize rpy controller\n");
 		return -1;
 	}
 	if (unlikely(rpy_rate_init() == -1))
 	{
-		printf("\nError in init: failed to initialize rpy_rate controller");
+		printf("Error in init: failed to initialize rpy_rate controller\n");
 		return -1;
 	}
 	if (unlikely(z_init() == -1))
 	{
-		printf("\nError in init: failed to initialize z controller");
+		printf("Error in init: failed to initialize z controller\n");
 		return -1;
 	}
 	if (unlikely(z_rate_init() == -1))
 	{
-		printf("\nError in init: failed to initialize z_rate controller");
+		printf("Error in init: failed to initialize z_rate controller\n");
 		return -1;
 	}
 	if (unlikely(xy_init() == -1))
 	{
-		printf("\nError in init: failed to initialize xy controller");
+		printf("Error in init: failed to initialize xy controller\n");
 		return -1;
 	}
 	if (unlikely(xy_rate_init() == -1))
 	{
-		printf("\nError in init: failed to initialize xy_rate controller");
+		printf("Error in init: failed to initialize xy_rate controller");
 		return -1;
 	}
 

@@ -49,6 +49,7 @@ target_link_libraries(rc_pilot PUBLIC GPS_lib)
 target_link_libraries(rc_pilot PUBLIC robotics_cape)
 target_link_libraries(rc_pilot PUBLIC lwrb_lib)
 target_link_libraries(rc_pilot PUBLIC json-c)
+target_link_libraries(rc_pilot PUBLIC Serial_Tools_lib)
 
 # This forces to use threads library:
 set(THREADS_PREFER_PTHREAD_FLAG ON)

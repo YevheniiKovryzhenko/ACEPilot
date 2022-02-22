@@ -36,7 +36,7 @@ int i2c::open(int new_driver_bus_id)
 
 	if (unlikely(rc_i2c_init(driver_bus_id, devAddr) == -1))
 	{
-		printf("\nERROR: Failed to configure i2c bus with id: %d and devAddr: %d", driver_bus_id, devAddr);
+		printf("ERROR: Failed to configure i2c bus with id: %d and devAddr: %d\n", driver_bus_id, devAddr);
 		initialized = 0;
 		return -1;
 	}
@@ -51,7 +51,7 @@ int i2c::open(int new_driver_bus_id, uint8_t new_devAddr)
 
 	if (unlikely(rc_i2c_init(driver_bus_id, devAddr) == -1))
 	{
-		printf("\nERROR: Failed to configure i2c bus with id: %d and devAddr: %d", driver_bus_id, devAddr);
+		printf("ERROR: Failed to configure i2c bus with id: %d and devAddr: %d\n", driver_bus_id, devAddr);
 		return -1;
 	}
 	initialized = 1;
@@ -70,7 +70,7 @@ int i2c::close(void)
 	}
 	else
 	{
-		printf("\nWARNING: i2c was not initialized for servo driver, can't close");
+		printf("WARNING: i2c was not initialized for servo driver, can't close\n");
 	}
 	initialized = 0;
 	return 0;
@@ -83,7 +83,7 @@ int i2c::change_address(uint8_t devAddr)
 		int dscr = rc_i2c_set_device_address(driver_bus_id, devAddr);
 		if (unlikely(dscr == -1))
 		{
-			printf("\nERROR: failed to change i2c address to %d for device id: %d", devAddr, driver_bus_id);
+			printf("ERROR: failed to change i2c address to %d for device id: %d\n", devAddr, driver_bus_id);
 			return -1;
 		}
 		return dscr;
@@ -100,7 +100,7 @@ int i2c::read_byte(uint8_t regAddr, uint8_t* data)
 	{
 		if (unlikely(rc_i2c_read_byte(driver_bus_id, regAddr, data) == -1))
 		{
-			printf("\nERROR: failed to read byte from i2c register %d for device id: %d", regAddr, driver_bus_id);
+			printf("ERROR: failed to read byte from i2c register %d for device id: %d\n", regAddr, driver_bus_id);
 			return -1;
 		}
 	}
@@ -117,7 +117,7 @@ int i2c::read_bytes(uint8_t regAddr, size_t count, uint8_t* data)
 	{
 		if (unlikely(rc_i2c_read_bytes(driver_bus_id, regAddr, count, data) == -1))
 		{
-			printf("\nERROR: failed to read bytes from i2c register %d for device id: %d", regAddr, driver_bus_id);
+			printf("ERROR: failed to read bytes from i2c register %d for device id: %d\n", regAddr, driver_bus_id);
 			return -1;
 		}
 	}
@@ -134,7 +134,7 @@ int i2c::read_word(uint8_t regAddr, uint16_t* data)
 	{
 		if (unlikely(rc_i2c_read_word(driver_bus_id, regAddr, data) == -1))
 		{
-			printf("\nERROR: failed to read word from i2c register %d for device id: %d", regAddr, driver_bus_id);
+			printf("ERROR: failed to read word from i2c register %d for device id: %d\n", regAddr, driver_bus_id);
 			return -1;
 		}
 	}
@@ -151,7 +151,7 @@ int i2c::read_words(uint8_t regAddr, size_t count, uint16_t* data)
 	{
 		if (unlikely(rc_i2c_read_words(driver_bus_id, regAddr, count, data) == -1))
 		{
-			printf("\nERROR: failed to read words from i2c register %d for device id: %d", regAddr, driver_bus_id);
+			printf("ERROR: failed to read words from i2c register %d for device id: %d\n", regAddr, driver_bus_id);
 			return -1;
 		}
 	}
@@ -168,7 +168,7 @@ int i2c::write_byte(uint8_t regAddr, uint8_t data)
 	{
 		if (unlikely(rc_i2c_write_byte(driver_bus_id, regAddr, data) == -1))
 		{
-			printf("\nERROR: failed to write byte to i2c register %d for device id: %d", regAddr, driver_bus_id);
+			printf("ERROR: failed to write byte to i2c register %d for device id: %d\n", regAddr, driver_bus_id);
 			return -1;
 		}
 	}
@@ -185,7 +185,7 @@ int i2c::write_bytes(uint8_t regAddr, size_t count, uint8_t* data)
 	{
 		if (unlikely(rc_i2c_write_bytes(driver_bus_id, regAddr, count, data) == -1))
 		{
-			printf("\nERROR: failed to write bytes to i2c register %d for device id: %d", regAddr, driver_bus_id);
+			printf("ERROR: failed to write bytes to i2c register %d for device id: %d\n", regAddr, driver_bus_id);
 			return -1;
 		}
 	}
@@ -202,7 +202,7 @@ int i2c::write_word(uint8_t regAddr, uint16_t data)
 	{
 		if (unlikely(rc_i2c_write_word(driver_bus_id, regAddr, data) == -1))
 		{
-			printf("\nERROR: failed to write word to i2c register %d for device id: %d", regAddr, driver_bus_id);
+			printf("ERROR: failed to write word to i2c register %d for device id: %d\n", regAddr, driver_bus_id);
 			return -1;
 		}
 	}
@@ -219,7 +219,7 @@ int i2c::write_words(uint8_t regAddr, size_t count, uint16_t* data)
 	{
 		if (unlikely(rc_i2c_write_words(driver_bus_id, regAddr, count, data) == -1))
 		{
-			printf("\nERROR: failed to write words to i2c register %d for device id: %d", regAddr, driver_bus_id);
+			printf("ERROR: failed to write words to i2c register %d for device id: %d\n", regAddr, driver_bus_id);
 			return -1;
 		}
 	}
@@ -236,7 +236,7 @@ int i2c::send_bytes(size_t count, uint8_t* data)
 	{
 		if (unlikely(rc_i2c_send_bytes(driver_bus_id, count, data) == -1))
 		{
-			printf("\nERROR: failed to send bytes to i2c to device id: %d", driver_bus_id);
+			printf("ERROR: failed to send bytes to i2c to device id: %d\n", driver_bus_id);
 			return -1;
 		}
 	}
@@ -253,7 +253,7 @@ int i2c::send_byte(uint8_t data)
 	{
 		if (unlikely(rc_i2c_send_byte(driver_bus_id, data) == -1))
 		{
-			printf("\nERROR: failed to send byte to i2c to device id: %d", driver_bus_id);
+			printf("ERROR: failed to send byte to i2c to device id: %d\n", driver_bus_id);
 			return -1;
 		}
 	}
@@ -270,7 +270,7 @@ int i2c::send_devAddr(void)
 	{
 		if (unlikely(send_byte(devAddr) == -1))
 		{
-			printf("\nERROR: failed to send device address %d, hex:%x",devAddr,devAddr);
+			printf("ERROR: failed to send device address %d, hex:%x\n",devAddr,devAddr);
 			return -1;
 		}
 	}
@@ -287,7 +287,7 @@ int i2c::lock_bus(void)
 	{
 		if (unlikely(rc_i2c_lock_bus(driver_bus_id) == -1))
 		{
-			printf("\nERROR: failed to lock bus with id: %d", driver_bus_id);
+			printf("ERROR: failed to lock bus with id: %d\n", driver_bus_id);
 			return -1;
 		}
 	}
@@ -310,7 +310,7 @@ int i2c::unlock_bus(void)
 	{
 		if (unlikely(rc_i2c_unlock_bus(driver_bus_id) == -1))
 		{
-			printf("\nERROR: failed to unlock bus with id: %d", driver_bus_id);
+			printf("ERROR: failed to unlock bus with id: %d\n", driver_bus_id);
 			return -1;
 		}
 	}
@@ -327,7 +327,7 @@ int i2c::get_lock(void)
 	{
 		if (unlikely(rc_i2c_get_lock(driver_bus_id) == -1))
 		{
-			printf("\nERROR: failed to get lock for the bus with id: %d", driver_bus_id);
+			printf("ERROR: failed to get lock for the bus with id: %d\n", driver_bus_id);
 			return -1;
 		}
 	}
@@ -344,7 +344,7 @@ int i2c::get_fd(void)
 	{
 		if (unlikely(rc_i2c_get_fd(driver_bus_id) == -1))
 		{
-			printf("\nERROR: failed to get file descriptor for the bus with id: %d", driver_bus_id);
+			printf("ERROR: failed to get file descriptor for the bus with id: %d\n", driver_bus_id);
 			return -1;
 		}
 	}
@@ -363,7 +363,7 @@ bool i2c::check_init(void)
 	}
 	else
 	{
-		printf("\nERROR: i2c not initialized, call open() first.");
+		printf("ERROR: i2c not initialized, call open() first.\n");
 		return 0;
 	}
 }

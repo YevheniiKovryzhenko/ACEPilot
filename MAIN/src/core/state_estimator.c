@@ -34,6 +34,7 @@
 
 state_estimate_t state_estimate; // extern variable in state_estimator.h
 ext_mag_t ext_mag;
+//xbee_packet_t xbeeMsg; //move to comms_manager when this file is converted into cpp
 
 // sensor data structs
 rc_mpu_data_t mpu_data;
