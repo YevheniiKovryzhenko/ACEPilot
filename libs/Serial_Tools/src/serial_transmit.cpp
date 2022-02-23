@@ -233,10 +233,26 @@ char serial_transmit_t::write(void)
     if (TX_en_checksum)
     {
         fletcher16_append(TX_packet.data() + TX_num_start_bytes, TX_data_size, TX_packet.data() + TX_data_size + TX_num_start_bytes);
+
+#ifdef SERIAL_TRASMIT_DEBUG
+        printf("SERIAL_TRASMIT_DEBUG: \ti\t byte\n");
+        for (int i = 0; i < TX_packet_size; i++)
+        {
+            printf("SERIAL_TRASMIT_DEBUG: \t%i/%i\t %X\n", i+1, TX_packet_size, *(TX_packet.data() + i));
+        }
+#endif // SERIAL_TRASMIT_DEBUG
+
         serial.writeBytes(TX_packet.data(), TX_packet_size);
     }
     else
     {
+#ifdef SERIAL_TRASMIT_DEBUG
+        printf("SERIAL_TRASMIT_DEBUG: \ti\t\t byte\n");
+        for (int i = 0; i < TX_data_size + TX_num_start_bytes; i++)
+        {
+            printf("SERIAL_TRASMIT_DEBUG: \t%i/%i\t\t %X\n", i+1, TX_data_size + TX_num_start_bytes, *(TX_packet.data() + i));
+        }
+#endif // SERIAL_TRASMIT_DEBUG
         serial.writeBytes(TX_packet.data(), TX_data_size + TX_num_start_bytes);
     }
     

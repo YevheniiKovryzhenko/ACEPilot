@@ -33,7 +33,7 @@ extern "C"
 //#define OPTI_DATA_LENGTH            sizeof(xbee_packet_t)      // Actual Packet Being Sent
 //#define OPTI_PACKET_LENGTH	    OPTI_DATA_LENGTH + NUM_FRAMING_BYTES
 
-    //extern xbee_packet_t xbeeMsg;
+    //extern xbee_packet_t mocap_msg;
     //extern int xbee_portID;
 
 #ifdef __cplusplus

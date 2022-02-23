@@ -29,6 +29,9 @@
 
 
 #include "comms_manager.hpp"
+#include <rc/time.h>
+#include "settings.h"
+#include "benchmark.h"
 //#include "serial_transmit.hpp"
 
 // preposessor macros
@@ -39,20 +42,94 @@
  * Invoke defaut constructor for all the built in and exernal types in the class
  */
 comms_manager_t comms_manager{};
+xbee_packet_t mocap_msg;
 
 char comms_manager_t::init(void)
 {
-	if (unlikely(!initialized))
+	if (unlikely(initialized))
 	{
-		printf("ERROR:")
+		printf("ERROR in init: already initialized\n");
+		return -1;
 	}
 	mocap_initialized = false;
 	mocap_active = false;
-	uint64_t mocap_time;
 	initialized = true;
 
 	return 0;
 }
 
-char mocap_start(const char* port, const int baudRate);
-char mocap_cleanup(void);
+char comms_manager_t::mocap_start(const char* port, const int baudRate, void* buff, size_t size_buff)
+{
+	if (unlikely(mocap_initialized))
+	{
+		printf("ERROR in mocap_start: already started\n");
+		return -1;
+	}
+
+	if (unlikely(mocap_transmit_line.open(port, baudRate) < 0))
+	{
+		printf("ERROR in mocap_start: failed to open port\n");
+		return -1;
+	}
+
+	mocap_transmit_line.set_RX_line(buff, size_buff);
+
+	mocap_initialized = true;
+	mocap_active = false;
+	return 0;
+}
+
+char comms_manager_t::mocap_update(void)
+{
+	if (unlikely(!mocap_initialized))
+	{
+		printf("ERROR in mocap update: not initialized\n");
+		return -1;
+	}
+
+	if (unlikely(mocap_transmit_line.read() < 0))
+	{
+		printf("WARNING in mocap_update: failed to read new data\n");
+		return 0;
+	}
+
+	return 0;
+}
+
+char comms_manager_t::mocap_cleanup(void)
+{
+	if (unlikely(!mocap_initialized)) return 0;
+	mocap_initialized = false;
+	mocap_active = false;
+
+	mocap_transmit_line.close();
+	return 0;
+}
+
+
+char comms_manager_t::update(void)
+{
+	if (unlikely(!initialized))
+	{
+		printf("ERROR in update: not initialized\n");
+		return -1;
+	}
+
+
+	if (settings.enable_mocap)
+	{
+		mocap_update();
+		if (settings.log_benchmark) benchmark_timers.tXBEE = rc_nanos_since_boot();
+	}
+
+	return 0;
+}
+
+char comms_manager_t::cleanup(void)
+{
+	if (settings.enable_mocap) mocap_cleanup();
+
+	initialized = 0;
+
+	return 0;
+}

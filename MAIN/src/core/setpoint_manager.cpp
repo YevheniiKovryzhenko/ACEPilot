@@ -56,7 +56,7 @@
 #include "settings.h"
 #include "state_estimator.h"
 #include "flight_mode.h"
-#include "xbee_receive.h"
+//#include "xbee_receive.h"
 #include "setpoint_guidance.hpp"
 #include "tools.h"
 #include "feedback.hpp"

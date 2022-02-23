@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  02/21/2022 (MM/DD/YYYY)
+ * Last Edit:  02/22/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This code is intended for simple serial communication using pre-defined start bytes and

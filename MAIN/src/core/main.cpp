@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  08/19/2020 (MM/DD/YYYY)
+ * Last Edit:  02/22/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -126,19 +126,12 @@ static void __imu_isr(void)
     state_estimate.imu_time_ns = rc_nanos_since_boot();
     if (settings.log_benchmark) benchmark_timers.tIMU = rc_nanos_since_boot();
 
-    //printf("imu interupt...\n");
-    //setpoint_manager_update();
-    //state_estimator_march();
-
-    //Get XBee data
-    if (settings.enable_mocap) {
-        XBEE_getData();
-        if (settings.log_benchmark) benchmark_timers.tXBEE = rc_nanos_since_boot();
-    }
+    //update comms:
+    comms_manager.update();
     // Update the state machine
     if (user_input.flight_mode == AUTONOMOUS)
     {
-        //sm_transition(&waypoint_state_machine, (sm_alphabet)xbeeMsg.sm_event);
+        //sm_transition(&waypoint_state_machine, (sm_alphabet)mocap_msg.sm_event);
         waypoint_state_machine.march();
         if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
     }
@@ -220,7 +213,7 @@ int main(int argc, char** argv)
             // settings file option
         case 's':
             settings_file_path = optarg;
-            printf("\nUser specified settings file:\n%s\n", settings_file_path);
+            printf("User specified settings file:\n%s\n", settings_file_path);
             break;
 
             // help mode
@@ -229,7 +222,7 @@ int main(int argc, char** argv)
             return 0;
 
         default:
-            printf("\nInvalid Argument \n");
+            printf("Invalid Argument\n");
             print_usage();
             return -1;
         }
@@ -243,13 +236,13 @@ int main(int argc, char** argv)
 
     // first things first, load settings which may be used during startup
     if (settings_load_from_file(settings_file_path) < 0) {
-        fprintf(stderr, "\nERROR: failed to load settings");
+        fprintf(stderr, "ERROR: failed to load settings\n");
         char tmp[256];
         getcwd(tmp, 256);
-        cout << "\nCurrent working directory: " << tmp << endl;
+        cout << "Current working directory: " << tmp << endl;
         return -1;
     }
-    printf("\nLoaded settings: %s", settings.name);
+    printf("Loaded settings: %s\n", settings.name);
     
 
     // before touching hardware, make sure another instance isn't running
@@ -328,28 +321,28 @@ int main(int argc, char** argv)
             }
         }        
 
-        printf("\ninitializing adc");
+        printf("initializing adc\n");
         if (rc_adc_init() == -1) {
-            FAIL("\nERROR: failed to initialize ADC")
+            FAIL("ERROR: failed to initialize ADC\n")
         }
 
         // start signal handler so threads can exit cleanly
-        printf("\ninitializing signal handler");
+        printf("initializing signal handler");
         if (rc_enable_signal_handler() < 0) {
-            FAIL("\nERROR: failed to complete rc_enable_signal_handler")
+            FAIL("ERROR: failed to complete rc_enable_signal_handler\n")
         }
 
         // start threads
-        printf("\ninitializing DSM and input_manager");
+        printf("initializing DSM and input_manager\n");
         if (user_input.input_manager_init() < 0) {
-            FAIL("\nERROR: failed to initialize input_manager")
+            FAIL("ERROR: failed to initialize input_manager\n")
         }
 
         // initialize buttons and Assign functions to be called when button
         // events occur
         if (rc_button_init(RC_BTN_PIN_PAUSE, RC_BTN_POLARITY_NORM_HIGH,
             RC_BTN_DEBOUNCE_DEFAULT_US)) {
-            FAIL("\nERROR: failed to init buttons")
+            FAIL("ERROR: failed to init buttons\n")
         }
         rc_button_set_callbacks(RC_BTN_PIN_PAUSE, on_pause_press, NULL);
     }
@@ -357,69 +350,73 @@ int main(int argc, char** argv)
     // initialize log_manager if enabled in settings
     if (settings.enable_logging)
     {
-        printf("\ninitializing log manager");
+        printf("initializing log manager\n");
         if (log_entry.init() < 0)
         {
-            FAIL("\nERROR: failed to initialize log manager")
+            FAIL("ERROR: failed to initialize log manager\n")
         }
     }
 
     if (settings.enable_gps)
     {
         /* Init GPS */
-        printf("\nInitializing gps serial link for serial port\
+        printf("Initializing gps serial link for serial port\
         \n%s\n with baudrate \n%d\n", settings.serial_port_gps, settings.serial_baud_gps);
         if (gps_init(settings.serial_port_gps, settings.serial_baud_gps))
         {
-            FAIL("\nERROR: Failed to initialize GPS");
+            FAIL("ERROR: Failed to initialize GPS\n");
         }
     }
-
+    printf("Initializing comms manager\n");
+    if (comms_manager.init() < 0)
+    {
+        FAIL("ERROR: failed to initialize comms manager\n")
+    }
     // set up XBEE serial link
     if (settings.enable_mocap) {
-        printf("\ninitializing xbee serial link.");
-        if (XBEE_init(settings.serial_port_1, settings.serial_baud_1) < 0)
+        printf("initializing mocap serial link\n");
+        if (comms_manager.mocap_start(settings.serial_port_1, settings.serial_baud_1,&mocap_msg,sizeof(mocap_msg)) < 0)
         {
-            FAIL("\nERROR: failed to init xbee serial link")
+            FAIL("ERROR: failed to init xbee serial link\n")
         }
     }
 
     if (RUNNING_ON_BBB)
     {
         // start barometer, must do before starting state estimator
-        printf("\ninitializing Barometer\n");
+        printf("initializing Barometer\n");
         if (rc_bmp_init(BMP_OVERSAMPLE_16, BMP_FILTER_16)) {
-            FAIL("\nERROR: failed to initialize barometer")
+            FAIL("ERROR: failed to initialize barometer\n")
         }
 
         if (settings.enable_encoders) {
             //initializiation on counter
-            printf("\ninitializing revolution counter");
+            printf("initializing revolution counter\n");
             if (rc_encoder_init() < 0) {
-                FAIL("\nERROR: failed to initialize encoder")
+                FAIL("ERROR: failed to initialize encoder\n")
             }
         }
 
         // set up state estimator
-        printf("\ninitializing state_estimator");
+        printf("initializing state_estimator");
         if (state_estimator_init() < 0) {
-            FAIL("\nERROR: failed to init state_estimator")
+            FAIL("ERROR: failed to init state_estimator\n")
         }
     }
 
     // Initialize waypoint state machine
-    printf("\ninitializing waypoint state machine");
+    printf("initializing waypoint state machine");
     if (waypoint_state_machine.init() < 0)
     {
-        FAIL("\nERROR: failed to init waypoint state machine");
+        FAIL("ERROR: failed to init waypoint state machine\n");
     }
 
     if (RUNNING_ON_BBB)
     {
         // set up feedback controller
-        printf("\ninitializing feedback controller");
+        printf("initializing feedback controller\n");
         if (fstate.init() < 0) {
-            FAIL("\nERROR: failed to init feedback controller")
+            FAIL("ERROR: failed to init feedback controller\n")
         }
 
     }
@@ -441,33 +438,33 @@ int main(int argc, char** argv)
         mpu_conf.enable_magnetometer = settings.enable_magnetometer;
 
         // now set up the imu for dmp interrupt operation
-        printf("\ninitializing MPU");
+        printf("initializing MPU\n");
         if (rc_mpu_initialize_dmp(&mpu_data, mpu_conf)) {
-            fprintf(stderr, "\nERROR: failed to start MPU DMP");
+            fprintf(stderr, "ERROR: failed to start MPU DMP\n");
             return -1;
         }        
 
         // final setup
         if (rc_make_pid_file() != 0) {
-            FAIL("\nERROR: failed to make a PID file")
+            FAIL("ERROR: failed to make a PID file\n")
         }
 
         // make sure everything is disarmed them start the ISR
         fstate.disarm();
-        printf("\nwaiting for dmp to settle...");
+        printf("waiting for dmp to settle...\n");
         fflush(stdout);
         rc_usleep(3000000);
         if (rc_mpu_set_dmp_callback(__imu_isr) != 0) {
-            FAIL("\nERROR: failed to set dmp callback function")
+            FAIL("ERROR: failed to set dmp callback function\n")
         }
 
         // start printf_thread if running from a terminal
         // if it was started as a background process then don't bother	
 
         if (isatty(fileno(stdout))) {
-            printf("\ninitializing printf manager");
+            printf("initializing printf manager\n");
             if (printf_init() < 0) {
-                FAIL("\nERROR: failed to initialize printf_manager")
+                FAIL("ERROR: failed to initialize printf_manager\n")
             }
         }
     }
@@ -481,7 +478,7 @@ int main(int argc, char** argv)
     // some of these, like printf_manager and log_manager, have cleanup
     // functions that can be called even if not being used. So just call all
     // cleanup functions here.
-    printf("\ncleaning up");
+    printf("cleaning up\n");
     rc_mpu_power_off();
     fstate.cleanup();
     user_input.input_manager_cleanup();
@@ -491,6 +488,7 @@ int main(int argc, char** argv)
     rc_encoder_cleanup();
     path.cleanup();
     if (sstate.is_initialized()) sstate.cleanup();
+    comms_manager.cleanup();
 
 
     if (RUNNING_ON_BBB)

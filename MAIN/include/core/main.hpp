@@ -68,11 +68,12 @@
 #include "state_machine.hpp"
 #include "log_manager.hpp"
 #include "printf_manager.hpp"
-#include "xbee_receive.h"
+//#include "xbee_receive.h"
 #include "setpoint_manager.hpp"
 #include "benchmark.h"
 #include "feedback.hpp"
 #include "mix_servos.hpp"
 #include "path.hpp"
+#include "comms_manager.hpp"
 
 #endif //MAIN_HPP

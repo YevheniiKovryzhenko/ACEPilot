@@ -43,13 +43,31 @@ private:
 	bool mocap_active;
 	serial_transmit_t mocap_transmit_line;
 	uint64_t mocap_time;
+
+	/**
+	 * @brief   proper exit routine for mocap comm line.
+	 *
+	 * @return non-zero on error.
+	 */
+	char mocap_cleanup(void);
+	
+	/**
+	 * @brief   Updates mocap related data.
+	 *
+	 * @return non-zero on error.
+	 */
+	char mocap_update(void);
+
 public:
 	char init(void);
+	char update(void);
 	
-	char mocap_start(const char* port, const int baudRate);
-	char mocap_cleanup(void);
+	char mocap_start(const char* port, const int baudRate, void* buff, size_t size_buff);
+	
 
 	char cleanup(void);
 };
+
+extern comms_manager_t comms_manager;
 #endif // COMMS_MANAGER
 

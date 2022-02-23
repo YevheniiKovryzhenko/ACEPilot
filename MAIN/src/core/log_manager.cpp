@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/19/2020 (MM/DD/YYYY)
+ * Last Edit:  02/22/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager.
  * 
@@ -65,7 +65,6 @@
 #include "feedback.hpp"
 #include "state_estimator.h"
 #include "signal.h"
-#include "xbee_receive.h"
 #include "tools.h"
 #include "gps.h"
 #include "benchmark.h"

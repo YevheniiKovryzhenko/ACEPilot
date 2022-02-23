@@ -22,7 +22,7 @@
 #include "rc_pilot_defs.h"
 #include "settings.h"
  //#include "input_manager.h"	
-#include "xbee_receive.h"
+#include "comms_tmp_data_packet.h"
 #include "gps.h"
 #include "benchmark.h" //for velocity estimation
 
@@ -34,7 +34,6 @@
 
 state_estimate_t state_estimate; // extern variable in state_estimator.h
 ext_mag_t ext_mag;
-//xbee_packet_t xbeeMsg; //move to comms_manager when this file is converted into cpp
 
 // sensor data structs
 rc_mpu_data_t mpu_data;
@@ -192,10 +191,10 @@ static void __imu_march(void)
 	state_estimate.quat_imu[2] =  mpu_data.dmp_quat[1]; // Y (j)
 	state_estimate.quat_imu[3] = -mpu_data.dmp_quat[3]; // Z (k)
 	if (settings.enable_mocap) {
-		state_estimate.quat_mocap[0] = xbeeMsg.qw; // W
-		state_estimate.quat_mocap[1] = xbeeMsg.qx; // X (i)
-		state_estimate.quat_mocap[2] = xbeeMsg.qy; // Y (j)
-		state_estimate.quat_mocap[3] = xbeeMsg.qz; // Z (k)
+		state_estimate.quat_mocap[0] = mocap_msg.qw; // W
+		state_estimate.quat_mocap[1] = mocap_msg.qx; // X (i)
+		state_estimate.quat_mocap[2] = mocap_msg.qy; // Y (j)
+		state_estimate.quat_mocap[3] = mocap_msg.qz; // Z (k)
 		
 		// normalize quaternion because we don't trust the mocap system
 		rc_quaternion_norm_array(state_estimate.quat_mocap);
@@ -206,9 +205,9 @@ static void __imu_march(void)
 		last_mocap_y = state_estimate.pos_mocap[1];
 		last_mocap_z = state_estimate.pos_mocap[2];
 		// position in the inertial frame
-		state_estimate.pos_mocap[0]=(double)xbeeMsg.x;
-		state_estimate.pos_mocap[1]=-(double)xbeeMsg.y;
-		state_estimate.pos_mocap[2]=-(double)xbeeMsg.z;
+		state_estimate.pos_mocap[0]=(double)mocap_msg.x;
+		state_estimate.pos_mocap[1]=-(double)mocap_msg.y;
+		state_estimate.pos_mocap[2]=-(double)mocap_msg.z;
 		
 		// we need to estimate velocity from mocap position
 		last_mocap_dt = finddt_s(benchmark_timers.tNAV); //get time elapsed since last itter.

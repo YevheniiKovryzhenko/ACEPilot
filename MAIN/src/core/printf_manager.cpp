@@ -20,7 +20,7 @@
 #include "state_estimator.h"
 #include "thread_defs.h"
 #include "settings.h"
-#include "xbee_receive.h"
+#include "comms_tmp_data_packet.h"
 #include "gps.h"
 
 #include "printf_manager.hpp"
@@ -163,7 +163,7 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 
 		if (settings.printf_tracking)
 		{
-			printf("%s %i | %i |", __next_colour(), gps_data.sat, xbeeMsg.trackingValid);
+			printf("%s %i | %i |", __next_colour(), gps_data.sat, mocap_msg.trackingValid);
 		}
 		if (settings.printf_altitude)
 		{
@@ -213,7 +213,7 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 			printf("%s%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+7.2f|%+7.2f|%+7.2f|%+7.2f|  %2X   |", __next_colour(),
 				state_estimate.pos_mocap[0], state_estimate.pos_mocap[1], state_estimate.pos_mocap[2], state_estimate.X_dot, state_estimate.Y_dot,
 				state_estimate.Z_dot, state_estimate.quat_mocap[1], state_estimate.quat_mocap[2], state_estimate.quat_mocap[3], state_estimate.quat_mocap[0],
-				xbeeMsg.sm_event);
+				mocap_msg.sm_event);
 		}
 		if (settings.printf_gps)
 		{

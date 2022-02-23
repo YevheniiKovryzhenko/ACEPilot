@@ -45,7 +45,7 @@
 #include "setpoint_guidance.hpp"
 #include "input_manager.hpp"
 #include "state_estimator.h"
-#include "xbee_receive.h"
+#include "comms_tmp_data_packet.h"
 
 #include "state_machine.hpp"
 
@@ -117,7 +117,7 @@ int state_machine_t::march(void)
 {
     if (en_update)
     {
-        transition(user_input.flight_mode, (sm_alphabet)xbeeMsg.sm_event);
+        transition(user_input.flight_mode, (sm_alphabet)mocap_msg.sm_event);
     }
     return 0;
 }
