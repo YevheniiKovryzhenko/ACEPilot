@@ -62,7 +62,6 @@ typedef struct settings_t{
 	bool use_mocap_yaw;
 	bool use_mocap_pitch;
 	bool use_mocap_roll;
-	bool enable_dynamic_gains;
 	bool enable_encoders;
 	bool enable_gps;
 	bool enable_ext_mag;
@@ -234,6 +233,11 @@ typedef struct settings_t{
 	double turn_period;
 	double turn_time_s;
 	bool turn_dir_yaw_cw;
+	///@}
+
+	//** @name remote tuning parameters */
+	///@{
+	bool allow_remote_tuning;
 	///@}
 }settings_t;
 

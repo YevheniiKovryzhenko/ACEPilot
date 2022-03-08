@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/18/2020 (MM/DD/YYYY)
+ * Last Edit:  07/03/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -37,6 +37,7 @@
 #include "state_estimator.h"
 
 #include "controller.hpp"
+#include "comms_tmp_data_packet.h"
 
  // preposessor macros
 #define unlikely(x)	__builtin_expect (!!(x), 0)
@@ -96,13 +97,13 @@ int feedback_controller_t::rpy_init(void)
     rc_filter_print(D_yaw);
 #endif
 
-    // save original gains as we will scale these by battery voltage later
-    D_roll_pd_gain_orig = D_roll_pd.gain;
-    D_pitch_pd_gain_orig = D_pitch_pd.gain;
-    D_yaw_pd_gain_orig = D_yaw_pd.gain;
-	D_roll_i_gain_orig = D_roll_i.gain;
-	D_pitch_i_gain_orig = D_pitch_i.gain;
-	D_yaw_i_gain_orig = D_yaw_i.gain;
+	//save a copy of the original/default gain set:
+	D_roll_pd_orig = D_roll_pd;
+	D_pitch_pd_orig = D_pitch_pd;
+	D_yaw_pd_orig = D_yaw_pd;
+	D_roll_i_orig = D_roll_i;
+	D_pitch_i_orig = D_pitch_i;
+	D_yaw_i_orig = D_yaw_i;
 
 	last_en_rpy_ctrl = false;
     return 0;
@@ -120,12 +121,12 @@ int feedback_controller_t::rpy_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_roll_pd.gain = D_roll_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch_pd.gain = D_pitch_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw_pd.gain = D_yaw_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_roll_i.gain = D_roll_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch_i.gain = D_pitch_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw_i.gain = D_yaw_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_roll_pd.gain = D_roll_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_pitch_pd.gain = D_pitch_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_yaw_pd.gain = D_yaw_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_roll_i.gain = D_roll_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_pitch_i.gain = D_pitch_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_yaw_i.gain = D_yaw_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
 	double err_roll, err_pitch, err_yaw;
@@ -164,12 +165,12 @@ int feedback_controller_t::rpy_march(void)
 
 int feedback_controller_t::rpy_reset(void)
 {
-	D_roll_pd.gain = D_roll_pd_gain_orig;
-	D_pitch_pd.gain = D_pitch_pd_gain_orig;
-	D_yaw_pd.gain = D_yaw_pd_gain_orig;
-	D_roll_i.gain = D_roll_i_gain_orig;
-	D_pitch_i.gain = D_pitch_i_gain_orig;
-	D_yaw_i.gain = D_yaw_i_gain_orig;
+	D_roll_pd = D_roll_pd_orig;
+	D_pitch_pd = D_pitch_pd_orig;
+	D_yaw_pd = D_yaw_pd_orig;
+	D_roll_i = D_roll_i_orig;
+	D_pitch_i = D_pitch_i_orig;
+	D_yaw_i = D_yaw_i_orig;
 
     rc_filter_reset(&D_roll_pd);
     rc_filter_reset(&D_pitch_pd);
@@ -240,13 +241,13 @@ int feedback_controller_t::rpy_rate_init(void)
 		return -1;
 	}
 
-	// save original gains as we will scale these by battery voltage later
-	D_roll_rate_pd_gain_orig = D_roll_rate_pd.gain;
-	D_pitch_rate_pd_gain_orig = D_pitch_rate_pd.gain;
-	D_yaw_rate_pd_gain_orig = D_yaw_rate_pd.gain;
-	D_roll_rate_i_gain_orig = D_roll_rate_i.gain;
-	D_pitch_rate_i_gain_orig = D_pitch_rate_i.gain;
-	D_yaw_rate_i_gain_orig = D_yaw_rate_i.gain;
+	//save a copy of the original/default gain set:
+	D_roll_rate_pd_orig = D_roll_rate_pd;
+	D_pitch_rate_pd_orig = D_pitch_rate_pd;
+	D_yaw_rate_pd_orig = D_yaw_rate_pd;
+	D_roll_rate_i_orig = D_roll_rate_i;
+	D_pitch_rate_i_orig = D_pitch_rate_i;
+	D_yaw_rate_i_orig = D_yaw_rate_i;
 
 	last_en_rpy_rate_ctrl = false;
 
@@ -265,12 +266,12 @@ int feedback_controller_t::rpy_rate_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_roll_rate_pd.gain = D_roll_rate_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch_rate_pd.gain = D_pitch_rate_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw_rate_pd.gain = D_yaw_rate_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_roll_rate_i.gain = D_roll_rate_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch_rate_i.gain = D_pitch_rate_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw_rate_i.gain = D_yaw_rate_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_roll_rate_pd.gain = D_roll_rate_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_pitch_rate_pd.gain = D_pitch_rate_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_yaw_rate_pd.gain = D_yaw_rate_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_roll_rate_i.gain = D_roll_rate_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_pitch_rate_i.gain = D_pitch_rate_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_yaw_rate_i.gain = D_yaw_rate_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
 	double err_roll_dot, err_pitch_dot, err_yaw_dot;
@@ -295,13 +296,12 @@ int feedback_controller_t::rpy_rate_march(void)
 
 int feedback_controller_t::rpy_rate_reset(void)
 {
-	D_roll_rate_pd.gain = D_roll_rate_pd_gain_orig;
-	D_pitch_rate_pd.gain = D_pitch_rate_pd_gain_orig;
-	D_yaw_rate_pd.gain = D_yaw_rate_pd_gain_orig;
-	D_roll_rate_i.gain = D_roll_rate_i_gain_orig;
-	D_pitch_rate_i.gain = D_pitch_rate_i_gain_orig;
-	D_yaw_rate_i.gain = D_yaw_rate_i_gain_orig;
-
+	D_roll_rate_pd = D_roll_rate_pd_orig;
+	D_pitch_rate_pd = D_pitch_rate_pd_orig;
+	D_yaw_rate_pd = D_yaw_rate_pd_orig;
+	D_roll_rate_i = D_roll_rate_i_orig;
+	D_pitch_rate_i = D_pitch_rate_i_orig;
+	D_yaw_rate_i = D_yaw_rate_i_orig;
 
 	rc_filter_reset(&D_roll_rate_pd);
 	rc_filter_reset(&D_roll_rate_i);
@@ -362,10 +362,12 @@ int feedback_controller_t::xy_init(void)
 		return -1;
 	}
 
-	D_X_pd_gain_orig = D_X_pd.gain;
-	D_Y_pd_gain_orig = D_Y_pd.gain;
-	D_X_i_gain_orig = D_X_i.gain;
-	D_Y_i_gain_orig = D_Y_i.gain;
+
+	//save a copy of the original/default gain set:
+	D_X_pd_orig = D_X_pd;
+	D_Y_pd_orig = D_Y_pd;
+	D_X_i_orig = D_X_i;
+	D_Y_i_orig = D_Y_i;
 
 	last_en_XY_ctrl = false;
 
@@ -389,10 +391,10 @@ int feedback_controller_t::xy_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_X_pd.gain = D_X_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Y_pd.gain = D_Y_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_X_i.gain = D_X_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Y_i.gain = D_Y_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_X_pd.gain = D_X_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Y_pd.gain = D_Y_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_X_i.gain = D_X_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Y_i.gain = D_Y_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
 	// Position error -> Velocity/Acceleration error
@@ -431,10 +433,10 @@ int feedback_controller_t::xy_march(void)
 
 int feedback_controller_t::xy_reset(void)
 {
-	D_X_pd.gain = D_X_pd_gain_orig;
-	D_Y_pd.gain = D_Y_pd_gain_orig;
-	D_X_i.gain = D_X_i_gain_orig;
-	D_Y_i.gain = D_Y_i_gain_orig;
+	D_X_pd = D_X_pd_orig;
+	D_Y_pd = D_Y_pd_orig;
+	D_X_i = D_X_i_orig;
+	D_Y_i = D_Y_i_orig;
 
 	rc_filter_reset(&D_X_pd);
 	rc_filter_reset(&D_Y_pd);
@@ -477,10 +479,12 @@ int feedback_controller_t::xy_rate_init(void)
 		return -1;
 	}
 
-	D_Xdot_pd_gain_orig = D_Xdot_pd.gain;
-	D_Xdot_i_gain_orig = D_Xdot_i.gain;
-	D_Ydot_pd_gain_orig = D_Ydot_pd.gain;
-	D_Ydot_i_gain_orig = D_Ydot_i.gain;
+
+	//save a copy of the original/default gain set:
+	D_Xdot_pd_orig = D_Xdot_pd;
+	D_Xdot_i_orig = D_Xdot_i;
+	D_Ydot_pd_orig = D_Ydot_pd;
+	D_Ydot_i_orig = D_Ydot_i;
 
 	last_en_XYdot_ctrl = false;
 	return 0;
@@ -498,10 +502,10 @@ int feedback_controller_t::xy_rate_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_Xdot_pd.gain = D_Xdot_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Xdot_i.gain = D_Xdot_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Ydot_pd.gain = D_Ydot_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Ydot_i.gain = D_Ydot_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Xdot_pd.gain = D_Xdot_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Xdot_i.gain = D_Xdot_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Ydot_pd.gain = D_Ydot_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Ydot_i.gain = D_Ydot_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
 	////////////// PID for horizontal velocity control /////////////
@@ -520,10 +524,10 @@ int feedback_controller_t::xy_rate_march(void)
 
 int feedback_controller_t::xy_rate_reset(void)
 {
-	D_Xdot_pd.gain = D_Xdot_pd_gain_orig;
-	D_Xdot_i.gain = D_Xdot_i_gain_orig;
-	D_Ydot_pd.gain = D_Ydot_pd_gain_orig;
-	D_Ydot_i.gain = D_Ydot_i_gain_orig;
+	D_Xdot_pd = D_Xdot_pd_orig;
+	D_Xdot_i = D_Xdot_i_orig;
+	D_Ydot_pd = D_Ydot_pd_orig;
+	D_Ydot_i = D_Ydot_i_orig;
 
 
 	rc_filter_reset(&D_Xdot_pd);
@@ -570,8 +574,9 @@ int feedback_controller_t::z_init(void)
 	rc_filter_print(D_Z);
 #endif
 
-	D_Z_pd_gain_orig = D_Z_pd.gain;
-	D_Z_i_gain_orig = D_Z_i.gain;
+	//save a copy of the original/default gain set:
+	D_Z_pd_orig = D_Z_pd;
+	D_Z_i_orig = D_Z_i;
 
 	last_en_Z_ctrl = false;
 
@@ -608,8 +613,8 @@ int feedback_controller_t::z_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_Z_pd.gain = D_Z_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Z_i.gain = D_Z_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Z_pd.gain = D_Z_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Z_i.gain = D_Z_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 	// Position error -> Velocity error:
 	setpoint.Z_dot = rc_filter_march(&D_Z_pd, setpoint.Z - state_estimate.Z)
@@ -634,8 +639,8 @@ int feedback_controller_t::z_march(void)
 
 int feedback_controller_t::z_reset(void)
 {
-	D_Z_pd.gain = D_Z_pd_gain_orig;
-	D_Z_i.gain = D_Z_i_gain_orig;
+	D_Z_pd = D_Z_pd_orig;
+	D_Z_i = D_Z_i_orig;
 
     rc_filter_reset(&D_Z_pd);
 	rc_filter_reset(&D_Z_i);
@@ -663,8 +668,9 @@ int feedback_controller_t::z_rate_init(void)
 		return -1;
 	}
 
-	D_Zdot_pd_gain_orig = D_Zdot_pd.gain;
-	D_Zdot_i_gain_orig = D_Zdot_i.gain;
+	//save a copy of the original/default gain set:
+	D_Zdot_pd_orig = D_Zdot_pd;
+	D_Zdot_i_orig = D_Zdot_i;
 
 	last_en_Z_ctrl = false;
 	return 0;
@@ -683,8 +689,8 @@ int feedback_controller_t::z_rate_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_Zdot_pd.gain = D_Zdot_pd_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Zdot_i.gain = D_Zdot_i_gain_orig * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Zdot_pd.gain = D_Zdot_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		D_Zdot_i.gain = D_Zdot_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
 	}
 
 	// Vertical velocity error -> Vertical acceleration error
@@ -698,8 +704,8 @@ int feedback_controller_t::z_rate_march(void)
 
 int feedback_controller_t::z_rate_reset(void)
 {
-	D_Zdot_pd.gain = D_Zdot_pd_gain_orig;
-	D_Zdot_i.gain = D_Zdot_i_gain_orig;
+	D_Zdot_pd = D_Zdot_pd_orig;
+	D_Zdot_i = D_Zdot_i_orig;
 
 	rc_filter_reset(&D_Zdot_pd);
 	rc_filter_reset(&D_Zdot_i);
@@ -708,6 +714,144 @@ int feedback_controller_t::z_rate_reset(void)
 	return 0;
 }
 
+
+char feedback_controller_t::gain_tune_march(void)
+{
+	if (GS_RX.en_tunning)
+	{
+		received_gain_set.GainCH = GS_RX.GainCH;
+		received_gain_set.GainN1_i = GS_RX.GainN1_i;
+		received_gain_set.GainN0_pd = GS_RX.GainN0_pd;
+		received_gain_set.GainN1_pd = GS_RX.GainN1_pd;
+		received_gain_set.GainD1_pd = GS_RX.GainD1_pd;
+
+
+
+		if (unlikely(update_gains() < 0))
+		{
+			printf("ERROR in gain_tune_march: failed to update gains\n");
+			tune_status_fl = false;
+			return -1;
+		}
+		else //success
+		{
+			//reset?
+		}
+		tune_status_fl = true;
+	}
+	else
+	{
+		if (tune_status_fl) reset(); //switched out of tunning, revert back to def
+		tune_status_fl = false;
+	}
+
+
+	return 0;
+}
+
+char feedback_controller_t::update_gains(void)
+{
+	/*
+	Update gains using Ground station. Use GS_RX.GainCH for swithing
+	between channels, assume 0 is the default mode of operation
+	with whatever gains are already set.
+	*/
+
+	switch (received_gain_set.GainCH)
+	{
+	case 0:
+		break;
+	case 1: //roll
+		D_roll_i.num.d[1] = received_gain_set.GainN1_i;
+		D_roll_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_roll_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_roll_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 2: //pitch
+		D_pitch_i.num.d[1] = received_gain_set.GainN1_i;
+		D_pitch_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_pitch_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_pitch_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 3: //yaw
+		D_yaw_i.num.d[1] = received_gain_set.GainN1_i;
+		D_yaw_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_yaw_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_yaw_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 4: //roll rate
+		D_roll_rate_i.num.d[1] = received_gain_set.GainN1_i;
+		D_roll_rate_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_roll_rate_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_roll_rate_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 5: //pitch rate
+		D_pitch_rate_i.num.d[1] = received_gain_set.GainN1_i;
+		D_pitch_rate_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_pitch_rate_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_pitch_rate_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 6: //yaw rate
+		D_yaw_rate_i.num.d[1] = received_gain_set.GainN1_i;
+		D_yaw_rate_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_yaw_rate_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_yaw_rate_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 7: //x
+		D_X_i.num.d[1] = received_gain_set.GainN1_i;
+		D_X_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_X_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_X_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 8: //y
+		D_Y_i.num.d[1] = received_gain_set.GainN1_i;
+		D_Y_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_Y_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_Y_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 9: //z
+		D_Z_i.num.d[1] = received_gain_set.GainN1_i;
+		D_Z_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_Z_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_Z_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 10: //x rate
+		D_Xdot_i.num.d[1] = received_gain_set.GainN1_i;
+		D_Xdot_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_Xdot_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_Xdot_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 11: //y rate
+		D_Ydot_i.num.d[1] = received_gain_set.GainN1_i;
+		D_Ydot_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_Ydot_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_Ydot_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+
+	case 12: //z rate
+		D_Zdot_i.num.d[1] = received_gain_set.GainN1_i;
+		D_Zdot_pd.num.d[0] = received_gain_set.GainN0_pd;
+		D_Zdot_pd.num.d[1] = received_gain_set.GainN1_pd;
+		D_Zdot_pd.den.d[1] = received_gain_set.GainD1_pd;
+		break;
+	
+	default: //no changes 
+		printf("ERROR in update_gains: undefined gain channel\n");
+		return -1;
+	}
+
+	return 0;
+}
 
 
 int feedback_controller_t::init(void)
@@ -836,6 +980,9 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
 	if (!setpoint.en_XY_pos_ctrl) last_en_XY_ctrl = false;
 	if (!setpoint.en_XY_vel_ctrl) last_en_XYdot_ctrl = false;
 	
+	// update gains if allowed
+	if (settings.allow_remote_tuning) gain_tune_march();
+
 	// run position controller if enabled
 	if (setpoint.en_XY_pos_ctrl) 
 	{

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/16/2020 (MM/DD/YYYY)
+ * Last Edit:  07/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -117,7 +117,7 @@ int state_machine_t::march(void)
 {
     if (en_update)
     {
-        transition(user_input.flight_mode, (sm_alphabet)mocap_msg.sm_event);
+        transition(user_input.flight_mode, (sm_alphabet)GS_RX.sm_event);
     }
     return 0;
 }

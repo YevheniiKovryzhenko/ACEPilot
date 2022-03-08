@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  02/22/2022 (MM/DD/YYYY)
+ * Last Edit:  07/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -243,74 +243,6 @@ int feedback_state_t::init(void)
 	return 0;
 }
 
-int feedback_state_t::update_gains(void)
-{
-	/*Update gains using xbee. Use mocap_msg.GainCH for swithing
-	between channels, assume 0 is the default mode of operation
-	with the original gains.
-	*/
-	/*
-	if(mocap_msg.GainCH == 1){
-		D_roll.num.d[0] = mocap_msg.GainN0;
-		D_roll.num.d[1] = mocap_msg.GainN1;
-		D_roll.num.d[2] = mocap_msg.GainN2;
-		D_roll.den.d[0] = mocap_msg.GainD0;
-		D_roll.den.d[1] = mocap_msg.GainD1;
-		D_roll.den.d[2] = mocap_msg.GainD2;
-
-		}
-	else if(mocap_msg.GainCH == 2){
-		D_pitch.num.d[0] = mocap_msg.GainN0;
-		D_pitch.num.d[1] = mocap_msg.GainN1;
-		D_pitch.num.d[2] = mocap_msg.GainN2;
-		D_pitch.den.d[0] = mocap_msg.GainD0;
-		D_pitch.den.d[1] = mocap_msg.GainD1;
-		D_pitch.den.d[2] = mocap_msg.GainD2;
-
-		}
-	else if(mocap_msg.GainCH == 3){
-		D_yaw.num.d[0] = mocap_msg.GainN0;
-		D_yaw.num.d[1] = mocap_msg.GainN1;
-		D_yaw.num.d[2] = mocap_msg.GainN2;
-		D_yaw.den.d[0] = mocap_msg.GainD0;
-		D_yaw.den.d[1] = mocap_msg.GainD1;
-		D_yaw.den.d[2] = mocap_msg.GainD2;
-
-		}
-	else if(mocap_msg.GainCH == 4){
-		D_Z.num.d[0] = mocap_msg.GainN0;
-		D_Z.num.d[1] = mocap_msg.GainN1;
-		D_Z.num.d[2] = mocap_msg.GainN2;
-		D_Z.den.d[0] = mocap_msg.GainD0;
-		D_Z.den.d[1] = mocap_msg.GainD1;
-		D_Z.den.d[2] = mocap_msg.GainD2;
-
-	}
-	else if(mocap_msg.GainCH == 5){
-		D_X_4.num.d[0] = mocap_msg.GainN0;
-		D_X_4.num.d[1] = mocap_msg.GainN1;
-		D_X_4.num.d[2] = mocap_msg.GainN2;
-		D_X_4.den.d[0] = mocap_msg.GainD0;
-		D_X_4.den.d[1] = mocap_msg.GainD1;
-		D_X_4.den.d[2] = mocap_msg.GainD2;
-
-	}
-	else if(mocap_msg.GainCH == 6){
-		D_Y_4.num.d[0] = mocap_msg.GainN0;
-		D_Y_4.num.d[1] = mocap_msg.GainN1;
-		D_Y_4.num.d[2] = mocap_msg.GainN2;
-		D_Y_4.den.d[0] = mocap_msg.GainD0;
-		D_Y_4.den.d[1] = mocap_msg.GainD1;
-		D_Y_4.den.d[2] = mocap_msg.GainD2;
-
-	}
-	else{
-		//use original pid gains defined in the settings file:
-	}
-	*/
-	return 0;
-}
-
 
 
 /**
@@ -359,11 +291,6 @@ int feedback_state_t::march(void)
 	//update_setpoints();
 	// Zero out feedforward terms so unexpected things don't happen
 	zero_out_ff();
-
-	if (settings.enable_dynamic_gains)
-	{
-		update_gains(); // work in progress
-	}
 
 	// We are about to start marching the individual SISO controllers forward.
 	// Start by zeroing out the motors signals then add from there.

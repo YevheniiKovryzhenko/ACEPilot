@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  07/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -60,8 +60,6 @@ private:
 	feedback_controller_t controller;
 
 	int send_motor_stop_pulse(void);
-
-	int update_gains(void);
 
 	//int update_setpoints(void);
 

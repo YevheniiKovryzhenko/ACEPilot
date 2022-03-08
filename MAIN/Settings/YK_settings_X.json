@@ -16,7 +16,6 @@
 	"use_mocap_yaw": true,
 	"use_mocap_pitch": false,
 	"use_mocap_roll": false,
-	"enable_dynamic_gains": false,
 	"enable_encoders": false,
 	"enable_gps": false,
 	"enable_ext_mag": false,
@@ -31,6 +30,7 @@
 
 	"enable_mocap_dropout_emergency_land": false,
 	"mocap_dropout_timeout_ms": 300.0,
+	"allow_remote_tuning":  true,
 
 	"serial_port_1": "/dev/ttyS1",
 	"serial_baud_1": 230400,

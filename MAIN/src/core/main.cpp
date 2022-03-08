@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  02/22/2022 (MM/DD/YYYY)
+ * Last Edit:  07/03/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -30,7 +30,7 @@
 using namespace std;
 struct stat buffer;
 //check if running on BBB:
-bool RUNNING_ON_BBB = (stat("/sys/devices/platform/leds/leds/", &buffer) == 0 && S_ISDIR(buffer.st_mode)); 
+static const bool RUNNING_ON_BBB = (stat("/sys/devices/platform/leds/leds/", &buffer) == 0 && S_ISDIR(buffer.st_mode)); 
 
 
 /**
@@ -131,16 +131,9 @@ static void __imu_isr(void)
     // Update the state machine
     if (user_input.flight_mode == AUTONOMOUS)
     {
-        //sm_transition(&waypoint_state_machine, (sm_alphabet)mocap_msg.sm_event);
+        //sm_transition(&waypoint_state_machine, (sm_alphabet)GS_RX.sm_event);
         waypoint_state_machine.march();
         if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
-    }
-
-    //Read from GPS sensor
-    if (settings.enable_gps)
-    {
-        gps_getData();
-        if (settings.log_benchmark) benchmark_timers.tGPS = rc_nanos_since_boot();
     }
 
     //Read encoders
@@ -327,7 +320,7 @@ int main(int argc, char** argv)
         }
 
         // start signal handler so threads can exit cleanly
-        printf("initializing signal handler");
+        printf("initializing signal handler\n");
         if (rc_enable_signal_handler() < 0) {
             FAIL("ERROR: failed to complete rc_enable_signal_handler\n")
         }
@@ -357,28 +350,10 @@ int main(int argc, char** argv)
         }
     }
 
-    if (settings.enable_gps)
-    {
-        /* Init GPS */
-        printf("Initializing gps serial link for serial port\
-        \n%s\n with baudrate \n%d\n", settings.serial_port_gps, settings.serial_baud_gps);
-        if (gps_init(settings.serial_port_gps, settings.serial_baud_gps))
-        {
-            FAIL("ERROR: Failed to initialize GPS\n");
-        }
-    }
-    printf("Initializing comms manager\n");
+    printf("initializing comms manager\n");
     if (comms_manager.init() < 0)
     {
         FAIL("ERROR: failed to initialize comms manager\n")
-    }
-    // set up XBEE serial link
-    if (settings.enable_mocap) {
-        printf("initializing mocap serial link\n");
-        if (comms_manager.mocap_start(settings.serial_port_1, settings.serial_baud_1,&mocap_msg,sizeof(mocap_msg)) < 0)
-        {
-            FAIL("ERROR: failed to init xbee serial link\n")
-        }
     }
 
     if (RUNNING_ON_BBB)
@@ -398,14 +373,14 @@ int main(int argc, char** argv)
         }
 
         // set up state estimator
-        printf("initializing state_estimator");
+        printf("initializing state_estimator\n");
         if (state_estimator_init() < 0) {
             FAIL("ERROR: failed to init state_estimator\n")
         }
     }
 
     // Initialize waypoint state machine
-    printf("initializing waypoint state machine");
+    printf("initializing waypoint state machine\n");
     if (waypoint_state_machine.init() < 0)
     {
         FAIL("ERROR: failed to init waypoint state machine\n");

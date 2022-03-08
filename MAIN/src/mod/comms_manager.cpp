@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  02/22/2022 (MM/DD/YYYY)
+ * Last Edit:  07/03/2022 (MM/DD/YYYY)
  *
  * Object that governs all the high level logic related to communications.
  */
@@ -32,6 +32,7 @@
 #include <rc/time.h>
 #include "settings.h"
 #include "benchmark.h"
+#include "gps.h"
 //#include "serial_transmit.hpp"
 
 // preposessor macros
@@ -42,7 +43,7 @@
  * Invoke defaut constructor for all the built in and exernal types in the class
  */
 comms_manager_t comms_manager{};
-xbee_packet_t mocap_msg;
+xbee_packet_t GS_RX;
 
 char comms_manager_t::init(void)
 {
@@ -53,6 +54,29 @@ char comms_manager_t::init(void)
 	}
 	mocap_initialized = false;
 	mocap_active = false;
+
+
+	// set up mocap serial link
+	if (settings.enable_mocap) {
+		printf("initializing mocap serial link\n");
+		if (unlikely(mocap_start(settings.serial_port_1, settings.serial_baud_1, &GS_RX, sizeof(GS_RX)) < 0))
+		{
+			printf("ERROR: failed to init xbee serial link\n");
+			return -1;
+		}
+	}
+	if (settings.enable_gps) //must re-write GPS lib using Serial_Tools
+	{
+		/* Init GPS */
+		printf("initializing gps serial link for serial port\
+        \n%s\n with baudrate \n%d\n", settings.serial_port_gps, settings.serial_baud_gps);
+		if (gps_init(settings.serial_port_gps, settings.serial_baud_gps))
+		{
+			printf("ERROR: Failed to initialize GPS\n");
+			return -1;
+		}
+	}
+	
 	initialized = true;
 
 	return 0;
@@ -118,8 +142,29 @@ char comms_manager_t::update(void)
 
 	if (settings.enable_mocap)
 	{
-		mocap_update();
-		if (settings.log_benchmark) benchmark_timers.tXBEE = rc_nanos_since_boot();
+		if (unlikely(mocap_update() < 0))
+		{
+			printf("ERROR in update: failed to update mocap\n");
+			return -1;
+		}
+		else
+		{
+			if (settings.log_benchmark) benchmark_timers.tXBEE = rc_nanos_since_boot();
+		}		
+	}
+
+	//Read from GPS sensor
+	if (settings.enable_gps)
+	{
+		if (unlikely(gps_getData() < 0))
+		{
+			printf("ERROR in update: failed to update GPS\n");
+			return -1;
+		}
+		else
+		{
+			if (settings.log_benchmark) benchmark_timers.tGPS = rc_nanos_since_boot();
+		}		
 	}
 
 	return 0;

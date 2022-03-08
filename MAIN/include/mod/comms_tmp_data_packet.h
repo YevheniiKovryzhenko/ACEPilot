@@ -17,7 +17,7 @@ extern "C"
 {
 #endif
 
-extern xbee_packet_t mocap_msg;
+extern xbee_packet_t GS_RX;
 
 #ifdef __cplusplus
 }

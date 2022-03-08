@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/03/2020 (MM/DD/YYYY)
+ * Last Edit:  07/03/2022 (MM/DD/YYYY)
  */
 
 #ifndef CONTROLLER_HPP
@@ -39,6 +39,16 @@
 #include "mix.h"
 #include <stdbool.h>
 
+
+typedef struct PID_vars_set_t 
+{
+	uint8_t GainCH; //< tunning channel 
+	float GainN1_i; //< N0 is always 0; D0 is always 1; D1 is always -1
+	float GainN0_pd;
+	float GainN1_pd;
+	float GainD1_pd; //< D0 is always  1
+} PID_vars_set_t;
+
 class feedback_controller_t
 {
 private:
@@ -53,21 +63,6 @@ private:
 	bool last_en_XY_ctrl;
 	bool last_en_XYdot_ctrl;
 
-
-	// keep original controller gains for scaling later:
-	double D_roll_rate_pd_gain_orig, D_pitch_rate_pd_gain_orig, D_yaw_rate_pd_gain_orig;
-	double D_roll_rate_i_gain_orig, D_pitch_rate_i_gain_orig, D_yaw_rate_i_gain_orig;
-	
-	double D_roll_pd_gain_orig, D_pitch_pd_gain_orig, D_yaw_pd_gain_orig;
-	double D_roll_i_gain_orig, D_pitch_i_gain_orig, D_yaw_i_gain_orig;
-
-	double D_Xdot_pd_gain_orig, D_Ydot_pd_gain_orig, D_Zdot_pd_gain_orig;
-	double D_Xdot_i_gain_orig, D_Ydot_i_gain_orig, D_Zdot_i_gain_orig;
-
-	double D_X_pd_gain_orig, D_Y_pd_gain_orig, D_X_i_gain_orig, D_Y_i_gain_orig;
-	double D_Z_pd_gain_orig, D_Z_i_gain_orig;
-
-
 	// filters:
 	rc_filter_t D_roll_rate_pd;
 	rc_filter_t D_roll_rate_i;
@@ -76,6 +71,13 @@ private:
 	rc_filter_t D_yaw_rate_pd;
 	rc_filter_t D_yaw_rate_i;
 
+	rc_filter_t D_roll_rate_pd_orig;
+	rc_filter_t D_roll_rate_i_orig;
+	rc_filter_t D_pitch_rate_pd_orig;
+	rc_filter_t D_pitch_rate_i_orig;
+	rc_filter_t D_yaw_rate_pd_orig;
+	rc_filter_t D_yaw_rate_i_orig;
+
 	rc_filter_t D_roll_pd;
 	rc_filter_t D_pitch_pd;
 	rc_filter_t D_yaw_pd;
@@ -83,6 +85,13 @@ private:
 	rc_filter_t D_pitch_i;
 	rc_filter_t D_yaw_i;
 
+	rc_filter_t D_roll_pd_orig;
+	rc_filter_t D_pitch_pd_orig;
+	rc_filter_t D_yaw_pd_orig;
+	rc_filter_t D_roll_i_orig;
+	rc_filter_t D_pitch_i_orig;
+	rc_filter_t D_yaw_i_orig;
+	
 	rc_filter_t D_Xdot_pd;
 	rc_filter_t D_Xdot_i;
 	rc_filter_t D_Ydot_pd;
@@ -90,13 +99,31 @@ private:
 	rc_filter_t D_Zdot_pd;
 	rc_filter_t D_Zdot_i;
 
+	rc_filter_t D_Xdot_pd_orig;
+	rc_filter_t D_Xdot_i_orig;
+	rc_filter_t D_Ydot_pd_orig;
+	rc_filter_t D_Ydot_i_orig;
+	rc_filter_t D_Zdot_pd_orig;
+	rc_filter_t D_Zdot_i_orig;
+
 	rc_filter_t D_X_pd;
 	rc_filter_t D_Y_pd;
 	rc_filter_t D_X_i;
 	rc_filter_t D_Y_i;
 
+	rc_filter_t D_X_pd_orig;
+	rc_filter_t D_Y_pd_orig;
+	rc_filter_t D_X_i_orig;
+	rc_filter_t D_Y_i_orig;
+
 	rc_filter_t D_Z_pd;
 	rc_filter_t D_Z_i;
+
+	rc_filter_t D_Z_pd_orig;
+	rc_filter_t D_Z_i_orig;
+
+	bool tune_status_fl; //indicates if gains have been updated last time 
+	PID_vars_set_t received_gain_set;
 
 	int rpy_init(void);
 	int rpy_march(void);
@@ -130,6 +157,9 @@ private:
 public:
 
 	int init(void);
+
+	char gain_tune_march(void);
+	char update_gains(void);
 
 	int march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS]);
 

@@ -712,7 +712,6 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(use_mocap_yaw);
 	PARSE_BOOL(use_mocap_pitch);
 	PARSE_BOOL(use_mocap_roll);
-	PARSE_BOOL(enable_dynamic_gains);
 	PARSE_BOOL(enable_encoders);
 	PARSE_BOOL(enable_gps);
 	PARSE_BOOL(enable_ext_mag);
@@ -891,6 +890,9 @@ int settings_load_from_file(char* path)
 	PARSE_CONTROLLER(horiz_pos_ctrl_Y_pd);
 	PARSE_CONTROLLER(horiz_pos_ctrl_X_i);
 	PARSE_CONTROLLER(horiz_pos_ctrl_Y_i);
+
+	//REMOTE TUNING
+	PARSE_BOOL(allow_remote_tuning);
 
 	json_object_put(jobj);	// free memory
 	was_load_successful = 1;
