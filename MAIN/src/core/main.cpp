@@ -117,7 +117,7 @@ void on_pause_press()
  *
  * This is called every time the Invensense IMU has new data
  *
- * __imu_isr should be running at 100 Hz (YK)
+ * __imu_isr should be running at 200 Hz
  */
 
 static void __imu_isr(void)
@@ -127,14 +127,7 @@ static void __imu_isr(void)
     if (settings.log_benchmark) benchmark_timers.tIMU = rc_nanos_since_boot();
 
     //update comms:
-    comms_manager.update();
-    // Update the state machine
-    if (user_input.flight_mode == AUTONOMOUS)
-    {
-        //sm_transition(&waypoint_state_machine, (sm_alphabet)GS_RX.sm_event);
-        waypoint_state_machine.march();
-        if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
-    }
+    comms_manager.update();    
 
     //Read encoders
     if (settings.enable_encoders) {

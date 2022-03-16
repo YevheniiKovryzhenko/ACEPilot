@@ -63,6 +63,7 @@
 #include "state_machine.hpp"
 
 #include "setpoint_manager.hpp"
+#include "benchmark.h"
  // preposessor macros
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
@@ -948,7 +949,14 @@ int setpoint_t::update(void)
 			setpoint_guidance.reset_Z(), \
 			setpoint_guidance.reset_XY();
 	}
-	update_setpoints();
+	update_setpoints(); //get manual radio updates first
+
+	// Update the state machine if in autonomous operation
+	if (user_input.flight_mode == AUTONOMOUS)
+	{
+		waypoint_state_machine.march();
+		if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
+	}
 	setpoint_guidance.march();
 
 	return 0;
