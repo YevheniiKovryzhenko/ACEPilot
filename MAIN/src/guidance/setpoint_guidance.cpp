@@ -297,7 +297,14 @@ int setpoint_guidance_t::march_land(void)
     }
     else
     {
-        Z_dot = 0.0;            // stabilize altitude
+        if (finddt_s(Z_time_ns) < land_start_delay_s)
+        {
+            Z_dot = V_land * (finddt_s(Z_time_ns)) / land_start_delay_s;         // start moving the setpoint down
+        }
+        else
+        {
+            Z_dot = 0.0;            // stabilize altitude
+        }        
     }
 
     //-----Landing Detection----//

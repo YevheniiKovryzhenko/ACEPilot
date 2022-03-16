@@ -24,7 +24,7 @@ extern "C" {
         float qw;       ///< qw of quaternion
         uint8_t trackingValid;   // (bool) of whether or not tracking was valid (0 or 1)
         uint16_t sm_event;      ///< event (or input) for state machine
-    } xbee_packet_t;
+    }__attribute__((packed)) xbee_packet_t;
 
 #ifdef __cplusplus
 }
