@@ -37,7 +37,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-
 #include "rc_pilot_defs.h"
 #include "flight_mode.h"
 

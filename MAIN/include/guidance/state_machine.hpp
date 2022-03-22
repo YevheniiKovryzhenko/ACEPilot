@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/16/2020 (MM/DD/YYYY)
+ * Last Edit:  03/18/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -96,6 +96,7 @@
         int disable_update(void);
         bool is_en(void);
         int march(void);
+        sm_states get_current_state(void);
         
     };
     extern state_machine_t waypoint_state_machine;

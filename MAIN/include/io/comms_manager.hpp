@@ -22,7 +22,7 @@
   * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
-  * Last Edit:  02/22/2022 (MM/DD/YYYY)
+  * Last Edit:  03/18/2022 (MM/DD/YYYY)
   *
   * Object that governs all the high level logic related to communications.
   */
@@ -58,13 +58,56 @@ private:
 	 */
 	char mocap_update(void);
 
+	/**
+	 * @brief   Updates mocap data tructure (setpoint).
+	 *
+	 * @return non-zero on error.
+	 */
+	char mocap_save_data_sp(void);
+
+	/**
+	 * @brief   Updates mocap data tructure (state).
+	 *
+	 * @return non-zero on error.
+	 */
+	char mocap_save_data_st(void);
+
+	/**
+	* @brief   Updates mocap data tructure (all).
+	*
+	* @return non-zero on error.
+	*/
+	char mocap_save_data(void);
+
+	/**
+	 * @brief   Enables mocap communication
+	 *
+	 * @return non-zero on error.
+	 */
+	char mocap_start(const char* port, const int baudRate, void* buff_RX, size_t size_buff_RX, void* buff_TX, size_t size_buff_TX);
+
 public:
+	/**
+	 * @brief   Initializes all related variables and objects.
+	 *
+	 * @return non-zero on error.
+	 */
 	char init(void);
+
+	/**
+	 * @brief   Updates all related data.
+	 *
+	 * @return non-zero on error.
+	 */
 	char update(void);
 	
-	char mocap_start(const char* port, const int baudRate, void* buff, size_t size_buff);
 	
-
+	
+	/**
+	 * @brief   proper exit routine for all the functions.
+	 *
+	 * @return non-zero on error.
+	 */
 	char cleanup(void);
 };
 

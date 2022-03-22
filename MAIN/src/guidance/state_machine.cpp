@@ -66,6 +66,11 @@ state_machine_t waypoint_state_machine{};
 
 //static char waypoint_filename[200];
 
+sm_states state_machine_t::get_current_state(void)
+{
+    return current_state;
+}
+
 /**
  * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
  */
