@@ -114,7 +114,7 @@ char comms_manager_t::mocap_start(const char* port, const int baudRate, void* bu
 	}
 
 	mocap_transmit_line.set_RX_line(buff_RX, size_buff_RX);
-	mocap_transmit_line.set_TX_line(buff_TX, size_buff_TX);
+	//mocap_transmit_line.set_TX_line(buff_TX, size_buff_TX);
 
 	mocap_initialized = true;
 	mocap_active = false;
@@ -206,12 +206,13 @@ char comms_manager_t::mocap_update(void)
 	
 	mocap_save_data();
 
-
+	/*
 	if (unlikely(mocap_transmit_line.write() < 0))
 	{
 		printf("WARNING in mocap_update: failed to write new data\n");
 		return 0;
 	}
+	*/
 
 	if (unlikely(mocap_transmit_line.read() < 0))
 	{
