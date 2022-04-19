@@ -1,4 +1,4 @@
-Multirotor Flight Controller for the Robotics Cape
+Multirotor Flight Control System based on Robotics Cape
 
 # RC_Pilot_V2
 Welcome to the  RC_Pilot_V2!
@@ -9,9 +9,9 @@ This code is a continuation and rework of the original rc_pilot.
 It is critical to learn and understand the flightcode before using it. Make sure you know
 what you are doing and don't hold me liable for any equipment damage and follow the law!
 
-THIS CODE IS NOT FOR PUBLIC USE. USE AT YOUR OWN RISK. CHECK WITH FAA AND LOCAL DRONE REGULATIONS. 
+THIS CODE IS NOT FOR PUBLIC USE. USE AT YOUR OWN RISK. CHECK WITH FAA AND LOCAL UAV REGULATIONS. 
 
-#Installation:
+# Installation:
 Made to run on Beaglebone Blue linux board with the debian image from the official website:
 https://beagleboard.org/getting-started			- getting started page
 https://beagleboard.org/latest-images 			- install image from here
@@ -25,22 +25,24 @@ apt-get update && apt-get install cmake -y && apt-get install build-essential gd
 in terminal create an empty build folder:
 mkdir home/debian/ANY_FOLDER_PATH/build/
 
-#pre-compile this project:
+###pre-compile this project:
 cmake -S home/debian/PROJECT_DIR/ -B home/debian/ANY_FOLDER_PATH/build/ 
 
-# go into build folder 
+### go into build folder 
 cd home/debian/ANY_FOLDER_PATH/build/
 
-# Complie Project:
+### Complie Project:
 make
 
-## to run the project just call the main execuitable with the proper settings file:
+# Running: 
+to run the project just call the main execuitable with the proper settings file:
 ./MAIN/bin/rc_pilot -s ./MAIN/Settings/SETTINGS_FILE.json
 
-
-##notes:
-PROJECT_DIR is HardwareTesting for this project
+# NOTE:
+PROJECT_DIR is rc_pilot_v2 for this project
 To change any of the settings, modify the source code in home/debian/PROJECT_DIR/
-and repeat all the above compilation steps (you should only need to modify  PROJECT_DIR/src/main.cpp file)
+and repeat all the above compilation steps
+
+Look into docs/ folder for more information
 
 For questions contact me, Yevhenii (Jack) Kovryzhenko - yzk0058@auburn.edu
