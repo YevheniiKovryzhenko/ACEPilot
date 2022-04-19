@@ -1,7 +1,7 @@
 Multirotor Flight Controller for the Robotics Cape
 
-# RC_Pilot
-Welcome to the  RC_Pilot!
+# RC_Pilot_V2
+Welcome to the  RC_Pilot_V2!
 This code is a continuation and rework of the original rc_pilot.
 		rc_pilot was the original lighweight flight code for controlling a multirotor developed by 
 		Dr. Stawson, Dr. Gaskell and others - https://github.com/StrawsonDesign/rc_pilot
