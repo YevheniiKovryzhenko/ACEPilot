@@ -18,31 +18,30 @@ https://beagleboard.org/latest-images 			- install image from here
 http://strawsondesign.com/docs/librobotcontrol/ - robot control library (start with manual)
 
 ## Pre-INSTAL (LINUX):
-in teminal, as root, type the following to install all needed packages (CMAKE):
-apt-get update && apt-get install cmake -y && apt-get install build-essential gdb -y
+#### in teminal, as root, type the following to install all needed packages (CMAKE):
+	apt-get update && apt-get install cmake -y && apt-get install build-essential gdb -y
 
 ## Project Compilation:
-in terminal create an empty build folder:
-mkdir home/debian/ANY_FOLDER_PATH/build/
+#### in terminal create an empty build folder:
+	mkdir home/debian/ANY_FOLDER_PATH/build/
 
-###pre-compile this project:
-cmake -S home/debian/PROJECT_DIR/ -B home/debian/ANY_FOLDER_PATH/build/ 
-
-### go into build folder 
-cd home/debian/ANY_FOLDER_PATH/build/
+### Pre-Compile:
+	cmake -S home/debian/PROJECT_DIR/ -B home/debian/ANY_FOLDER_PATH/build/
 
 ### Complie Project:
-make
+#### go into build folder:
+	cd home/debian/ANY_FOLDER_PATH/build/
+	make
 
 # Running: 
-to run the project just call the main execuitable with the proper settings file:
-./MAIN/bin/rc_pilot -s ./MAIN/Settings/SETTINGS_FILE.json
+#### to run the project just call the main execuitable with the proper settings file:
+	./MAIN/bin/rc_pilot -s ./MAIN/Settings/SETTINGS_FILE.json
 
 # NOTE:
-PROJECT_DIR is rc_pilot_v2 for this project
-To change any of the settings, modify the source code in home/debian/PROJECT_DIR/
-and repeat all the above compilation steps
+#### PROJECT_DIR is rc_pilot_v2 for this project. To change any of the settings, modify the source code in 
+	home/debian/PROJECT_DIR/
+#### and repeat all the above compilation steps.
 
-Look into docs/ folder for more information
+#### Look into docs/ folder for more information.
 
-For questions contact me, Yevhenii (Jack) Kovryzhenko - yzk0058@auburn.edu
+#### For questions contact me, Yevhenii (Jack) Kovryzhenko - yzk0058@auburn.edu
