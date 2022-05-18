@@ -53,6 +53,7 @@ private:
 	double m[MAX_ROTORS];		///< signals sent to motors after mapping
 
 	arm_state_t arm_state;		///< actual arm state as reported by feedback controller
+	bool started_arming_fl;
 	uint64_t arm_time_ns;		///< time since boot when controller was armed
 	uint64_t loop_index;		///< increases every time feedback loop runs
 	uint64_t last_step_ns;		///< last time controller has finished a step
@@ -60,10 +61,6 @@ private:
 	feedback_controller_t controller;
 
 	int send_motor_stop_pulse(void);
-
-	//int update_setpoints(void);
-
-	int zero_out_ff(void);
 
 public:
 

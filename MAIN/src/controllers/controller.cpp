@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/03/2022 (MM/DD/YYYY)
+ * Last Edit:  05/18/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -113,6 +113,8 @@ int feedback_controller_t::rpy_march(void)
 {
 	if (!last_en_rpy_ctrl)
 	{
+		setpoint.reset_att();
+		setpoint.reset_att_ff();
 		rpy_reset();
 
 		last_en_rpy_ctrl = true;
@@ -258,6 +260,7 @@ int feedback_controller_t::rpy_rate_march(void)
 {
 	if (!last_en_rpy_rate_ctrl)
 	{
+		setpoint.reset_att_dot();
 		rpy_rate_reset();
 
 		last_en_rpy_rate_ctrl = true;
@@ -379,8 +382,10 @@ int feedback_controller_t::xy_march(void)
 {
 	if (!last_en_XY_ctrl)
 	{
-		setpoint.X = state_estimate.X;
-		setpoint.Y = state_estimate.Y;
+		setpoint.reset_X();
+		setpoint.reset_Y();
+		setpoint.reset_X_dot_ff();
+		setpoint.reset_Y_dot_ff();
 
 		xy_reset();
 
@@ -494,6 +499,9 @@ int feedback_controller_t::xy_rate_march(void)
 {
 	if (!last_en_XYdot_ctrl)
 	{
+		setpoint.reset_X_dot();
+		setpoint.reset_Y_dot();
+		
 		xy_rate_reset();
 
 		last_en_XYdot_ctrl = true;
@@ -589,6 +597,8 @@ int feedback_controller_t::z_march(void)
 	// only the first step after altitude controll is on
 	if (!last_en_Z_ctrl)
 	{
+		setpoint.reset_Z();
+		setpoint.reset_Z_dot_ff();
 		//take stick position as nominal hover thrust but leave enough room for manual adjustements for extreme cases
 		if (settings.enable_mocap) {
 			if (user_input.get_thr_stick() > 0.80) {
@@ -680,7 +690,7 @@ int feedback_controller_t::z_rate_march(void)
 {
 	if (!last_en_Zdot_ctrl)
 	{
-
+		setpoint.reset_Z_dot();
 		z_rate_reset();
 		
 		last_en_Z_ctrl = true;

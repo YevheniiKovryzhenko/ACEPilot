@@ -199,6 +199,7 @@ public:
 	double yaw;						///< glabal yaw angle, positive left
 	double roll_ff;					///< feedforward roll angle (rad)
 	double pitch_ff;				///< feedforward pitch angle (rad)
+	//double yaw_ff;					///< feedforward yaw angle (rad)
 	///< @}
 
 	/** @name attitude setpoint transition rates */
@@ -238,6 +239,9 @@ public:
 	double X_ddot;
 	double Y_ddot;
 	double Z_ddot;
+	//double X_ddot_ff;
+	//double Y_ddot_ff;
+	//double Z_ddot_ff;
 	///< @}
 
 	/** @name altitude */
@@ -263,6 +267,8 @@ public:
 	bool en_XY_pos_ctrl;
 	double X;
 	double Y;
+	//double X_ff;		///< feedforward x position (m)
+	//double Y_ff;		///< feedforward y position (m)
 	///< @}
 	/** @name horizontal position setpoint transition rates */
 	///< @{
@@ -292,6 +298,87 @@ public:
 	*/
 	int init(void);
 	bool is_initialized(void);
+
+	/**
+	* @brief      Set setpoints to input value.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int set_roll_dot(double val);
+	int set_pitch_dot(double val);
+	int set_yaw_dot(double val);
+	int set_roll_dot_ff(double val);
+	int set_pitch_dot_ff(double val);
+	int set_yaw_dot_ff(double val);
+
+	int set_roll(double val);
+	int set_pitch(double val);
+	int set_yaw(double val);
+	int set_roll_ff(double val);
+	int set_pitch_ff(double val);
+	//int set_yaw_ff(double val);
+
+	int set_X_dot(double val);
+	int set_Y_dot(double val);
+	int set_Z_dot(double val);
+	int set_X_dot_ff(double val);
+	int set_Y_dot_ff(double val);
+	int set_Z_dot_ff(double val);
+
+	int set_X(double val);
+	int set_Y(double val);
+	int set_Z(double val);
+	int set_X_ff(double val);
+	int set_Y_ff(double val);
+	int set_Z_ff(double val);
+	
+	/**
+	* @brief      Reset setpoints to state_estimate.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int reset_roll_dot(void);
+	int reset_pitch_dot(void);
+	int reset_yaw_dot(void);
+	int reset_roll_dot_ff(void);
+	int reset_pitch_dot_ff(void);
+	int reset_yaw_dot_ff(void);
+	int reset_att_dot(void);
+	int reset_att_dot_ff(void);
+	int reset_att_dot_all(void);
+
+	int reset_roll(void);
+	int reset_pitch(void);
+	int reset_yaw(void);
+	int reset_roll_ff(void);
+	int reset_pitch_ff(void);
+	//int reset_yaw_ff(void);
+	int reset_att(void);
+	int reset_att_ff(void);
+	int reset_att_all(void);
+
+	int reset_X_dot(void);
+	int reset_Y_dot(void);
+	int reset_Z_dot(void);
+	int reset_X_dot_ff(void);
+	int reset_Y_dot_ff(void);
+	int reset_Z_dot_ff(void);
+	int reset_pos_dot(void);
+	int reset_pos_dot_ff(void);
+	int reset_pos_dot_all(void);
+
+	int reset_X(void);
+	int reset_Y(void);
+	int reset_Z(void);
+	//int reset_X_ff(void);
+	//int reset_Y_ff(void);
+	//int reset_Z_ff(void);
+	int reset_pos(void);
+	//int reset_pos_ff(void);
+	int reset_pos_all(void);
+
+	int reset_all(void);
+
 
 	/**
 	* @brief      updates the setpoint manager, call this before feedback loop

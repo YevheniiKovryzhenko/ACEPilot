@@ -30,7 +30,7 @@
 
 	"enable_mocap_dropout_emergency_land": false,
 	"mocap_dropout_timeout_ms": 300.0,
-	"allow_remote_tuning":  true,
+	"allow_remote_tuning": true,
 
 	"serial_port_1": "/dev/ttyS1",
 	"serial_baud_1": 230400,
@@ -41,8 +41,8 @@
 
 	"num_dsm_modes": 3,
 	"flight_mode_1": "MANUAL_F",
-	"flight_mode_2": "POSITION_CONTROL_FFF",
-	"flight_mode_3": "AUTONOMOUS",
+	"flight_mode_2": "ALT_HOLD_FF",
+	"flight_mode_3": "POSITION_CONTROL_FFF",
 
 	"dsm_thr_ch": 1,
 	"dsm_thr_pol": 1,
@@ -101,7 +101,7 @@
 
 	"wp_folder": "/home/debian/rc_pilot/MAIN/trajectories/",
 	"wp_takeoff_filename": "takeoff_waypoints.cfg",
-	"wp_guided_filename": "1_Square_2x2_MS.cfg",
+	"wp_guided_filename": "1_Square_2x2_polys.cfg",
 	"wp_landing_filename": "landing_waypoints.cfg",
 
 	"V_max_land": 0.3,

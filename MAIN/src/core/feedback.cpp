@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/03/2022 (MM/DD/YYYY)
+ * Last Edit:  05/18/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -134,47 +134,61 @@ int feedback_state_t::arm(void)
 	{
 		if (settings.warnings_en) printf("\nERROR in arm: feedback state not initialized");
 		return -1;
-	}
-
+	}	
 	//printf("\n Arming!\n");
 	if (unlikely(arm_state == ARMED)) {
 		if (settings.warnings_en) printf("WARNING: trying to arm when controller is already armed\n");
 		return 0;
 	}
-	// start a new log file every time controller is armed, this may take some
-	// time so do it before touching anything else
-	if (settings.enable_logging)
+
+	if (!started_arming_fl)
 	{
-		if (unlikely(log_entry.reset() == -1))
+		// start a new log file every time controller is armed, this may take some
+		// time so do it before touching anything else
+		if (settings.enable_logging)
 		{
-			printf("\nERROR in arm: failed to start new log entry");
-			return -1;
+			if (unlikely(log_entry.reset() == -1))
+			{
+				printf("\nERROR in arm: failed to start new log entry");
+				return -1;
+			}
 		}
-	}
 
 
-	if (settings.enable_servos)
-	{
-		if (unlikely(sstate.arm() == -1))
+		if (settings.enable_servos)
 		{
-			printf("\nERROR in arm: failed to arm servos");
-			return -1;
+			if (unlikely(sstate.arm() == -1))
+			{
+				printf("\nERROR in arm: failed to arm servos");
+				return -1;
+			}
 		}
+
+		// get the current time
+		arm_time_ns = rc_nanos_since_boot();
+		// reset the index
+		loop_index = 0;
 	}
 	
-	// get the current time
-	arm_time_ns = rc_nanos_since_boot();
-	// reset the index
-	loop_index = 0;
 
-	controller.reset();
+	setpoint.reset_all(); //reset setpoints
+	controller.reset(); //reset control system
 	
 	if (settings.warnings_en) printf("\n WARNING: Waking up the ESCs....");
+	if (finddt_s(arm_time_ns) < settings.arm_time_s)
+	{
+		started_arming_fl = true;
+		send_motor_stop_pulse();
+		return 0;
+	}
+	started_arming_fl = false;
+	/*
 	do
 	{
 		send_motor_stop_pulse();
 	} while (finddt_s(arm_time_ns) < settings.arm_time_s);
-	
+	*/
+
 	// set LEDs
 	rc_led_set(RC_LED_RED,0);
 	rc_led_set(RC_LED_GREEN,1);
@@ -238,7 +252,7 @@ int feedback_state_t::init(void)
 	}
 	
 	
-
+	started_arming_fl = false;
 	initialized = true;
 	return 0;
 }
@@ -290,7 +304,7 @@ int feedback_state_t::march(void)
 
 	//update_setpoints();
 	// Zero out feedforward terms so unexpected things don't happen
-	zero_out_ff();
+	//zero_out_ff();
 
 	// We are about to start marching the individual SISO controllers forward.
 	// Start by zeroing out the motors signals then add from there.
@@ -363,7 +377,7 @@ int feedback_state_t::march(void)
 
 	return 0;
 }
-
+/*
 int feedback_state_t::zero_out_ff(void)
 {
 	setpoint.roll_dot_ff = 0;
@@ -376,7 +390,7 @@ int feedback_state_t::zero_out_ff(void)
 	setpoint.Y_dot_ff = 0;
 	return 0;
 }
-
+*/
 
 
 /* Externally used functions to get information about the current feedback state */

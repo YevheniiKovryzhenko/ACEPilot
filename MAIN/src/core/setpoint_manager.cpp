@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/19/2020 (MM/DD/YYYY)
+ * Last Edit:  05/18/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -288,7 +288,11 @@ void setpoint_t::update_yaw(void)
 {
 	// if throttle stick is down all the way, probably landed, so
 	// keep the yaw setpoint at current yaw so it takes off straight
-	if(user_input.get_thr_stick() < 0.1){
+	double  vel_mag = sqrt(\
+		state_estimate.X_dot * state_estimate.X_dot\
+		+ state_estimate.Y_dot * state_estimate.Y_dot\
+		+ state_estimate.Z_dot * state_estimate.Z_dot);
+	if(user_input.get_thr_stick() < 0.05 && vel_mag < 0.1){
 		yaw = state_estimate.continuous_yaw;
 		yaw_dot = 0.0;
 		return;
@@ -450,12 +454,364 @@ int setpoint_t::init(void)
 		return -1;
 	}
 
+	reset_all();
+
 	initialized = true;
 	return 0;
 }
 bool setpoint_t::is_initialized(void)
 {
 	return initialized;
+}
+
+
+/**
+* @brief      Set setpoints to input value.
+*
+* @return     0 on success, -1 on failure
+*/
+int setpoint_t::set_roll_dot(double val)
+{
+	roll_dot = val;
+	return 0;
+}
+int setpoint_t::set_pitch_dot(double val)
+{
+	pitch_dot = val;
+	return 0;
+}
+int setpoint_t::set_yaw_dot(double val)
+{
+	yaw_dot = val;
+	return 0;
+}
+int setpoint_t::set_roll_dot_ff(double val)
+{
+	roll_dot_ff = val;
+	return 0;
+}
+int setpoint_t::set_pitch_dot_ff(double val)
+{
+	pitch_dot_ff = val;
+	return 0;
+}
+int setpoint_t::set_yaw_dot_ff(double val)
+{
+	yaw_dot_ff = val;
+	return 0;
+}
+
+int setpoint_t::set_roll(double val)
+{
+	roll = val;
+	return 0;
+}
+int setpoint_t::set_pitch(double val)
+{
+	pitch = val;
+	return 0;
+}
+int setpoint_t::set_yaw(double val)
+{
+	yaw = val;
+	return 0;
+}
+int setpoint_t::set_roll_ff(double val)
+{
+	roll_ff = val;
+	return 0;
+}
+int setpoint_t::set_pitch_ff(double val)
+{
+	pitch_ff = val;
+	return 0;
+}
+/*
+int setpoint_t::set_yaw_ff(double val)
+{
+	yaw_ff = val;
+	return 0;
+}
+*/
+
+int setpoint_t::set_X_dot(double val)
+{
+	X_dot = val;
+	return 0;
+}
+int setpoint_t::set_Y_dot(double val)
+{
+	Y_dot = val;
+	return 0;
+}
+int setpoint_t::set_Z_dot(double val)
+{
+	Z_dot = val;
+	return 0;
+}
+int setpoint_t::set_X_dot_ff(double val)
+{
+	X_dot_ff = val;
+	return 0;
+}
+int setpoint_t::set_Y_dot_ff(double val)
+{
+	Y_dot_ff = val;
+	return 0;
+}
+int setpoint_t::set_Z_dot_ff(double val)
+{
+	Z_dot_ff = val;
+	return 0;
+}
+
+int setpoint_t::set_X(double val)
+{
+	X = val;
+	return 0;
+}
+int setpoint_t::set_Y(double val)
+{
+	Y = val;
+	return 0;
+}
+int setpoint_t::set_Z(double val)
+{
+	Z = val;
+	return 0;
+}
+/*
+int setpoint_t::set_X_ff(double val)
+{
+	X_ff = val;
+	return 0;
+}
+int setpoint_t::set_Y_ff(double val)
+{
+	Y_ff = val;
+	return 0;
+}
+int setpoint_t::set_Z_ff(double val)
+{
+	Z_ff = val;
+	return 0;
+}
+*/
+
+
+/**
+* @brief      Reset setpoints to state_estimate.
+*
+* @return     0 on success, -1 on failure
+*/
+int setpoint_t::reset_roll_dot(void)
+{
+	return set_roll_dot(state_estimate.roll_dot);
+}
+int setpoint_t::reset_pitch_dot(void)
+{
+	return set_pitch_dot(state_estimate.pitch_dot);
+}
+int setpoint_t::reset_yaw_dot(void)
+{
+	return set_yaw_dot(state_estimate.yaw_dot);
+}
+int setpoint_t::reset_roll_dot_ff(void)
+{
+	return set_roll_dot_ff(0.0);
+}
+int setpoint_t::reset_pitch_dot_ff(void)
+{
+	return set_pitch_dot_ff(0.0);
+}
+int setpoint_t::reset_yaw_dot_ff(void)
+{
+	return set_yaw_dot_ff(0.0);
+}
+
+int setpoint_t::reset_att_dot(void)
+{
+	reset_roll_dot();
+	reset_pitch_dot();
+	reset_yaw_dot();
+
+	return 0;
+}
+int setpoint_t::reset_att_dot_ff(void)
+{
+	reset_roll_dot_ff();
+	reset_pitch_dot_ff();
+	reset_yaw_dot_ff();
+
+	return 0;
+}
+int setpoint_t::reset_att_dot_all(void)
+{
+	reset_att_dot();
+	reset_att_dot_ff();
+
+	return 0;
+}
+
+
+int setpoint_t::reset_roll(void)
+{
+	return set_roll(state_estimate.roll);
+}
+int setpoint_t::reset_pitch(void)
+{
+	return set_pitch(state_estimate.pitch);
+}
+int setpoint_t::reset_yaw(void)
+{
+	return set_yaw(state_estimate.continuous_yaw);
+}
+int setpoint_t::reset_roll_ff(void)
+{
+	return set_roll_ff(0.0);
+}
+int setpoint_t::reset_pitch_ff(void)
+{
+	return set_pitch_ff(0.0);
+}
+/*
+int setpoint_t::reset_yaw_ff(void)
+{
+	return set_yaw(0.0);
+}
+*/
+
+int setpoint_t::reset_att(void)
+{
+	reset_roll();
+	reset_pitch();
+	reset_yaw();
+
+	return 0;
+}
+int setpoint_t::reset_att_ff(void)
+{
+	reset_roll_ff();
+	reset_pitch_ff();
+	//reset_yaw_ff();
+
+	return 0;
+}
+int setpoint_t::reset_att_all(void)
+{
+	reset_att();
+	reset_att_ff();
+
+	return 0;
+}
+
+int setpoint_t::reset_X_dot(void)
+{
+	return set_X_dot(state_estimate.X_dot);
+}
+int setpoint_t::reset_Y_dot(void)
+{
+	return set_Y_dot(state_estimate.Y_dot);
+}
+int setpoint_t::reset_Z_dot(void)
+{
+	return set_Z_dot(state_estimate.Z_dot);
+}
+int setpoint_t::reset_X_dot_ff(void)
+{
+	return set_X_dot_ff(0.0);
+}
+int setpoint_t::reset_Y_dot_ff(void)
+{
+	return set_Y_dot_ff(0.0);
+}
+int setpoint_t::reset_Z_dot_ff(void)
+{
+	return set_Z_dot_ff(0.0);
+}
+
+int setpoint_t::reset_pos_dot(void)
+{
+	reset_X_dot();
+	reset_Y_dot();
+	reset_Z_dot();
+
+	return 0;
+}
+int setpoint_t::reset_pos_dot_ff(void)
+{
+	reset_X_dot_ff();
+	reset_Y_dot_ff();
+	reset_Z_dot_ff();
+
+	return 0;
+}
+int setpoint_t::reset_pos_dot_all(void)
+{
+	reset_pos_dot();
+	reset_pos_dot_ff();
+
+	return 0;
+}
+
+int setpoint_t::reset_X(void)
+{
+	return set_X(state_estimate.X);
+}
+int setpoint_t::reset_Y(void)
+{
+	return set_Y(state_estimate.Y);
+}
+int setpoint_t::reset_Z(void)
+{
+	return set_Z(state_estimate.Z);
+}
+/*
+int setpoint_t::reset_X_ff(void)
+{
+	return set_X_ff(0.0);
+}
+int setpoint_t::reset_Y_ff(void)
+{
+	return set_Y_ff(0.0);
+}
+int setpoint_t::reset_Z_ff(void)
+{
+	return set_Z_ff(0.0);
+}
+*/
+int setpoint_t::reset_pos(void)
+{
+	reset_X();
+	reset_Y();
+	reset_Z();
+
+	return 0;
+}
+/*
+int setpoint_t::reset_pos_ff(void)
+{
+	reset_X_ff();
+	reset_Y_ff();
+	reset_Z_ff();
+
+	return 0;
+}
+*/
+int setpoint_t::reset_pos_all(void)
+{
+	reset_pos();
+	//reset_pos_ff();
+
+	return 0;
+}
+
+int setpoint_t::reset_all(void)
+{
+	reset_pos_all();
+	reset_pos_dot_all();
+	reset_att_all();
+	reset_att_dot_all();
 }
 
 
@@ -489,9 +845,6 @@ int setpoint_t::update_setpoints(void)
 		X_throttle = 0.0;
 		Y_throttle = 0.0;
 		Z_throttle = -user_input.get_thr_stick();
-		// TODO add these two throttle modes as options to settings, I use a radio
-		// with self-centering throttle so having 0 in the middle is safest
-		// Z_throttle = -(user_input.thr_stick+1.0)/2.0;
 
 		break;
 
