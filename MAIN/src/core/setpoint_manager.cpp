@@ -812,6 +812,7 @@ int setpoint_t::reset_all(void)
 	reset_pos_dot_all();
 	reset_att_all();
 	reset_att_dot_all();
+	return 0;
 }
 
 

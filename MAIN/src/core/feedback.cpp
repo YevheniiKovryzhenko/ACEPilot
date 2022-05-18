@@ -168,13 +168,14 @@ int feedback_state_t::arm(void)
 		arm_time_ns = rc_nanos_since_boot();
 		// reset the index
 		loop_index = 0;
+
+		if (settings.warnings_en) printf("\n WARNING: Waking up the ESCs....");
 	}
 	
 
 	setpoint.reset_all(); //reset setpoints
 	controller.reset(); //reset control system
-	
-	if (settings.warnings_en) printf("\n WARNING: Waking up the ESCs....");
+
 	if (finddt_s(arm_time_ns) < settings.arm_time_s)
 	{
 		started_arming_fl = true;

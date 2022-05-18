@@ -682,7 +682,7 @@ int feedback_controller_t::z_rate_init(void)
 	D_Zdot_pd_orig = D_Zdot_pd;
 	D_Zdot_i_orig = D_Zdot_i;
 
-	last_en_Z_ctrl = false;
+	last_en_Zdot_ctrl = false;
 	return 0;
 }
 
@@ -693,7 +693,7 @@ int feedback_controller_t::z_rate_march(void)
 		setpoint.reset_Z_dot();
 		z_rate_reset();
 		
-		last_en_Z_ctrl = true;
+		last_en_Zdot_ctrl = true;
 	}
 
 	if (settings.enable_v_gain_scaling)
@@ -708,7 +708,7 @@ int feedback_controller_t::z_rate_march(void)
 		+ rc_filter_march(&D_Zdot_i, setpoint.Z_dot - state_estimate.Z_dot);
 	rc_saturate_double(&setpoint.Z_ddot, -MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
 
-	last_en_Z_ctrl = true;
+	last_en_Zdot_ctrl = true;
 	return 0;
 }
 
