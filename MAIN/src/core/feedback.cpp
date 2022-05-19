@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/18/2022 (MM/DD/YYYY)
+ * Last Edit:  05/19/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -102,6 +102,7 @@ int feedback_state_t::send_motor_stop_pulse(void)
 int feedback_state_t::disarm(void)
 {
 	arm_state = DISARMED;
+	reset_arming_fl();
 	// set LEDs
 	rc_led_set(RC_LED_RED, 1);
 	rc_led_set(RC_LED_GREEN, 0);
@@ -110,7 +111,7 @@ int feedback_state_t::disarm(void)
 	{
 		if (unlikely(sstate.disarm() == -1))
 		{
-			printf("\nERROR in disarm: failed to disarm servos");
+			printf("ERROR in disarm: failed to disarm servos\n");
 			return -1;
 		}
 	}
@@ -121,7 +122,12 @@ int feedback_state_t::disarm(void)
 	}
 	return 0;
 }
-
+/* externally resets arming flags */
+int feedback_state_t::reset_arming_fl(void)
+{
+	started_arming_fl = false;
+	return 0;
+}//does not disarm 
 
 /**
 * @brief      This is how outside functions should start the flight controller.
@@ -132,7 +138,7 @@ int feedback_state_t::arm(void)
 {
 	if (unlikely(!initialized))
 	{
-		if (settings.warnings_en) printf("\nERROR in arm: feedback state not initialized");
+		if (settings.warnings_en) printf("ERROR in arm: feedback state not initialized\n");
 		return -1;
 	}	
 	//printf("\n Arming!\n");
@@ -149,7 +155,7 @@ int feedback_state_t::arm(void)
 		{
 			if (unlikely(log_entry.reset() == -1))
 			{
-				printf("\nERROR in arm: failed to start new log entry");
+				printf("ERROR in arm: failed to start new log entry\n");
 				return -1;
 			}
 		}
@@ -159,7 +165,7 @@ int feedback_state_t::arm(void)
 		{
 			if (unlikely(sstate.arm() == -1))
 			{
-				printf("\nERROR in arm: failed to arm servos");
+				printf("ERROR in arm: failed to arm servos\n");
 				return -1;
 			}
 		}
@@ -169,7 +175,7 @@ int feedback_state_t::arm(void)
 		// reset the index
 		loop_index = 0;
 
-		if (settings.warnings_en) printf("\n WARNING: Waking up the ESCs....");
+		if (settings.warnings_en) printf("WARNING: Waking up the ESCs....\n");
 	}
 	
 
@@ -183,12 +189,6 @@ int feedback_state_t::arm(void)
 		return 0;
 	}
 	started_arming_fl = false;
-	/*
-	do
-	{
-		send_motor_stop_pulse();
-	} while (finddt_s(arm_time_ns) < settings.arm_time_s);
-	*/
 
 	// set LEDs
 	rc_led_set(RC_LED_RED,0);
@@ -220,14 +220,14 @@ int feedback_state_t::init(void)
 
 	if (unlikely(controller.init() == -1))
 	{
-		printf("\nERROR in init: failed to initialize the controllers");
+		printf("ERROR in init: failed to initialize the controllers\n");
 		return -1;
 	}
 	
 	// make sure everything is disarmed then start the ISR
 	if (unlikely(disarm() == -1))
 	{
-		printf("\nERROR in init: failed to disarm");
+		printf("ERROR in init: failed to disarm\n");
 		return -1;
 	}
 
@@ -237,7 +237,7 @@ int feedback_state_t::init(void)
 		{
 			if (unlikely(sstate.init(settings.servo_i2c_driver_id) == -1))
 			{
-				printf("\nERROR in init: failed to init servos");
+				printf("ERROR in init: failed to init servos\n");
 				return -1;
 			}
 		}
@@ -246,14 +246,14 @@ int feedback_state_t::init(void)
 			// make sure everything is disarmed then start the ISR
 			if (unlikely(sstate.disarm() == -1))
 			{
-				printf("\nERROR in init: failed to disarm servos");
+				printf("ERROR in init: failed to disarm servos\n");
 				return -1;
 			}
 		}
 	}
 	
 	
-	started_arming_fl = false;
+	reset_arming_fl();
 	initialized = true;
 	return 0;
 }
@@ -272,7 +272,7 @@ int feedback_state_t::march(void)
 {
 	if (unlikely(!initialized))
 	{
-		printf("\nERROR in march: feedback state not initialized");
+		printf("ERROR in march: feedback state not initialized\n");
 		disarm();
 		return -1;
 	}
@@ -320,7 +320,7 @@ int feedback_state_t::march(void)
 		//we need to march a dedicated servo controller here
 		if (sstate.march_controller(tmp_u, tmp_servos) == -1)
 		{
-			printf("\nERROR in march: failed to march the servo controller");
+			printf("ERROR in march: failed to march the servo controller\n");
 			disarm();
 		}
 	}
@@ -328,7 +328,7 @@ int feedback_state_t::march(void)
 
 	if (controller.march(tmp_u, tmp_mot) == -1)
 	{
-		printf("\nERROR in march: failed to march the controller");
+		printf("ERROR in march: failed to march the controller\n");
 		disarm();
 	}
 
@@ -378,20 +378,6 @@ int feedback_state_t::march(void)
 
 	return 0;
 }
-/*
-int feedback_state_t::zero_out_ff(void)
-{
-	setpoint.roll_dot_ff = 0;
-	setpoint.pitch_dot_ff = 0;
-	setpoint.yaw_dot_ff = 0;
-	setpoint.roll_ff = 0;
-	setpoint.pitch_ff = 0;
-	setpoint.Z_dot_ff = 0;
-	setpoint.X_dot_ff = 0;
-	setpoint.Y_dot_ff = 0;
-	return 0;
-}
-*/
 
 
 /* Externally used functions to get information about the current feedback state */

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/18/2022 (MM/DD/YYYY)
+ * Last Edit:  05/19/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -79,7 +79,7 @@ int setpoint_t::init_trans(void)
 	trans_stick_int = RC_FILTER_INITIALIZER;
 	if (unlikely(rc_filter_integrator(&trans_stick_int, DT) == -1))
 	{
-		printf("\nERROR in init_trans: failed to create transition stick integrator");
+		printf("ERROR in init_trans: failed to create transition stick integrator\n");
 		return -1;
 	}
 	rc_filter_enable_saturation(&trans_stick_int, -1.0, 1.0);
@@ -96,19 +96,19 @@ int setpoint_t::init_stick_trim(void)
 
 	if (unlikely(rc_filter_integrator(&roll_stick_int, DT) == -1))
 	{
-		printf("\nERROR in init_stick_trim: failed to create roll stick trim integrator");
+		printf("ERROR in init_stick_trim: failed to create roll stick trim integrator\n");
 		return -1;
 	}
 
 	if (unlikely(rc_filter_integrator(&pitch_stick_int, DT) == -1))
 	{
-		printf("\nERROR in init_stick_trim: failed to create pitch stick trim integrator");
+		printf("ERROR in init_stick_trim: failed to create pitch stick trim integrator\n");
 		return -1;
 	}
 
 	if (unlikely(rc_filter_integrator(&yaw_stick_int, DT) == -1))
 	{
-		printf("\nERROR in init_stick_trim: failed to create yaw stick trim integrator");
+		printf("ERROR in init_stick_trim: failed to create yaw stick trim integrator\n");
 		return -1;
 	}
 
@@ -135,37 +135,37 @@ int setpoint_t::init_stick_filter(void)
 
 	if (unlikely(rc_filter_first_order_lowpass(&roll_stick_lpf, DT, 0.1 * DT) == -1))
 	{
-		printf("\nERROR in init_stick_filter: failed to create roll stick low-pass filter");
+		printf("ERROR in init_stick_filter: failed to create roll stick low-pass filter\n");
 		return -1;
 	}
 
 	if (unlikely(rc_filter_first_order_lowpass(&pitch_stick_lpf, DT, 0.1 * DT) == -1))
 	{
-		printf("\nERROR in init_stick_filter: failed to create pitch stick low-pass filter");
+		printf("ERROR in init_stick_filter: failed to create pitch stick low-pass filter\n");
 		return -1;
 	}
 
 	if (unlikely(rc_filter_first_order_lowpass(&yaw_stick_lpf, DT, 0.1 * DT) == -1))
 	{
-		printf("\nERROR in init_stick_filter: failed to create yaw stick high-pass filter");
+		printf("ERROR in init_stick_filter: failed to create yaw stick high-pass filter\n");
 		return -1;
 	}
 
 	if (unlikely(rc_filter_first_order_highpass(&roll_stick_hpf, DT, 6.0 * DT) == -1))
 	{
-		printf("\nERROR in init_stick_filter: failed to create roll stick high-pass filter");
+		printf("ERROR in init_stick_filter: failed to create roll stick high-pass filter\n");
 		return -1;
 	}
 
 	if (unlikely(rc_filter_first_order_highpass(&pitch_stick_hpf, DT, 6.0 * DT) == -1))
 	{
-		printf("\nERROR in init_stick_filter: failed to create pitch stick high-pass filter");
+		printf("ERROR in init_stick_filter: failed to create pitch stick high-pass filter\n");
 		return -1;
 	}
 
 	if (unlikely(rc_filter_first_order_highpass(&yaw_stick_hpf, DT, 6.0 * DT) == -1))
 	{
-		printf("\nERROR in init_stick_filter: failed to create yaw stick high-pass filter");
+		printf("ERROR in init_stick_filter: failed to create yaw stick high-pass filter\n");
 		return -1;
 	}
 
@@ -426,31 +426,31 @@ void setpoint_t::update_XY_pos(void)
 int setpoint_t::init(void)
 {
 	if(unlikely(initialized)){
-		fprintf(stderr, "\nERROR in setpoint_manager_init, already initialized");
+		fprintf(stderr, "ERROR in setpoint_manager_init, already initialized\n");
 		return -1;
 	}
 
 	if (unlikely(init_trans() == -1))
 	{
-		fprintf(stderr, "\nERROR in init: failed to initialize transition functions");
+		fprintf(stderr, "ERROR in init: failed to initialize transition functions\n");
 		return -1;
 	}
 
 	if (unlikely(init_stick_trim() == -1))
 	{
-		fprintf(stderr, "\nERROR in init: failed to initialize stick trims");
+		fprintf(stderr, "ERROR in init: failed to initialize stick trims\n");
 		return -1;
 	}
 
 	if (unlikely(init_stick_filter() == -1))
 	{
-		fprintf(stderr, "\nERROR in init: failed to initialize stick filters");
+		fprintf(stderr, "ERROR in init: failed to initialize stick filters\n");
 		return -1;
 	}
 
 	if (unlikely(setpoint_guidance.init() == -1))
 	{
-		fprintf(stderr, "\nERROR in init, failed to initialize setpoint guidance");
+		fprintf(stderr, "ERROR in init, failed to initialize setpoint guidance\n");
 		return -1;
 	}
 
@@ -1302,6 +1302,10 @@ int setpoint_t::update(void)
 		if (fstate.get_arm_state() == DISARMED) fstate.arm(), \
 			setpoint_guidance.reset_Z(), \
 			setpoint_guidance.reset_XY();
+	}
+	else
+	{
+		fstate.reset_arming_fl();
 	}
 	update_setpoints(); //get manual radio updates first
 

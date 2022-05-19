@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  07/03/2022 (MM/DD/YYYY)
+ * Last Edit:  05/19/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -446,7 +446,7 @@ int main(int argc, char** argv)
     // some of these, like printf_manager and log_manager, have cleanup
     // functions that can be called even if not being used. So just call all
     // cleanup functions here.
-    printf("cleaning up\n");
+    printf("Cleaning up\n");
     rc_mpu_power_off();
     fstate.cleanup();
     user_input.input_manager_cleanup();

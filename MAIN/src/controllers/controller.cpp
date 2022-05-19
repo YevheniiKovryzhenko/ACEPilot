@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/18/2022 (MM/DD/YYYY)
+ * Last Edit:  05/19/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -59,32 +59,32 @@ int feedback_controller_t::rpy_init(void)
     // get controllers from settings
 	if (unlikely(rc_filter_duplicate(&D_roll_pd, settings.roll_controller_pd) == -1))
 	{
-		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		printf("Error in rpy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_pitch_pd, settings.pitch_controller_pd) == -1))
 	{
-		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		printf("Error in rpy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_yaw_pd, settings.yaw_controller_pd) == -1))
 	{
-		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		printf("Error in rpy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_roll_i, settings.roll_controller_i) == -1))
 	{
-		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		printf("Error in rpy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_pitch_i, settings.pitch_controller_i) == -1))
 	{
-		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		printf("Error in rpy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_yaw_i, settings.yaw_controller_i) == -1))
 	{
-		printf("\nError in rpy_init: failed to dublicate controller from settings");
+		printf("Error in rpy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 
@@ -214,32 +214,32 @@ int feedback_controller_t::rpy_rate_init(void)
 	// get controllers from settings
 	if (unlikely(rc_filter_duplicate(&D_roll_rate_pd, settings.roll_rate_controller_pd) == -1))
 	{
-		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_pitch_rate_pd, settings.pitch_rate_controller_pd) == -1))
 	{
-		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_yaw_rate_pd, settings.yaw_rate_controller_pd) == -1))
 	{
-		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_roll_rate_i, settings.roll_rate_controller_i) == -1))
 	{
-		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_pitch_rate_i, settings.pitch_rate_controller_i) == -1))
 	{
-		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_yaw_rate_i, settings.yaw_rate_controller_i) == -1))
 	{
-		printf("\nError in rpy_rate_init: failed to dublicate controller from settings");
+		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 
@@ -346,22 +346,22 @@ int feedback_controller_t::xy_init(void)
 
 	if (unlikely(rc_filter_duplicate(&D_X_pd, settings.horiz_pos_ctrl_X_pd) == -1))
 	{
-		printf("\nError in xy_init: failed to dublicate controller from settings");
+		printf("Error in xy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_X_i, settings.horiz_pos_ctrl_X_i) == -1))
 	{
-		printf("\nError in xy_init: failed to dublicate controller from settings");
+		printf("Error in xy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_Y_pd, settings.horiz_pos_ctrl_Y_pd) == -1))
 	{
-		printf("\nError in xy_init: failed to dublicate controller from settings");
+		printf("Error in xy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_Y_i, settings.horiz_pos_ctrl_Y_i) == -1))
 	{
-		printf("\nError in xy_init: failed to dublicate controller from settings");
+		printf("Error in xy_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 
@@ -465,22 +465,22 @@ int feedback_controller_t::xy_rate_init(void)
 
 	if (unlikely(rc_filter_duplicate(&D_Xdot_pd, settings.horiz_vel_ctrl_pd_X) == -1))
 	{
-		printf("\nError in xy_rate_init: failed to dublicate controller from settings");
+		printf("Error in xy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_Xdot_i, settings.horiz_vel_ctrl_i_X) == -1))
 	{
-		printf("\nError in xy_rate_init: failed to dublicate controller from settings");
+		printf("Error in xy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_Ydot_pd, settings.horiz_vel_ctrl_pd_Y) == -1))
 	{
-		printf("\nError in xy_rate_init: failed to dublicate controller from settings");
+		printf("Error in xy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_Ydot_i, settings.horiz_vel_ctrl_i_Y) == -1))
 	{
-		printf("\nError in xy_rate_init: failed to dublicate controller from settings");
+		printf("Error in xy_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 
@@ -567,12 +567,12 @@ int feedback_controller_t::z_init(void)
 
 	if (unlikely(rc_filter_duplicate(&D_Z_pd, settings.altitude_controller_pd) == -1))
 	{
-		printf("\nError in z_init: failed to dublicate controller from settings");
+		printf("Error in z_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_Z_i, settings.altitude_controller_i) == -1))
 	{
-		printf("\nError in z_init: failed to dublicate controller from settings");
+		printf("Error in z_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 
@@ -669,12 +669,12 @@ int feedback_controller_t::z_rate_init(void)
 
 	if (unlikely(rc_filter_duplicate(&D_Zdot_pd, settings.altitude_rate_controller_pd) == -1))
 	{
-		printf("\nError in z_rate_init: failed to dublicate controller from settings");
+		printf("Error in z_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 	if (unlikely(rc_filter_duplicate(&D_Zdot_i, settings.altitude_rate_controller_i) == -1))
 	{
-		printf("\nError in z_rate_init: failed to dublicate controller from settings");
+		printf("Error in z_rate_init: failed to dublicate controller from settings\n");
 		return -1;
 	}
 
@@ -742,10 +742,6 @@ char feedback_controller_t::gain_tune_march(void)
 			printf("ERROR in gain_tune_march: failed to update gains\n");
 			tune_status_fl = false;
 			return -1;
-		}
-		else //success
-		{
-			//reset?
 		}
 		tune_status_fl = true;
 	}
@@ -899,7 +895,7 @@ int feedback_controller_t::init(void)
 	}
 	if (unlikely(xy_rate_init() == -1))
 	{
-		printf("Error in init: failed to initialize xy_rate controller");
+		printf("Error in init: failed to initialize xy_rate controller\n");
 		return -1;
 	}
 
@@ -911,7 +907,7 @@ int feedback_controller_t::mix_all_control(double(&u)[MAX_INPUTS], double(&mot)[
 {
 	if (unlikely(!initialized))
 	{
-		printf("\nERROR in mix_all_control: feedback controller not initialized");
+		printf("ERROR in mix_all_control: feedback controller not initialized\n");
 		return -1;
 	}
 
@@ -974,7 +970,7 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
 {
     if (unlikely(!initialized))
     {
-        printf("\nERROR in reset: feedback controller not initialized");
+        printf("ERROR in reset: feedback controller not initialized\n");
         return -1;
     }
 
@@ -1041,7 +1037,7 @@ int feedback_controller_t::reset(void)
 {
     if (unlikely(!initialized))
     {
-        printf("\nERROR in reset: feedback controller not initialized");
+        printf("ERROR in reset: feedback controller not initialized\n");
         return -1;
     }
 

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/03/2022 (MM/DD/YYYY)
+ * Last Edit:   05/19/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -63,6 +63,8 @@ private:
 	int send_motor_stop_pulse(void);
 
 public:
+	/* externally resets arming flags */
+	int reset_arming_fl(void); //does not disarm 
 
 	/* Externally used functions to get information about the current feedback state */
 	double get_m(int i);
