@@ -189,6 +189,7 @@ int feedback_state_t::arm(void)
 		return 0;
 	}
 	started_arming_fl = false;
+	if (settings.warnings_en) printf("WARNING: ARMED!\n");
 
 	// set LEDs
 	rc_led_set(RC_LED_RED,0);
