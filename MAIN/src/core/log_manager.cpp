@@ -22,14 +22,14 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  02/22/2022 (MM/DD/YYYY)
+ * Last Edit:  05/19/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager.
  * 
  * NOTE:
  * fflush only writes data to buffer, but not disk. we need to force pflush deamon to write 
  * flush buffer and write it to disk more frequntly to avoid runnning out of memory and delays
- * caused by waiting for the large chunk of data to be written to disk. 
+ * caused by waiting for the large chunks of data to be written to disk. 
  * To do this, modify /etc/sysctl.confby adding the following two lines at the end of the file:
  * vm.dirty_expire_centisecs = 100
  * vm.dirty_writeback_centisecs = 100
@@ -71,14 +71,63 @@
 #include "input_manager.hpp"
 
 #include "log_manager.hpp"
+#include <rc/pthread.h>
 // preposessor macros
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
+
+// threard
+static pthread_t log_manager_thread;
+static int thread_initialized = 0;
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
  */
 log_entry_t log_entry{};
+
+static void* __log_manager_func(__attribute__((unused)) void* ptr)
+{
+    while (rc_get_state() != EXITING)
+    {
+        if (log_entry.is_new_data_available())
+        {
+            log_entry.add_new();
+            log_entry.set_new_data_available(false);
+        }
+        else
+        {
+            rc_usleep(1000000 / LOG_MANAGER_HZ);
+        }
+    }
+    return NULL;
+}
+
+
+int log_thread_init()
+{
+    if (rc_pthread_create(&log_manager_thread, __log_manager_func, NULL,
+        SCHED_FIFO, LOG_MANAGER_PRI) == -1) {
+        fprintf(stderr, "ERROR in log_thread_init, failed to start thread\n");
+        return -1;
+    }
+    rc_usleep(50000);
+    return 0;
+}
+
+
+int log_thread_cleanup()
+{
+    int ret = 0;
+    if (thread_initialized) {
+        // wait for the thread to exit
+        ret = rc_pthread_timed_join(log_manager_thread, NULL, LOG_MANAGER_TOUT);
+        if (ret == 1) fprintf(stderr, "WARNING in log_thread_cleanup: exit timeout\n");
+        else if (ret == -1) fprintf(stderr, "ERROR in log_thread_cleanup: failed to join log_manager thread\n");
+    }
+    thread_initialized = 0;
+    return ret;
+}
+
 
 int log_entry_t::write_header(void)
 {
@@ -297,23 +346,16 @@ int log_entry_t::init(void)
 {
     if (unlikely(initialized))
     {
-        printf("\nERROR in log_manager_init: already initialized");
+        printf("ERROR in log_manager_init: already initialized\n");
         return -1;
     }
     if (unlikely((reset() == -1)))
     {
-        printf("\nERROR in log_manager_init: failed to reset");
+        printf("ERROR in log_manager_init: failed to reset\n");
         initialized = false;
         logging_enabled = false;
         return -1;
     }
-
-
-    // start thread
-    logging_enabled = true;
-    initialized = true;
-    num_entries = 0;
-    num_entries_skipped = 0;
 	return 0;
 }
 
@@ -365,11 +407,19 @@ int log_entry_t::reset(void)
     }
 
 
-    // start thread
-    logging_enabled = true;
-    initialized = true;
+    // start thread        
     num_entries = 0;
     num_entries_skipped = 0;
+    new_data_available = false;
+    if (unlikely(log_thread_init() < 0))
+    {
+        printf("ERROR in log_manager_init: failed to start the thread.\n");
+        logging_enabled = false;
+        initialized = false;
+        return -1;
+    }
+    logging_enabled = true;
+    initialized = true;
     return 0;
 }
 
@@ -555,6 +605,17 @@ int log_entry_t::add_new()
     return 0;
 }
 
+bool log_entry_t::is_new_data_available(void)
+{
+    return new_data_available;
+}
+
+void log_entry_t::set_new_data_available(bool val)
+{
+    new_data_available = val;
+}
+
+
 int log_entry_t::cleanup(void)
 {
 	// just return if not logging
@@ -565,7 +626,7 @@ int log_entry_t::cleanup(void)
         printf("WARNING: trying to cleanup when not initialized\n");
         return 0;
     }
-
+    if (thread_initialized) log_thread_cleanup();
 
     logging_enabled = false;
     initialized = false;

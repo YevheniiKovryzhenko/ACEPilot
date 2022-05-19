@@ -44,6 +44,7 @@
 	"flight_mode_2": "ALT_HOLD_FF",
 	"flight_mode_3": "POSITION_CONTROL_FFF",
 
+	"enable_dsm": true,
 	"dsm_thr_ch": 1,
 	"dsm_thr_pol": 1,
 	"dsm_roll_ch": 2,

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/04/2020 (MM/DD/YYYY)
+ * Last Edit:  05/19/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -51,6 +51,7 @@ private:
 	FILE* log_fd;          ///< file descriptor for the log file
 
 	bool logging_enabled;
+	bool new_data_available;
 
 	/** @name index, always printed */
 	///@{
@@ -234,6 +235,8 @@ private:
 	void construct_new_entry(void);
 
 public:
+	bool is_new_data_available(void);
+	void set_new_data_available(bool val);
 
 	/**
 	 * @brief      creates a new csv log file and starts the background thread. only call once.

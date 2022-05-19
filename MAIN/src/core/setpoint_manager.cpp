@@ -1273,7 +1273,7 @@ int setpoint_t::update(void)
 		return -1;
 	}
 
-	if (!user_input.is_initialized())
+	if (settings.enable_dsm && !user_input.is_initialized())
 	{
 		fprintf(stderr, "ERROR in setpoint_manager_update, input_manager not initialized yet\n");
 		return -1;

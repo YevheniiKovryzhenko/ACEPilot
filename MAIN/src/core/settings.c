@@ -766,6 +766,7 @@ int settings_load_from_file(char* path)
 	printf("---\n"); // Just a visual break between above settings and the ones below
 
 	// DSM RADIO CONFIG
+	PARSE_BOOL(enable_dsm);
 	PARSE_INT_MIN_MAX(dsm_thr_ch, 1, 9);
 	PARSE_POLARITY(dsm_thr_pol);
 	PARSE_INT_MIN_MAX(dsm_roll_ch, 1, 9);

@@ -156,12 +156,14 @@ static void __imu_isr(void)
         {
             if (fstate.get_arm_state() == ARMED)
             {
-                log_entry.add_new();
+                log_entry.set_new_data_available(true);
+                //log_entry.add_new();
             }
         }
         else
         {
-            log_entry.add_new();
+            //log_entry.add_new();
+            log_entry.set_new_data_available(true);
         }
     }
     
@@ -260,7 +262,7 @@ int main(int argc, char** argv)
         if (settings.enable_magnetometer && !rc_mpu_is_gyro_calibrated()) {
             FAIL("ERROR, must calibrate magnetometer with rc_calibrate_mag first\n")
         }
-        if (!__rc_dsm_is_calibrated()) {
+        if (settings.enable_dsm && !__rc_dsm_is_calibrated()) {
             FAIL("ERROR, must calibrate DSM with rc_calibrate_dsm first\n")
         }
 
@@ -319,10 +321,13 @@ int main(int argc, char** argv)
         }
 
         // start threads
-        printf("initializing DSM and input_manager\n");
-        if (user_input.input_manager_init() < 0) {
-            FAIL("ERROR: failed to initialize input_manager\n")
-        }
+        if (settings.enable_dsm)
+        {
+            printf("initializing DSM and input_manager\n");
+            if (user_input.input_manager_init() < 0) {
+                FAIL("ERROR: failed to initialize input_manager\n")
+            }
+        }        
 
         // initialize buttons and Assign functions to be called when button
         // events occur
@@ -449,7 +454,7 @@ int main(int argc, char** argv)
     printf("Cleaning up\n");
     rc_mpu_power_off();
     fstate.cleanup();
-    user_input.input_manager_cleanup();
+    if(settings.enable_dsm) user_input.input_manager_cleanup();
     setpoint.cleanup();
     printf_cleanup();
     log_entry.cleanup();

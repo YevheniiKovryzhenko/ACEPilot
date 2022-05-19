@@ -94,6 +94,7 @@ typedef struct settings_t{
 
 	/** @name dsm radio config */
 	///@{
+	bool enable_dsm;
 	int dsm_thr_ch;
 	int dsm_thr_pol;
 	int dsm_roll_ch;
