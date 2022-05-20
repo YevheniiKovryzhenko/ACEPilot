@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/19/2022 (MM/DD/YYYY)
+ * Last Edit:  05/20/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -35,6 +35,7 @@
 #ifndef __STATE_MACHINE__
 #define __STATE_MACHINE__
 #include "flight_mode.h"
+#include "gen_thread.hpp"
 
     /**
      * @brief List of possible states for the state machine. States can be added as needed for new
@@ -83,29 +84,88 @@
 
         bool load_file_fl;
         
+        gen_thread_t thread;
 
         /**
         * @brief Parse the input and transition to new state if applicable
         */
         void transition(flight_mode_t flight_mode, sm_alphabet input);
-    public:
-        int init(void);
-        int enable_update(void);
-        int disable_update(void);
-        bool is_en(void);
-        int march(void);
 
         /**
         * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
         */
         void build_waypoit_filename(char* folder, char* file);
 
-        sm_states get_current_state(void);
+        /**
+         * @brief      Sets the parameters for the thread.
+         *
+         * @return     0 on success, -1 on failure
+         */
+        bool check_load_file(void);
+
+        /**
+         * @brief      Sends a request to a thread to load a new file
+         *
+         * @return     0 on success, -1 on failure
+         */
+        int request_load_file(void);
+
+    public:
+        /**
+        * @brief return waypoint filename used
+        */
         char* get_waypoint_filename(void);
 
-        bool check_load_file(void);
-        void set_load_file(bool val);
+        /**
+         * @brief      Initializes everyhting. Called once.
+         *
+         * @return     0 on success, -1 on failure
+         */
+        int init(void);
 
+        /**
+         * @brief      Enables State Machine Autonomous Updates
+         *
+         * @return     0 on success, -1 on failure
+         */
+        int enable_update(void);
+
+        /**
+         * @brief      Disables State Machine Autonomous Updates
+         *
+         * @return     0 on success, -1 on failure
+         */
+        int disable_update(void);
+
+        /**
+         * @brief      returns if State Machine update is enabled
+         */
+        bool is_en(void);
+
+        /**
+         * @brief      Main update of the State Machine, called in main loop.
+         *
+         * @return     0 on success, -1 on failure
+         */
+        int march(void);
+
+        /**
+         * @brief      State Machine thread update loop.
+         *
+         * @return     0 on success, -1 on failure
+         */
+        int update_thread(void);        
+
+        /**
+         * @brief      returns current state of state machine
+         */
+        sm_states get_current_state(void);       
+
+        /**
+         * @brief      State Machine clean exit.
+         *
+         * @return     0 on success, -1 on failure
+         */
         int clean_up(void);
         
     };

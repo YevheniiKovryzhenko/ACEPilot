@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/19/2022 (MM/DD/YYYY)
+ * Last Edit:  05/20/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -65,71 +65,52 @@ static const char* sm_alph_strings[] = {
     "NO_EVENT",
 };
 
-//Thread
-static pthread_t state_machine_thread;
-static int thread_initialized = 0;
-
 state_machine_t waypoint_state_machine{};
 
 static void* __state_machine_func(__attribute__((unused)) void* ptr)
 {
     while (rc_get_state() != EXITING)
     {
-        if (waypoint_state_machine.check_load_file())
+        if (waypoint_state_machine.update_thread() < 0)
         {
-
-            waypoint_state_machine.build_waypoit_filename(settings.wp_folder, settings.wp_guided_filename);
-            path.cleanup();
-
-            if (path.set_new_path_NH(waypoint_state_machine.get_waypoint_filename()) == -1)
-            {
-                path.cleanup();
-                printf("\nERROR: failed to set new path");
-            }
-
-            if (path.start_waypoint_counter_NH(setpoint) == -1)
-            {
-                path.cleanup();
-                printf("\nERROR: failed to start the counter");
-            }
-            waypoint_state_machine.set_load_file(false);
-        }
-        else
-        {
-            rc_usleep(1000000 / STATE_MACHINE_HZ);
+            printf("ERROR in __state_machine_func: failed to update thread\n");
+            return NULL;
         }
     }
     return NULL;
 }
 
-
-int state_machine_thread_init()
+int state_machine_t::update_thread(void)
 {
-    if (rc_pthread_create(&state_machine_thread, __state_machine_func, NULL,
-        SCHED_FIFO, STATE_MACHINE_PRI) == -1) {
-        fprintf(stderr, "ERROR in state_machine_thread_init, failed to start thread\n");
-        return -1;
+    if (load_file_fl)
+    {
+
+        build_waypoit_filename(settings.wp_folder, settings.wp_guided_filename);
+        path.cleanup();
+
+        if (path.set_new_path_NH(get_waypoint_filename()) < 0)
+        {
+            path.cleanup();
+            printf("ERROR in update_thread: failed to set new path\n");
+        }
+
+        if (path.start_waypoint_counter_NH(setpoint) < 0)
+        {
+            path.cleanup();
+            printf("ERROR in update_thread: failed to start the counter\n");
+        }
+        load_file_fl = false;;
     }
-    rc_usleep(50000);
+    else
+    {
+        rc_usleep(1000000 / STATE_MACHINE_HZ);
+    }
     return 0;
 }
 
 char* state_machine_t::get_waypoint_filename(void)
 {
     return waypoint_filename;
-}
-
-int state_machine_thread_cleanup()
-{
-    int ret = 0;
-    if (thread_initialized) {
-        // wait for the thread to exit
-        ret = rc_pthread_timed_join(state_machine_thread, NULL, STATE_MACHINE_TOUT);
-        if (ret == 1) fprintf(stderr, "WARNING in state_machine_thread_cleanup: exit timeout\n");
-        else if (ret == -1) fprintf(stderr, "ERROR in state_machine_thread_cleanup: failed to join state_machine thread\n");
-    }
-    thread_initialized = 0;
-    return ret;
 }
 
 sm_states state_machine_t::get_current_state(void)
@@ -142,9 +123,10 @@ bool state_machine_t::check_load_file(void)
     return load_file_fl;
 }
 
-void state_machine_t::set_load_file(bool val)
+int state_machine_t::request_load_file(void)
 {
-    load_file_fl = val;
+    load_file_fl = true;
+    return 0;
 }
 
 /**
@@ -168,7 +150,13 @@ int state_machine_t::init(void)
     en_update                   = false;
     load_file_fl = false;
 
-    if (state_machine_thread_init() < 0)
+    if (thread.init(STATE_MACHINE_PRI,FIFO) < 0)
+    {
+        printf("ERROR in init: failed to initialize the thread\n");
+        return -1;
+    }
+
+    if (thread.start(__state_machine_func) < 0)
     {
         printf("ERROR in init: failed to start the thread\n");
         return -1;
@@ -244,7 +232,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                     break;
 
                 default:
-                    fprintf(stderr, "\nPARKED cannot transition with event %s\n",
+                    fprintf(stderr, "PARKED cannot transition with event %s\n",
                         sm_alph_strings[input]);
                     break;
             }
@@ -290,7 +278,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                     break;
 
                 default:
-                    fprintf(stderr, "\nSTANDBY cannot transition with event %s\n",
+                    fprintf(stderr, "STANDBY cannot transition with event %s\n",
                         sm_alph_strings[input]);
                     break;
             }
@@ -355,7 +343,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                     break;
 
                 default:
-                    fprintf(stderr, "\nTAKEOFF cannot transition with event %s\n",
+                    fprintf(stderr, "TAKEOFF cannot transition with event %s\n",
                         sm_alph_strings[input]);
                     break;
             }
@@ -373,25 +361,12 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                 setpoint_guidance.reset_Z();
                 
                 //start new job
-                set_load_file(true);
-
-                /*
-                build_waypoit_filename(
-                    waypoint_filename, settings.wp_folder, settings.wp_guided_filename);
-                path.cleanup();
-
-                if (path.set_new_path_NH(waypoint_filename) == -1)
+                if (request_load_file() < 0)
                 {
+                    printf("ERROR in transition: failed to start loading the file\n");
                     path.cleanup();
-                    printf("\nERROR: failed to set new path");
                 }
-                
-                if (path.start_waypoint_counter_NH(setpoint) == -1)
-                {
-                    path.cleanup();
-                    printf("\nERROR: failed to start the counter");
-                }
-                */
+
                 changedState = false;
             }
 
@@ -404,7 +379,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                     {
                         if (path.update_setpoint_from_waypoint_NH(setpoint, *this) == -1)
                         {
-                            printf("\nERROR in transition: failed to update setpoint from waypoint");
+                            printf("ERROR in transition: failed to update setpoint from waypoint\n");
                             path.cleanup();
                         }
                         
@@ -443,7 +418,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                     break;
 
                 default:
-                    fprintf(stderr, "\nGUIDED cannot transition with event %s\n",
+                    fprintf(stderr, "GUIDED cannot transition with event %s\n",
                         sm_alph_strings[input]);
                     break;
             }
@@ -493,7 +468,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                     break;
 
                 default:
-                    fprintf(stderr, "\nLANDING cannot transition with event %s\n",
+                    fprintf(stderr, "LANDING cannot transition with event %s\n",
                         sm_alph_strings[input]);
                     break;
             }
@@ -533,7 +508,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                 break;
 
             default:
-                fprintf(stderr, "\nLOITER cannot transition with event %s\n",
+                fprintf(stderr, "LOITER cannot transition with event %s\n",
                     sm_alph_strings[input]);
                 break;
             }
@@ -572,7 +547,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                 break;
 
             default:
-                fprintf(stderr, "\nSQUARE cannot transition with event %s\n",
+                fprintf(stderr, "SQUARE cannot transition with event %s\n",
                     sm_alph_strings[input]);
                 break;
             }
@@ -580,7 +555,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
         // States that have not yet been implemented
         case RETURN:
             fprintf(stderr,
-                "\nRETURN mode not yet implemented. Switching state to STANDBY. Input: %s\n",
+                "RETURN mode not yet implemented. Switching state to STANDBY. Input: %s\n",
                 sm_alph_strings[input]);
             current_state = STANDBY;
             changedState = true;
@@ -591,7 +566,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
 
 int state_machine_t::clean_up(void)
 {
-    if (state_machine_thread_cleanup() < 0)
+    if (thread.is_started() && thread.stop(STATE_MACHINE_TOUT) < 0)
     {
         printf("ERROR in clean_up: failed to stop the thread\n");
         return -1;
