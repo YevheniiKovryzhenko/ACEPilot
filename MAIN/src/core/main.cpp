@@ -460,6 +460,7 @@ int main(int argc, char** argv)
     log_entry.cleanup();
     rc_encoder_cleanup();
     path.cleanup();
+    waypoint_state_machine.clean_up();
     if (sstate.is_initialized()) sstate.cleanup();
     comms_manager.cleanup();
 

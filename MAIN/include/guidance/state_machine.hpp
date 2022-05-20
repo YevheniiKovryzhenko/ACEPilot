@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  03/18/2022 (MM/DD/YYYY)
+ * Last Edit:  05/19/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -81,10 +81,8 @@
         bool en_update;
         char waypoint_filename[200];
 
-        /**
-        * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
-        */
-        void build_waypoit_filename(char* dest, char* folder, char* file);
+        bool load_file_fl;
+        
 
         /**
         * @brief Parse the input and transition to new state if applicable
@@ -96,7 +94,19 @@
         int disable_update(void);
         bool is_en(void);
         int march(void);
+
+        /**
+        * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
+        */
+        void build_waypoit_filename(char* folder, char* file);
+
         sm_states get_current_state(void);
+        char* get_waypoint_filename(void);
+
+        bool check_load_file(void);
+        void set_load_file(bool val);
+
+        int clean_up(void);
         
     };
     extern state_machine_t waypoint_state_machine;

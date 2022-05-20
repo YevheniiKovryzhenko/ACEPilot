@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/03/2022 (MM/DD/YYYY)
+ * Last Edit:  05/19/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -49,6 +49,9 @@
 
 #include "state_machine.hpp"
 
+#include "thread_defs.h"
+#include <rc/pthread.h>
+
 
 static const char* sm_alph_strings[] = {
     "ENTER_PARKED",
@@ -62,23 +65,96 @@ static const char* sm_alph_strings[] = {
     "NO_EVENT",
 };
 
+//Thread
+static pthread_t state_machine_thread;
+static int thread_initialized = 0;
+
 state_machine_t waypoint_state_machine{};
 
-//static char waypoint_filename[200];
+static void* __state_machine_func(__attribute__((unused)) void* ptr)
+{
+    while (rc_get_state() != EXITING)
+    {
+        if (waypoint_state_machine.check_load_file())
+        {
+
+            waypoint_state_machine.build_waypoit_filename(settings.wp_folder, settings.wp_guided_filename);
+            path.cleanup();
+
+            if (path.set_new_path_NH(waypoint_state_machine.get_waypoint_filename()) == -1)
+            {
+                path.cleanup();
+                printf("\nERROR: failed to set new path");
+            }
+
+            if (path.start_waypoint_counter_NH(setpoint) == -1)
+            {
+                path.cleanup();
+                printf("\nERROR: failed to start the counter");
+            }
+            waypoint_state_machine.set_load_file(false);
+        }
+        else
+        {
+            rc_usleep(1000000 / STATE_MACHINE_HZ);
+        }
+    }
+    return NULL;
+}
+
+
+int state_machine_thread_init()
+{
+    if (rc_pthread_create(&state_machine_thread, __state_machine_func, NULL,
+        SCHED_FIFO, STATE_MACHINE_PRI) == -1) {
+        fprintf(stderr, "ERROR in state_machine_thread_init, failed to start thread\n");
+        return -1;
+    }
+    rc_usleep(50000);
+    return 0;
+}
+
+char* state_machine_t::get_waypoint_filename(void)
+{
+    return waypoint_filename;
+}
+
+int state_machine_thread_cleanup()
+{
+    int ret = 0;
+    if (thread_initialized) {
+        // wait for the thread to exit
+        ret = rc_pthread_timed_join(state_machine_thread, NULL, STATE_MACHINE_TOUT);
+        if (ret == 1) fprintf(stderr, "WARNING in state_machine_thread_cleanup: exit timeout\n");
+        else if (ret == -1) fprintf(stderr, "ERROR in state_machine_thread_cleanup: failed to join state_machine thread\n");
+    }
+    thread_initialized = 0;
+    return ret;
+}
 
 sm_states state_machine_t::get_current_state(void)
 {
     return current_state;
 }
 
+bool state_machine_t::check_load_file(void)
+{
+    return load_file_fl;
+}
+
+void state_machine_t::set_load_file(bool val)
+{
+    load_file_fl = val;
+}
+
 /**
  * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
  */
-void state_machine_t::build_waypoit_filename(char* dest, char* folder, char* file)
+void state_machine_t::build_waypoit_filename(char* folder, char* file)
 {
-    dest[0] = '\0';
-    strcat(dest, folder);
-    strcat(dest, file);
+    waypoint_filename[0] = '\0';
+    strcat(waypoint_filename, folder);
+    strcat(waypoint_filename, file);
 }
 
 /**
@@ -90,6 +166,13 @@ int state_machine_t::init(void)
     state_transition_time       = 0;
     changedState                = false;
     en_update                   = false;
+    load_file_fl = false;
+
+    if (state_machine_thread_init() < 0)
+    {
+        printf("ERROR in init: failed to start the thread\n");
+        return -1;
+    }
     return 1;
 }
 
@@ -288,7 +371,11 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                 //terminate all the previous guidance jobs and clean up
                 setpoint_guidance.reset_XY();
                 setpoint_guidance.reset_Z();
+                
                 //start new job
+                set_load_file(true);
+
+                /*
                 build_waypoit_filename(
                     waypoint_filename, settings.wp_folder, settings.wp_guided_filename);
                 path.cleanup();
@@ -304,7 +391,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                     path.cleanup();
                     printf("\nERROR: failed to start the counter");
                 }
-                
+                */
                 changedState = false;
             }
 
@@ -499,4 +586,15 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
             changedState = true;
             break;
     }
+}
+
+
+int state_machine_t::clean_up(void)
+{
+    if (state_machine_thread_cleanup() < 0)
+    {
+        printf("ERROR in clean_up: failed to stop the thread\n");
+        return -1;
+    }
+    return 0;
 }
