@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/19/2022 (MM/DD/YYYY)
+ * Last Edit:  05/20/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -153,9 +153,9 @@ int feedback_state_t::arm(void)
 		// time so do it before touching anything else
 		if (settings.enable_logging)
 		{
-			if (unlikely(log_entry.reset() == -1))
+			if (unlikely(log_entry.request_reset() == -1))
 			{
-				printf("ERROR in arm: failed to start new log entry\n");
+				printf("ERROR in arm: failed to request reset for log manager\n");
 				return -1;
 			}
 		}

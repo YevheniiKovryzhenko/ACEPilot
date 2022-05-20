@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/19/2022 (MM/DD/YYYY)
+ * Last Edit:  05/20/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -32,6 +32,7 @@
 #ifndef LOG_MANAGER_H
 #define LOG_MANAGER_H
 #include <stdbool.h>
+#include "gen_thread.hpp"
 
 #define MAX_LOG_FILES	500
 
@@ -46,12 +47,15 @@
 class log_entry_t {
 private:
 	bool initialized;
+	bool file_open;
 	uint64_t num_entries_skipped;
 	uint64_t num_entries;	// number of entries logged so far
 	FILE* log_fd;          ///< file descriptor for the log file
 
 	bool logging_enabled;
 	bool new_data_available;
+	bool request_reset_fl;
+	gen_thread_t thread;
 
 	/** @name index, always printed */
 	///@{
@@ -227,23 +231,17 @@ private:
 	int64_t rev4;
 	///@}
 
-
+	/**
+	 * @brief      writes header for into a log file
+	 *
+	 *
+	 * @return     0 on success, -1 on failure
+	 */
 	int write_header(void);
 
 	int write_log_entry(void);
 
 	void construct_new_entry(void);
-
-public:
-	bool is_new_data_available(void);
-	void set_new_data_available(bool val);
-
-	/**
-	 * @brief      creates a new csv log file and starts the background thread. only call once.
-	 *
-	 * @return     0 on success, -1 on failure
-	 */
-	int init(void);
 
 	/**
 	 * @brief      resets log mannager, creates a new csv log file and starts the background thread.
@@ -262,6 +260,39 @@ public:
 	 * @return     0 on success, -1 on failure
 	 */
 	int add_new(void);
+
+public:	
+	/**
+	 * @brief      notifies the thread that new data is available
+	 *
+	 *
+	 * @return     0 on success, -1 on failure
+	 */
+	void data_available(void);
+
+	/**
+	 * @brief      notifies the thread that reset is requested
+	 *
+	 *
+	 * @return     0 on success, -1 on failure
+	 */
+	int request_reset(void);
+
+	/**
+	 * @brief      main update loop of the thread
+	 *
+	 *
+	 * @return     0 on success, -1 on failure
+	 */
+	int update(void);
+
+	/**
+	 * @brief      creates a new csv log file and starts the background thread. only call once.
+	 *
+	 * @return     0 on success, -1 on failure
+	 */
+	int init(void);
+	
 
 	/**
 	 * @brief      Finish writing remaining data to log and close thread.

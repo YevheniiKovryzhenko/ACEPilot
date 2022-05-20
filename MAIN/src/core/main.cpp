@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  05/19/2022 (MM/DD/YYYY)
+ * Last Edit:  05/20/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -156,18 +156,15 @@ static void __imu_isr(void)
         {
             if (fstate.get_arm_state() == ARMED)
             {
-                log_entry.set_new_data_available(true);
-                //log_entry.add_new();
+                log_entry.data_available();
             }
         }
         else
         {
-            //log_entry.add_new();
-            log_entry.set_new_data_available(true);
+            log_entry.data_available();
         }
-    }
+    }   
     
-    if (settings.log_benchmark) benchmark_timers.tLOG = rc_nanos_since_boot();
 
     //Currently, this only reads from the BMP pressure sensor
     state_estimator_jobs_after_feedback();
@@ -457,7 +454,7 @@ int main(int argc, char** argv)
     if(settings.enable_dsm) user_input.input_manager_cleanup();
     setpoint.cleanup();
     printf_cleanup();
-    log_entry.cleanup();
+    if (settings.enable_logging) log_entry.cleanup();
     rc_encoder_cleanup();
     path.cleanup();
     waypoint_state_machine.clean_up();
