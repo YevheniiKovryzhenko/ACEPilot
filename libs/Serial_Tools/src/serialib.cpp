@@ -16,9 +16,9 @@ This is a licence-free software, it can be used by anyone who try to build a bet
  */
 
 #include "serialib.h"
-
-
-
+#if defined (__linux__) || defined(__APPLE__)
+    #include <linux/serial.h>
+#endif
 //_____________________________________
 // ::: Constructors and destructors :::
 
@@ -335,8 +335,24 @@ void serialib::closeDevice()
 #endif
 }
 
-
-
+#if defined (__linux__) || defined(__APPLE__)
+    char serialib::set_low_latency(void)
+    {
+        if (isDeviceOpen())
+        {
+            struct serial_struct serial;
+            ioctl(fd, TIOCGSERIAL, &serial);
+            serial.flags |= ASYNC_LOW_LATENCY; // (0x2000)
+            ioctl(fd, TIOCSSERIAL, &serial);
+        }
+        else
+        {
+            printf("ERROR set_low_latency: device is not opened\n");
+            return -1;
+        }
+        return 1;
+    }
+#endif
 
 //___________________________________________
 // ::: Read/Write operation on characters :::

@@ -22,10 +22,10 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/20/2020 (MM/DD/YYYY)
+ * Last Edit:  05/22/2020 (MM/DD/YYYY)
  *
  * Summary :
- *
+ * Provides general framework for convenient use of threads in object-oriented programming.
  *
  */
 
@@ -80,5 +80,22 @@ public:
 	bool is_started(void);
 
 };
+
+/* function prototype:
+static void* __func(__attribute__((unused)) void* ptr)
+{
+	while (rc_get_state() != EXITING)
+	{
+		if (update_thread() < 0)
+		{
+			printf("ERROR in __func: failed to update thread\n");
+			return NULL;
+		}
+	}
+	return NULL;
+}
+
+
+*/
 
 #endif // !GEN_THREAD

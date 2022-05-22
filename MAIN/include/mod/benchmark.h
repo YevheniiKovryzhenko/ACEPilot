@@ -10,7 +10,7 @@
  * @date       02/23/2020 (MM/DD/YYYY)
  * 
  * @Modified    Yevhenii Kovryzhenko
- * @Last Edit   07/26/2020 (MM/DD/YYYY)
+ * @Last Edit   05/22/2022 (MM/DD/YYYY)
  * 
  * @addtogroup  BENCHMARK
  * @{
@@ -28,7 +28,7 @@
 typedef struct benchmark_t{
     /** @name Timers for imu_isr() */
 	///@{
-    uint64_t tIMU, tIMU_END, tSM, tXBEE, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP;
+    uint64_t tIMU, tIMU_END, tSM, tCOMMS, tMOCAP, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP;
     ///@}
 } benchmark_t;
 

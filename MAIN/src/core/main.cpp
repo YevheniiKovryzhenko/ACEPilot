@@ -349,7 +349,7 @@ int main(int argc, char** argv)
     if (comms_manager.init() < 0)
     {
         FAIL("ERROR: failed to initialize comms manager\n")
-    }
+    }    
 
     if (RUNNING_ON_BBB)
     {
@@ -389,10 +389,6 @@ int main(int argc, char** argv)
             FAIL("ERROR: failed to init feedback controller\n")
         }
 
-    }
-    
-    if (RUNNING_ON_BBB)
-    {
         // start the IMU
         rc_mpu_config_t mpu_conf = rc_mpu_default_config();
         mpu_conf.i2c_bus = I2C_BUS;

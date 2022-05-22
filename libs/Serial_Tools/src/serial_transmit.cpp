@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  02/21/2022 (MM/DD/YYYY)
+ * Last Edit:  05/22/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This code is intended for simple serial communication using pre-defined start bytes and
@@ -64,6 +64,11 @@ char serial_transmit_t::open(const char *port, const int baudRate)
     TX_en_checksum = true;
     RX_en_checksum = true;
     return 0;
+}
+
+char serial_transmit_t::en_low_latency_mode(void)
+{
+    return serial.set_low_latency();
 }
 
 void serial_transmit_t::enable_checksum_TX(void)

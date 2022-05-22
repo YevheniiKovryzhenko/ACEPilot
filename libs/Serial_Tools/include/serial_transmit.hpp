@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  02/22/2022 (MM/DD/YYYY)
+ * Last Edit:  05/22/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This code is intended for simple serial communication using pre-defined start bytes and
@@ -103,26 +103,123 @@ private:
 	bool opened;
 	serialib serial;
 public:
+	/**
+	 * @brief   Opens a serial port.
+	 *
+	 * @returns -1 on failure.
+	 */
 	char open(const char* port, const int baudRate);
+
+	/**
+	 * @brief   Enables low latency mode on serial device.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
+	char en_low_latency_mode(void);
 	
+	/**
+	 * @brief   Enables Transmit line. Sets new internal buffer.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char set_TX_line(void* buff, size_t buff_size);
+
+	/**
+	 * @brief   Enables Transmit line checksum.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	void enable_checksum_TX(void);
+
+	/**
+	 * @brief   Disables Transmit line checksum.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	void disable_checksum_TX(void);
+
+	/**
+	 * @brief   Sets Transmit line start bytes.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char set_TX_start_bytes(uint8_t* buff, int num_of_bytes);
+
+	/**
+	 * @brief   Sets new internal buffer. Writes new data to serial.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char write(void* data, size_t buff_size);
+
+	/**
+	 * @brief   Writes internal buffer to serial.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char write(void);
 
+	/**
+	 * @brief   Enables Receive line. Sets new internal buffer.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char set_RX_line(void* buff, size_t buff_size);
+
+	/**
+	 * @brief   Enables Receive line checksum.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	void enable_checksum_RX(void);
+
+	/**
+	 * @brief   Disables Receive line checksum.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	void disable_checksum_RX(void);
+
+	/**
+	 * @brief   Reads bytes to external buffer. Does not use internal buffer.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char read_bytes(unsigned char* buff, size_t buff_size);
+
+	/**
+	 * @brief   Sets Receive line start bytes.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char set_RX_start_bytes(uint8_t* buff, int num_of_bytes);
+	
+	/**
+	 * @brief   Sets new internal buffer. Reads bytes to internal buffer.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char read(void* buff, size_t buff_size);
+
+	/**
+	 * @brief   Reads bytes to internal buffer.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char read(void);
 
+	/**
+	 * @brief   Synchronize serial port. Sends all data from buffer of the serial port.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	char sync(void);
 	
-	
+	/**
+	 * @brief   Proper exit routine for closing serial port.
+	 *
+	 * @returns -1 on failure 0 on success.
+	 */
 	void close(void);
 };
 #endif // SERIAL_TRANSMIT

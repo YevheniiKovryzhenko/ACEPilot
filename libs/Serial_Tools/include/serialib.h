@@ -118,6 +118,11 @@ public:
                     SerialParity Parity = SERIAL_PARITY_NONE,
                     SerialStopBits Stopbits = SERIAL_STOPBITS_1);
 
+#if defined (__linux__) || defined(__APPLE__)
+    // Set device to low latency
+    char set_low_latency(void);
+#endif
+
     // Check device opening state
     bool isDeviceOpen();
 

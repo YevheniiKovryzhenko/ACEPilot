@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/20/2022 (MM/DD/YYYY)
+ * Last Edit:  05/22/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -308,8 +308,8 @@ int log_entry_t::write_log_entry(void)
     }
 	
 	if(settings.log_benchmark){
-        fprintf(log_fd, ",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64,
-            tIMU, tIMU_END, tSM, tXBEE, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP);
+        fprintf(log_fd, ",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64,
+            tIMU, tIMU_END, tSM, tCOMMS, tMOCAP, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP);
     }
     if (settings.log_encoders) {
         fprintf(log_fd, ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64, \
@@ -365,6 +365,7 @@ int log_entry_t::init(void)
 
 int log_entry_t::request_reset(void)
 {
+    if (file_open && num_entries < 1) return 0;
     request_reset_fl = true;
     return 0;
 }
@@ -417,7 +418,7 @@ int log_entry_t::reset(void)
     // write header
     if (unlikely(write_header()) == -1)
     {
-        printf("\nERROR in init, failed to write header");
+        printf("ERROR in reset, failed to write header\n");
         return -1;
     }
 
@@ -560,7 +561,8 @@ void log_entry_t::construct_new_entry(void)
     tIMU 			= benchmark_timers.tIMU;
     tIMU_END 		= benchmark_timers.tIMU_END;
     tSM 			= benchmark_timers.tSM;
-    tXBEE 		    = benchmark_timers.tXBEE;
+    tMOCAP 		    = benchmark_timers.tMOCAP;
+    tCOMMS          = benchmark_timers.tCOMMS;
     tGPS 			= benchmark_timers.tGPS;
     tPNI 			= benchmark_timers.tPNI;
     tNAV 			= benchmark_timers.tNAV;
@@ -623,7 +625,7 @@ int log_entry_t::cleanup(void)
 
     if (unlikely(!initialized))
     {
-        printf("WARNING: trying to cleanup when not initialized\n");
+        printf("WARNING: trying to cleanup log manager when not initialized\n");
         return -1;
     }
     if (thread.is_started() && thread.stop(LOG_MANAGER_TOUT) < 0)

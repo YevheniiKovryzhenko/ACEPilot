@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/20/2022 (MM/DD/YYYY)
+ * Last Edit:  05/22/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -118,7 +118,7 @@ int feedback_state_t::disarm(void)
 
 	if (settings.log_only_while_armed && settings.enable_logging)
 	{
-		log_entry.cleanup();
+		log_entry.request_reset();
 	}
 	return 0;
 }
