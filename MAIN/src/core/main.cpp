@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  05/20/2022 (MM/DD/YYYY)
+ * Last Edit:  05/23/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -124,7 +124,6 @@ static void __imu_isr(void)
 {
     // record time of imu interupt
     state_estimate.imu_time_ns = rc_nanos_since_boot();
-    if (settings.log_benchmark) benchmark_timers.tIMU = rc_nanos_since_boot();
 
     //update comms:
     comms_manager.update();    

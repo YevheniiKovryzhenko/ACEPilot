@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/22/2022 (MM/DD/YYYY)
+ * Last Edit:  05/23/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -192,7 +192,7 @@ int log_entry_t::write_header(void)
     }
 	
 	if(settings.log_benchmark){
-        fprintf(log_fd, ",tIMU,tIMU_END,tSM,tXBEE,tGPS,tPNI,tNAV,tGUI,tCTR,tLOG,tNTP");
+        fprintf(log_fd, ",tIMU_END,tSM,tCOMMS,tMOCAP,tGPS,tPNI,tNAV,tGUI,tCTR,tLOG,tNTP");
     }
 
     if (settings.log_encoders) {
@@ -308,8 +308,8 @@ int log_entry_t::write_log_entry(void)
     }
 	
 	if(settings.log_benchmark){
-        fprintf(log_fd, ",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64,
-            tIMU, tIMU_END, tSM, tCOMMS, tMOCAP, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP);
+        fprintf(log_fd, ",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64,
+            tIMU_END, tSM, tCOMMS, tMOCAP, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP);
     }
     if (settings.log_encoders) {
         fprintf(log_fd, ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64, \
@@ -558,7 +558,6 @@ void log_entry_t::construct_new_entry(void)
 
     flight_mode 	= user_input.flight_mode;
 
-    tIMU 			= benchmark_timers.tIMU;
     tIMU_END 		= benchmark_timers.tIMU_END;
     tSM 			= benchmark_timers.tSM;
     tMOCAP 		    = benchmark_timers.tMOCAP;
