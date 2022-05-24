@@ -216,7 +216,7 @@
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 0.38112030,
-		"kd": 0.01161830,
+		"kd": 0.00165980,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"altitude_rate_controller_i": {
@@ -231,7 +231,7 @@
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 4.63711309,
-		"kd": 0.66527091,
+		"kd": 0.11086958,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"altitude_controller_i": {
@@ -245,28 +245,28 @@
 	"horiz_vel_ctrl_pd_X": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 2.1473,
-		"kd": 0.12241,
+		"kp": 3.02938937,
+		"kd": 0.09650560,
 		"crossover_freq_rad_per_sec": 62.6556
 	},
 	"horiz_vel_ctrl_i_X": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.01,
+		"ki": 0.02074690,
 		"imax": 1.00
 	},
 
 	"horiz_vel_ctrl_pd_Y": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 2.1473,
-		"kd": 0.12241,
+		"kp": 3.02938937,
+		"kd": 0.09650560,
 		"crossover_freq_rad_per_sec": 62.6556
 	},
 	"horiz_vel_ctrl_i_Y": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.01,
+		"ki": 0.02033200,
 		"imax": 1.00
 	},
 
@@ -274,28 +274,28 @@
 	"horiz_pos_ctrl_X_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 2.4481,
-		"kd": 0.094606,
+		"kp": 2.64110820,
+		"kd": 0.10206474,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"horiz_pos_ctrl_X_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.0037344,
+		"ki": 0.01069185,
 		"imax": 3.0
 	},
 
 	"horiz_pos_ctrl_Y_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 2.3237,
-		"kd": 0.097096,
+		"kp": 2.69973275,
+		"kd": 0.10072156,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"horiz_pos_ctrl_Y_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.0053942,
+		"ki": 0.01029596,
 		"imax": 3.0
 	}
 }
