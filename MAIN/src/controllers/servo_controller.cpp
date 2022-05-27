@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/19/2020 (MM/DD/YYYY)
+ * Last Edit:  05/27/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -326,11 +326,11 @@ int feedback_servo_controller_t::march(double(&u)[MAX_SERVO_INPUTS], double(&mot
 	switching between flight modes - we want to make sure controllers are being
 	reset every time flight mode is switched.
 	*/
-	if (!setpoint.en_rpy_ctrl) last_en_rpy_ctrl = false;
-	if (!setpoint.en_rpy_rate_ctrl) last_en_rpy_rate_ctrl = false;
+	if (!setpoint.en_rpy_servo_ctrl) last_en_rpy_ctrl = false;
+	if (!setpoint.en_rpy_rate_servo_ctrl) last_en_rpy_rate_ctrl = false;
 
 	// run attitude controllers if enabled
-	if (setpoint.en_rpy_ctrl)
+	if (setpoint.en_rpy_servo_ctrl)
 	{
 		rpy_march(); //marches only attitude ctrl. + transition
 	}
@@ -346,7 +346,7 @@ int feedback_servo_controller_t::march(double(&u)[MAX_SERVO_INPUTS], double(&mot
 	}
 
 	// run attitude rate controllers if enabled
-	if (setpoint.en_rpy_rate_ctrl)
+	if (setpoint.en_rpy_rate_servo_ctrl)
 	{
 		rpy_rate_march(); //marches only attitude rates ctrl. + transition
 	}

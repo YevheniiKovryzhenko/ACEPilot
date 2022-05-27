@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/19/2022 (MM/DD/YYYY)
+ * Last Edit:  05/27/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -360,8 +360,36 @@ void setpoint_t::update_Z(void)
 		tmp_Z_dot = 0;
 		return;
 	}
-	Z -= tmp_Z_dot*DT; //neagtive since Z positive is defined to be down
+	Z -= tmp_Z_dot*DT; //negative since Z positive is defined to be down
 	
+	return;
+}
+
+//----Manual/Radio/Direct control----//
+// only run this is need an update from radio control.
+// make sure setpoint doesn't go too far below current altitude since we
+// can't sink into the ground
+void setpoint_t::update_Z_dot(void)
+{
+
+
+	double tmp_Z_ddot;
+
+	if (user_input.get_thr_stick() > Z_throttle_0 + 0.1)
+	{
+		tmp_Z_ddot = (user_input.get_thr_stick() - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
+	}
+	else if (user_input.get_thr_stick() < Z_throttle_0 - 0.1)
+	{
+		tmp_Z_ddot = (user_input.get_thr_stick() - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
+	}
+	else
+	{
+		tmp_Z_ddot = 0;
+		return;
+	}
+	Z_dot -= tmp_Z_ddot * DT; //negative since Z positive is defined to be down
+
 	return;
 }
 
@@ -464,6 +492,71 @@ bool setpoint_t::is_initialized(void)
 	return initialized;
 }
 
+/**
+* @brief      Functions to retreve inernal boolean vals.
+*
+* @return     true or false
+*/
+bool setpoint_t::is_en_rpy_rate_ctrl(void)
+{
+	return en_rpy_rate_ctrl;
+}
+
+bool setpoint_t::is_en_rpy_rate_FF(void)
+{
+	return en_rpy_rate_FF;
+}
+
+bool setpoint_t::is_en_rpy_ctrl(void)
+{
+	return en_rpy_ctrl;
+}
+
+bool setpoint_t::is_en_rpy_FF(void)
+{
+	return en_rpy_FF;
+}
+
+bool setpoint_t::is_en_Z_ctrl(void)
+{
+	return en_Z_ctrl;
+}
+
+bool setpoint_t::is_en_Z_FF(void)
+{
+	return en_Z_FF;
+}
+
+bool setpoint_t::is_en_Z_rate_ctrl(void)
+{
+	return en_Z_rate_ctrl;
+}
+
+bool setpoint_t::is_en_Z_rate_FF(void)
+{
+	return en_Z_rate_FF;
+}
+
+bool setpoint_t::is_en_XY_vel_ctrl(void)
+{
+	return en_XY_vel_ctrl;
+}
+
+bool setpoint_t::is_en_XY_vel_FF(void)
+{
+	return en_XY_vel_FF;
+}
+
+bool setpoint_t::is_en_XY_pos_ctrl(void)
+{
+	return en_XY_pos_ctrl;
+}
+
+bool setpoint_t::is_en_XY_pos_FF(void)
+{
+	return en_XY_pos_FF;
+}
+
 
 /**
 * @brief      Set setpoints to input value.
@@ -526,13 +619,42 @@ int setpoint_t::set_pitch_ff(double val)
 	pitch_ff = val;
 	return 0;
 }
-/*
 int setpoint_t::set_yaw_ff(double val)
 {
 	yaw_ff = val;
 	return 0;
 }
-*/
+
+int setpoint_t::set_X_ddot(double val)
+{
+	X_ddot = val;
+	return 0;
+}
+int setpoint_t::set_Y_ddot(double val)
+{
+	Y_ddot = val;
+	return 0;
+}
+int setpoint_t::set_Z_ddot(double val)
+{
+	Z_ddot = val;
+	return 0;
+}
+int setpoint_t::set_X_ddot_ff(double val)
+{
+	X_ddot_ff = val;
+	return 0;
+}
+int setpoint_t::set_Y_ddot_ff(double val)
+{
+	Y_ddot_ff = val;
+	return 0;
+}
+int setpoint_t::set_Z_ddot_ff(double val)
+{
+	Z_ddot_ff = val;
+	return 0;
+}
 
 int setpoint_t::set_X_dot(double val)
 {
@@ -580,7 +702,6 @@ int setpoint_t::set_Z(double val)
 	Z = val;
 	return 0;
 }
-/*
 int setpoint_t::set_X_ff(double val)
 {
 	X_ff = val;
@@ -596,7 +717,6 @@ int setpoint_t::set_Z_ff(double val)
 	Z_ff = val;
 	return 0;
 }
-*/
 
 
 /**
@@ -674,12 +794,10 @@ int setpoint_t::reset_pitch_ff(void)
 {
 	return set_pitch_ff(0.0);
 }
-/*
 int setpoint_t::reset_yaw_ff(void)
 {
 	return set_yaw(0.0);
 }
-*/
 
 int setpoint_t::reset_att(void)
 {
@@ -693,7 +811,7 @@ int setpoint_t::reset_att_ff(void)
 {
 	reset_roll_ff();
 	reset_pitch_ff();
-	//reset_yaw_ff();
+	reset_yaw_ff();
 
 	return 0;
 }
@@ -701,6 +819,55 @@ int setpoint_t::reset_att_all(void)
 {
 	reset_att();
 	reset_att_ff();
+
+	return 0;
+}
+
+int setpoint_t::reset_X_ddot(void)
+{
+	return set_X_ddot(0.0);
+}
+int setpoint_t::reset_Y_ddot(void)
+{
+	return set_Y_ddot(0.0);
+}
+int setpoint_t::reset_Z_ddot(void)
+{
+	return set_Z_ddot(0.0);
+}
+int setpoint_t::reset_X_ddot_ff(void)
+{
+	return set_X_ddot_ff(0.0);
+}
+int setpoint_t::reset_Y_ddot_ff(void)
+{
+	return set_Y_ddot_ff(0.0);
+}
+int setpoint_t::reset_Z_ddot_ff(void)
+{
+	return set_Z_ddot_ff(0.0);
+}
+
+int setpoint_t::reset_pos_ddot(void)
+{
+	reset_X_ddot();
+	reset_Y_ddot();
+	reset_Z_ddot();
+
+	return 0;
+}
+int setpoint_t::reset_pos_ddot_ff(void)
+{
+	reset_X_ddot_ff();
+	reset_Y_ddot_ff();
+	reset_Z_ddot_ff();
+
+	return 0;
+}
+int setpoint_t::reset_pos_ddot_all(void)
+{
+	reset_pos_ddot();
+	reset_pos_ddot_ff();
 
 	return 0;
 }
@@ -766,7 +933,6 @@ int setpoint_t::reset_Z(void)
 {
 	return set_Z(state_estimate.Z);
 }
-/*
 int setpoint_t::reset_X_ff(void)
 {
 	return set_X_ff(0.0);
@@ -779,7 +945,6 @@ int setpoint_t::reset_Z_ff(void)
 {
 	return set_Z_ff(0.0);
 }
-*/
 int setpoint_t::reset_pos(void)
 {
 	reset_X();
@@ -788,7 +953,6 @@ int setpoint_t::reset_pos(void)
 
 	return 0;
 }
-/*
 int setpoint_t::reset_pos_ff(void)
 {
 	reset_X_ff();
@@ -797,11 +961,10 @@ int setpoint_t::reset_pos_ff(void)
 
 	return 0;
 }
-*/
 int setpoint_t::reset_pos_all(void)
 {
 	reset_pos();
-	//reset_pos_ff();
+	reset_pos_ff();
 
 	return 0;
 }
@@ -810,455 +973,11 @@ int setpoint_t::reset_all(void)
 {
 	reset_pos_all();
 	reset_pos_dot_all();
+	reset_pos_ddot_all();
 	reset_att_all();
 	reset_att_dot_all();
 	return 0;
 }
-
-
-int setpoint_t::update_setpoints(void)
-{
-	// finally, switch between flight modes and adjust setpoint properly
-	switch (user_input.flight_mode) {
-
-
-	case TEST_BENCH_4DOF:
-		// configure which controllers are enabled
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-		roll_throttle = user_input.get_roll_stick();
-		pitch_throttle = user_input.get_pitch_stick();
-		yaw_throttle = user_input.get_yaw_stick();
-		X_throttle = 0.0;
-		Y_throttle = 0.0;
-		Z_throttle = -user_input.get_thr_stick();
-
-		break;
-
-	case TEST_BENCH_6DOF:
-		// configure which controllers are enabled
-		en_6dof = true;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		roll_throttle = 0.0;
-		pitch_throttle = 0.0;
-		yaw_throttle = user_input.get_yaw_stick();
-		X_throttle = -user_input.get_pitch_stick();
-		Y_throttle = user_input.get_roll_stick();
-		Z_throttle = -user_input.get_thr_stick();
-		break;
-
-	case TEST_6xSERVOS_DIRECT:
-		// configure which controllers are enabled
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		roll_throttle = 0.0;
-		pitch_throttle = 0.0;
-		yaw_throttle = 0.0;
-		X_throttle = 0.0;
-		Y_throttle = 0.0;
-		Z_throttle = 0.0;
-
-
-		//servos:
-		roll_servo_throttle = user_input.get_roll_stick();	//map [-1 1] into [0 1]
-		pitch_servo_throttle = user_input.get_pitch_stick();	//map [-1 1] into [0 1]
-		yaw_servo_throttle = user_input.get_yaw_stick();		//map [-1 1] into [0 1]
-		Z_servo_throttle = -user_input.get_thr_stick();
-		break;
-
-	case ACRO:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-		update_rpy_rate();
-		update_th();
-		break;
-
-	case MANUAL_S:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-		roll = user_input.get_roll_stick();
-		pitch = user_input.get_pitch_stick();
-		Z_throttle = -user_input.get_thr_stick() / \
-			(cos(state_estimate.roll) * cos(state_estimate.pitch));
-
-		update_yaw();
-		break;
-
-	case MANUAL_F:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		update_rp();
-		update_th();
-		update_yaw();
-		break;
-
-	case DIRECT_THROTTLE_6DOF:
-		en_6dof = true;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		X_throttle = -user_input.get_pitch_stick();
-		Y_throttle = user_input.get_roll_stick();
-		Z_throttle = -user_input.get_thr_stick();
-		update_yaw();
-		break;
-
-	case ALT_HOLD_SS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-		update_rp();
-		update_Z();
-		update_yaw();
-		break;
-
-	case ALT_HOLD_FS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		update_rp();
-		update_Z();
-		update_yaw();
-		break;
-
-	case ALT_HOLD_FF:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		update_rp();
-		update_Z();
-		update_yaw();
-		break;
-
-	case POSITION_CONTROL_SSS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = true;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		//check validity of the velocity command, construct virtual setpoint
-		update_XY_pos();
-		update_Z();
-		update_yaw();
-		break;
-
-	case POSITION_CONTROL_FSS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = true;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		//check validity of the velocity command, construct virtual setpoint
-		update_XY_pos();
-		update_Z();
-		update_yaw();
-		break;
-
-	case POSITION_CONTROL_FFS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = true;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		//check validity of the velocity command, construct virtual setpoint
-		update_XY_pos();
-		update_Z();
-		update_yaw();
-		break;
-
-	case POSITION_CONTROL_FFF:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = true;
-		en_XY_pos_ctrl = true;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		//check validity of the velocity command, construct virtual setpoint
-		update_XY_pos();
-		update_Z();
-		update_yaw();
-		break;
-
-	case EMERGENCY_LAND:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		//Assign Setpoints
-		roll = 0;
-		pitch = 0;
-
-		setpoint_guidance.start_land();  // start landing algorithm
-
-		update_yaw();
-		break;
-
-	case AUTONOMOUS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = true;
-		en_XY_pos_ctrl = true;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		waypoint_state_machine.enable_update();
-
-		break;
-
-	case ZEPPELIN:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = true;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_6dof_servo = true;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = true;
-
-		update_trans(); //update transitions, filters and trims
-
-		roll_throttle = user_input.get_roll_stick() + roll_stick_trim;
-		pitch_throttle = user_input.get_pitch_stick(); // pitch_stick_hp;
-		yaw_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
-		Z_throttle = -user_input.get_thr_stick();
-		
-		roll_servo_throttle = user_input.get_roll_stick() + roll_stick_trim;
-		pitch_servo_throttle = user_input.get_pitch_stick(); // pitch_stick_hp;
-		yaw_servo_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
-		
-		X_servo_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
-		Y_servo_throttle = pitch_servo_tr;
-		Z_servo_throttle = 0.0;
-		
-		
-		break;
-
-	default: // should never get here
-		fprintf(stderr, "ERROR in setpoint_manager thread, unknown flight mode\n");
-		break;
-
-	} // end switch(user_input.flight_mode)
-	return 0;
-}
-
 
 /**
 * @brief      updates the setpoint manager, call this before feedback loop
@@ -1280,14 +999,14 @@ int setpoint_t::update(void)
 	}
 
 	// if PAUSED or UNINITIALIZED, do nothing
-	if(rc_get_state()!=RUNNING) return 0;
+	if (rc_get_state() != RUNNING) return 0;
 
 	if (user_input.flight_mode != AUTONOMOUS) waypoint_state_machine.disable_update();
 
 	// shutdown feedback on kill switch
 	if (user_input.requested_arm_mode == DISARMED)
 	{
-		if (fstate.get_arm_state() != DISARMED) 
+		if (fstate.get_arm_state() != DISARMED)
 		{
 			fstate.disarm();
 			last_en_trans = false;
@@ -1331,3 +1050,959 @@ int setpoint_t::cleanup(void)
 	initialized = false;
 	return 0;
 }
+
+
+int setpoint_t::update_setpoints(void)
+{
+	// finally, switch between flight modes and adjust setpoint properly
+	switch (user_input.flight_mode) {
+
+
+	case TEST_BENCH_4DOF:
+		// configure which controllers are enabled
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = false;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		roll_throttle = user_input.get_roll_stick();
+		pitch_throttle = user_input.get_pitch_stick();
+		yaw_throttle = user_input.get_yaw_stick();
+		X_throttle = 0.0;
+		Y_throttle = 0.0;
+		Z_throttle = -user_input.get_thr_stick();
+
+		break;
+
+	case TEST_BENCH_6DOF:
+		// configure which controllers are enabled
+		en_6dof = true;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = false;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		roll_throttle = 0.0;
+		pitch_throttle = 0.0;
+		yaw_throttle = user_input.get_yaw_stick();
+		X_throttle = -user_input.get_pitch_stick();
+		Y_throttle = user_input.get_roll_stick();
+		Z_throttle = -user_input.get_thr_stick();
+		break;
+
+	case TEST_6xSERVOS_DIRECT:
+		// configure which controllers are enabled
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = false;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		roll_throttle = 0.0;
+		pitch_throttle = 0.0;
+		yaw_throttle = 0.0;
+		X_throttle = 0.0;
+		Y_throttle = 0.0;
+		Z_throttle = 0.0;
+
+
+		//servos:
+		roll_servo_throttle = user_input.get_roll_stick();	//map [-1 1] into [0 1]
+		pitch_servo_throttle = user_input.get_pitch_stick();	//map [-1 1] into [0 1]
+		yaw_servo_throttle = user_input.get_yaw_stick();		//map [-1 1] into [0 1]
+		Z_servo_throttle = -user_input.get_thr_stick();
+		break;
+
+	case DIRECT_THROTTLE_6DOF:
+		en_6dof = true;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		X_throttle = -user_input.get_pitch_stick();
+		Y_throttle = user_input.get_roll_stick();
+		Z_throttle = -user_input.get_thr_stick();
+		update_yaw();
+		break;
+
+	case ACRO_Axxxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = false;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		update_rpy_rate();
+		update_th();
+		break;
+
+	case ACRO_Fxxxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = false;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		update_rpy_rate();
+		update_th();
+		break;
+
+	case MANUAL_xAxxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		roll = user_input.get_roll_stick();
+		pitch = user_input.get_pitch_stick();
+		Z_throttle = -user_input.get_thr_stick() / \
+			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+
+		update_yaw();
+		break;
+
+	case MANUAL_xFxxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = true;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		roll = user_input.get_roll_stick();
+		pitch = user_input.get_pitch_stick();
+		Z_throttle = -user_input.get_thr_stick() / \
+			(cos(state_estimate.roll) * cos(state_estimate.pitch));
+
+		update_yaw();
+		break;
+
+	case MANUAL_AAxxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_th();
+		update_yaw();
+		break;
+
+	case MANUAL_FAxxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_th();
+		update_yaw();
+		break;
+
+	case MANUAL_FFxxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = true;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_th();
+		update_yaw();
+		break;	
+
+	case ALT_HOLD_xAxAxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		update_rp();
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_xFxAxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = true;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		update_rp();
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_xFxFxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = true;
+		en_Z_rate_FF = false;
+		en_Z_FF = true;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+		update_rp();
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_AAAxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z_dot();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FAAxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z_dot();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FFAxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = true;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z_dot();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FFFxxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = true;
+		en_Z_rate_FF = true;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z_dot();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_AAAAxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FAAAxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FFAAxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = true;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FFFAxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = true;
+		en_Z_rate_FF = true;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z();
+		update_yaw();
+		break;
+
+	case ALT_HOLD_FFFFxx:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = true;
+		en_rpy_FF = true;
+		en_Z_rate_FF = true;
+		en_Z_FF = true;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		update_rp();
+		update_Z();
+		update_yaw();
+
+		break;
+
+	case POSITION_CONTROL_SSS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = true;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+		break;
+
+	case POSITION_CONTROL_FSS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = true;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+		break;
+
+	case POSITION_CONTROL_FFS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = true;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+		break;
+
+	case POSITION_CONTROL_FFF:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = true;
+		en_XY_pos_ctrl = true;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+		break;
+
+	case EMERGENCY_LAND:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		//Assign Setpoints
+		roll = 0;
+		pitch = 0;
+
+		setpoint_guidance.start_land();  // start landing algorithm
+
+		update_yaw();
+		break;
+
+	case AUTONOMOUS:
+		en_6dof = false;
+		en_rpy_rate_ctrl = true;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = true;
+		en_rpy_trans = false;
+		en_Z_ctrl = true;
+		en_Z_rate_ctrl = true;
+		en_XY_vel_ctrl = true;
+		en_XY_pos_ctrl = true;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = false;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = false;
+
+
+		waypoint_state_machine.enable_update();
+
+		break;
+
+	case ZEPPELIN:
+		en_6dof = false;
+		en_rpy_rate_ctrl = false;
+		en_rpy_rate_trans = false;
+		en_rpy_ctrl = false;
+		en_rpy_trans = true;
+		en_Z_ctrl = false;
+		en_Z_rate_ctrl = false;
+		en_XY_vel_ctrl = false;
+		en_XY_pos_ctrl = false;
+
+		en_rpy_rate_FF = false;
+		en_rpy_FF = false;
+		en_Z_rate_FF = false;
+		en_Z_FF = false;
+		en_XY_vel_FF = false;
+		en_XY_pos_FF = false;
+
+		en_6dof_servo = true;
+		en_rpy_rate_servo_ctrl = false;
+		en_rpy_rate_servo_trans = false;
+		en_rpy_servo_ctrl = false;
+		en_rpy_servo_trans = true;
+
+		update_trans(); //update transitions, filters and trims
+
+		roll_throttle = user_input.get_roll_stick() + roll_stick_trim;
+		pitch_throttle = user_input.get_pitch_stick(); // pitch_stick_hp;
+		yaw_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
+		Z_throttle = -user_input.get_thr_stick();
+		
+		roll_servo_throttle = user_input.get_roll_stick() + roll_stick_trim;
+		pitch_servo_throttle = user_input.get_pitch_stick(); // pitch_stick_hp;
+		yaw_servo_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
+		
+		X_servo_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
+		Y_servo_throttle = pitch_servo_tr;
+		Z_servo_throttle = 0.0;
+		
+		
+		break;
+
+	default: // should never get here
+		fprintf(stderr, "ERROR in setpoint_manager thread, unknown flight mode\n");
+		break;
+
+	} // end switch(user_input.flight_mode)
+	return 0;
+}
+
+
+

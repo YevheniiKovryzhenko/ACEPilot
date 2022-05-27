@@ -1111,7 +1111,7 @@ int setpoint_guidance_t::march(void)
         }
     }
     
-    if (en_XY && setpoint.en_XY_pos_ctrl)
+    if (en_XY && setpoint.is_en_XY_pos_ctrl())
     {
         if (unlikely(march_XY() == -1))
         {

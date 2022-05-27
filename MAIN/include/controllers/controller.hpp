@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/03/2022 (MM/DD/YYYY)
+ * Last Edit:  05/27/2022 (MM/DD/YYYY)
  */
 
 #ifndef CONTROLLER_HPP
@@ -47,82 +47,149 @@ typedef struct PID_vars_set_t
 	float GainN0_pd;
 	float GainN1_pd;
 	float GainD1_pd; //< D0 is always  1
+	float GainFF;
 } PID_vars_set_t;
 
+/* This is a class for a general purpouse SISO filter */
+class feedback_filter_t
+{
+private:
+	bool initialized = false;
+	rc_filter_t gain_pd = RC_FILTER_INITIALIZER; // active PD gain set
+	rc_filter_t gain_i = RC_FILTER_INITIALIZER; // active I gain set
+	rc_filter_t def_gain_pd = RC_FILTER_INITIALIZER; // default PD gain set
+	rc_filter_t def_gain_i = RC_FILTER_INITIALIZER; // default I gain set
+	double gain_FF = 0.0;
+	double def_gain_FF = 0.0;
+public:
+	
+	/**
+	* @brief      Initializes the control system.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int init(rc_filter_t &new_gain_pd, rc_filter_t &new_gain_i, double new_gain_FF);
+
+	/**
+	* @brief      Sets the active PD and I gains for the control system.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int set_gain_set(rc_filter_t &new_gain_pd, rc_filter_t &new_gain_i, double new_gain_FF);
+
+	/**
+	* @brief      Sets the default PD and I gains for the control system.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int set_default_gain_set(rc_filter_t &new_gain_pd, rc_filter_t &new_gain_i, double gain_FF);
+	
+	/**
+	* @brief      Resets the control system to default gains, zeros out inputs/outputs, etc.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int reset(void);
+	
+	/**
+	* @brief      Marches the control system forward with new error and referece inputs.
+	* 
+	* Must be initialized. Error input path goes though PID control system. Reference path is added
+	* directly to the output of the PID control system. Out is the compined output of the system.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int march(double* out, double err_in, double ref_in);
+
+	/**
+	* @brief      Marches the control system forward with new error inputs.
+	*
+	* Must be initialized. Error input path goes though PID control system.
+	* Assumes no feedforward path. Out is the compined output of the system.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int march(double* out, double err_in);
+
+	/**
+	* @brief      Scales the control system gains using the input provided.
+	*
+	* Must be initialized. Input must be between 0 and 1.
+	* Scales the gain based on default gain * the input.
+	* 
+	* @return     0 on success, -1 on failure
+	*/
+	int scale_gains(double scale);
+	
+	/**
+	* @brief      Prefills PD control system input.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int prefill_pd_input(double in);
+
+	/**
+	* @brief      Prefills I control system input.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int prefill_i_input(double in);
+
+	/**
+	* @brief      Prefills PD control system output.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int prefill_pd_out(double out);
+
+	/**
+	* @brief      Prefills I control system output.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int prefill_i_out(double out);
+
+	/**
+	* @brief      Changes the active gains based on new input.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int set_tune_gains(PID_vars_set_t &new_input);
+};
+
+/* This is a class for the actual control system of the vehicle (ESC control) */
 class feedback_controller_t
 {
 private:
-	bool initialized;
+	bool initialized = false;
 
 
 	// for in-flight flight mode switching :
-	bool last_en_rpy_ctrl;
-	bool last_en_rpy_rate_ctrl;
-	bool last_en_Z_ctrl;
-	bool last_en_Zdot_ctrl;
-	bool last_en_XY_ctrl;
-	bool last_en_XYdot_ctrl;
+	bool last_en_rpy_ctrl = false;
+	bool last_en_rpy_rate_ctrl = false;
+	bool last_en_Z_ctrl = false;
+	bool last_en_Zdot_ctrl = false;
+	bool last_en_XY_ctrl = false;
+	bool last_en_XYdot_ctrl = false;
 
 	// filters:
-	rc_filter_t D_roll_rate_pd;
-	rc_filter_t D_roll_rate_i;
-	rc_filter_t D_pitch_rate_pd;
-	rc_filter_t D_pitch_rate_i;
-	rc_filter_t D_yaw_rate_pd;
-	rc_filter_t D_yaw_rate_i;
+	feedback_filter_t roll_dot;
+	feedback_filter_t pitch_dot;
+	feedback_filter_t yaw_dot;
 
-	rc_filter_t D_roll_rate_pd_orig;
-	rc_filter_t D_roll_rate_i_orig;
-	rc_filter_t D_pitch_rate_pd_orig;
-	rc_filter_t D_pitch_rate_i_orig;
-	rc_filter_t D_yaw_rate_pd_orig;
-	rc_filter_t D_yaw_rate_i_orig;
+	feedback_filter_t roll;
+	feedback_filter_t pitch;
+	feedback_filter_t yaw;
 
-	rc_filter_t D_roll_pd;
-	rc_filter_t D_pitch_pd;
-	rc_filter_t D_yaw_pd;
-	rc_filter_t D_roll_i;
-	rc_filter_t D_pitch_i;
-	rc_filter_t D_yaw_i;
+	feedback_filter_t x_dot;
+	feedback_filter_t y_dot;
+	feedback_filter_t z_dot;
 
-	rc_filter_t D_roll_pd_orig;
-	rc_filter_t D_pitch_pd_orig;
-	rc_filter_t D_yaw_pd_orig;
-	rc_filter_t D_roll_i_orig;
-	rc_filter_t D_pitch_i_orig;
-	rc_filter_t D_yaw_i_orig;
-	
-	rc_filter_t D_Xdot_pd;
-	rc_filter_t D_Xdot_i;
-	rc_filter_t D_Ydot_pd;
-	rc_filter_t D_Ydot_i;
-	rc_filter_t D_Zdot_pd;
-	rc_filter_t D_Zdot_i;
+	feedback_filter_t x;
+	feedback_filter_t y;
+	feedback_filter_t z;
 
-	rc_filter_t D_Xdot_pd_orig;
-	rc_filter_t D_Xdot_i_orig;
-	rc_filter_t D_Ydot_pd_orig;
-	rc_filter_t D_Ydot_i_orig;
-	rc_filter_t D_Zdot_pd_orig;
-	rc_filter_t D_Zdot_i_orig;
-
-	rc_filter_t D_X_pd;
-	rc_filter_t D_Y_pd;
-	rc_filter_t D_X_i;
-	rc_filter_t D_Y_i;
-
-	rc_filter_t D_X_pd_orig;
-	rc_filter_t D_Y_pd_orig;
-	rc_filter_t D_X_i_orig;
-	rc_filter_t D_Y_i_orig;
-
-	rc_filter_t D_Z_pd;
-	rc_filter_t D_Z_i;
-
-	rc_filter_t D_Z_pd_orig;
-	rc_filter_t D_Z_i_orig;
-
-	bool tune_status_fl; //indicates if gains have been updated last time 
+	bool tune_status_fl = false; //indicates if gains have been updated last time 
 	PID_vars_set_t received_gain_set;
 
 	int rpy_init(void);

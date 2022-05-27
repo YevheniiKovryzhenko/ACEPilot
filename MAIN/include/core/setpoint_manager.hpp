@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/18/2020 (MM/DD/YYYY)
+ * Last Edit:  05/27/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -57,12 +57,11 @@
 #ifndef SETPOINT_MANAGER_H
 #define SETPOINT_MANAGER_H
 
-	
 /**
-	* Setpoint for the feedback controllers. This is written by setpoint_manager
-	* and primarily read in by feedback_controller. May also be read by printf_manager
-	* and log_manager for telemetry
-	*/
+* Setpoint for the feedback controllers. This is written by setpoint_manager
+* and primarily read in by feedback_controller. May also be read by printf_manager
+* and log_manager for telemetry
+*/
 class setpoint_t {
 private:
 	/** @name general */
@@ -117,8 +116,8 @@ private:
 	void update_rpy_rate(void);
 	void update_yaw(void);
 	void update_Z(void);
+	void update_Z_dot(void);
 	void update_XY_pos(void);
-
 	void update_rpy_servo(void);
 public:
 	/** @name general */
@@ -150,6 +149,7 @@ public:
 	/** @name attitude rate setpoints */
 	///< @{
 	bool en_rpy_rate_ctrl;			///< enable the roll pitch yaw rate controllers
+	bool en_rpy_rate_FF;			///< enables roll pitch yaw rate feedforward control
 	double roll_dot;				///< roll angle rate (rad/s)
 	double pitch_dot;				///< pitch angle rate (rad/s)
 	double yaw_dot;					///< yaw angle rate (rad/s)
@@ -194,12 +194,13 @@ public:
 	/** @name attitude setpoints */
 	///< @{
 	bool en_rpy_ctrl;				///< enable the roll pitch yaw controllers
+	bool en_rpy_FF;					///< enables roll pitch yaw feedforward control
 	double roll;					///< roll angle (positive tip right) (rad)
 	double pitch;					///< pitch angle (positive tip back) (rad)
 	double yaw;						///< glabal yaw angle, positive left
 	double roll_ff;					///< feedforward roll angle (rad)
 	double pitch_ff;				///< feedforward pitch angle (rad)
-	//double yaw_ff;					///< feedforward yaw angle (rad)
+	double yaw_ff;					///< feedforward yaw angle (rad)
 	///< @}
 
 	/** @name attitude setpoint transition rates */
@@ -221,6 +222,7 @@ public:
 	double yaw_servo;				///< glabal yaw angle, positive left
 	double roll_ff_servo;			///< feedforward roll angle (rad)
 	double pitch_ff_servo;			///< feedforward pitch angle (rad)
+	double yaw_ff_servo;
 	///< @}
 
 	/** @name attitude servo setpoint transition rates */
@@ -239,16 +241,19 @@ public:
 	double X_ddot;
 	double Y_ddot;
 	double Z_ddot;
-	//double X_ddot_ff;
-	//double Y_ddot_ff;
-	//double Z_ddot_ff;
+	double X_ddot_ff;
+	double Y_ddot_ff;
+	double Z_ddot_ff;
 	///< @}
 
 	/** @name altitude */
 	///< @{
 	bool en_Z_ctrl;			///< enable altitude feedback.
 	bool en_Z_rate_ctrl;	///< enable altitude rate feedback.
+	bool en_Z_rate_FF;		///< enables altitude rate feedforward control
+	bool en_Z_FF;			///< enables altitude feedforward control
 	double Z;				///< vertical distance from where controller was armed
+	double Z_ff;			///< vertical distance feedforward
 	double Z_dot;			///< vertical velocity m/s^2, remember Z points down
 	double Z_dot_ff;		///< feedforward vertical velocity (m/s)
 	double Z_throttle_0;	/// hover throttle
@@ -256,6 +261,7 @@ public:
 	/** @name horizontal velocity setpoint */
 	///< @{
 	bool en_XY_vel_ctrl;
+	bool en_XY_vel_FF;		///< enables XY velocity feedforward control
 	double X_dot;
 	double Y_dot;
 	double X_dot_ff;		///< feedforward x velocity (m/s)
@@ -265,10 +271,11 @@ public:
 	/** @name horizontal position setpoint */
 	///< @{
 	bool en_XY_pos_ctrl;
+	bool en_XY_pos_FF;		///< enables XY position feedforward control
 	double X;
 	double Y;
-	//double X_ff;		///< feedforward x position (m)
-	//double Y_ff;		///< feedforward y position (m)
+	double X_ff;		///< feedforward x position (m)
+	double Y_ff;		///< feedforward y position (m)
 	///< @}
 	/** @name horizontal position setpoint transition rates */
 	///< @{
@@ -300,6 +307,26 @@ public:
 	bool is_initialized(void);
 
 	/**
+	* @brief      Functions to retreve inernal boolean vals.
+	*
+	* @return     true or false
+	*/
+	bool is_en_rpy_rate_ctrl(void);
+	bool is_en_rpy_rate_FF(void);
+	bool is_en_rpy_ctrl(void);
+	bool is_en_rpy_FF(void);
+	bool is_en_Z_ctrl(void);
+	bool is_en_Z_FF(void);
+	bool is_en_Z_rate_ctrl(void);
+	bool is_en_Z_rate_FF(void);
+	bool is_en_XY_vel_ctrl(void);
+	bool is_en_XY_vel_FF(void);
+	bool is_en_XY_pos_ctrl(void);
+	bool is_en_XY_pos_FF(void);
+
+
+
+	/**
 	* @brief      Set setpoints to input value.
 	*
 	* @return     0 on success, -1 on failure
@@ -316,7 +343,14 @@ public:
 	int set_yaw(double val);
 	int set_roll_ff(double val);
 	int set_pitch_ff(double val);
-	//int set_yaw_ff(double val);
+	int set_yaw_ff(double val);
+
+	int set_X_ddot(double val);
+	int set_Y_ddot(double val);
+	int set_Z_ddot(double val);
+	int set_X_ddot_ff(double val);
+	int set_Y_ddot_ff(double val);
+	int set_Z_ddot_ff(double val);
 
 	int set_X_dot(double val);
 	int set_Y_dot(double val);
@@ -352,10 +386,20 @@ public:
 	int reset_yaw(void);
 	int reset_roll_ff(void);
 	int reset_pitch_ff(void);
-	//int reset_yaw_ff(void);
+	int reset_yaw_ff(void);
 	int reset_att(void);
 	int reset_att_ff(void);
 	int reset_att_all(void);
+
+	int reset_X_ddot(void);
+	int reset_Y_ddot(void);
+	int reset_Z_ddot(void);
+	int reset_X_ddot_ff(void);
+	int reset_Y_ddot_ff(void);
+	int reset_Z_ddot_ff(void);
+	int reset_pos_ddot(void);
+	int reset_pos_ddot_ff(void);
+	int reset_pos_ddot_all(void);
 
 	int reset_X_dot(void);
 	int reset_Y_dot(void);
@@ -370,11 +414,11 @@ public:
 	int reset_X(void);
 	int reset_Y(void);
 	int reset_Z(void);
-	//int reset_X_ff(void);
-	//int reset_Y_ff(void);
-	//int reset_Z_ff(void);
+	int reset_X_ff(void);
+	int reset_Y_ff(void);
+	int reset_Z_ff(void);
 	int reset_pos(void);
-	//int reset_pos_ff(void);
+	int reset_pos_ff(void);
 	int reset_pos_all(void);
 
 	int reset_all(void);

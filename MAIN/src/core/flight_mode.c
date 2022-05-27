@@ -4,7 +4,7 @@
 
 bool mode_needs_mocap(flight_mode_t mode)
 {
-    if(mode == AUTONOMOUS || mode == ALT_HOLD_SS || mode == ALT_HOLD_FS || mode == ALT_HOLD_FF ||\
+    if(mode == AUTONOMOUS ||\
         mode == POSITION_CONTROL_SSS || mode == POSITION_CONTROL_FSS || mode == POSITION_CONTROL_FFS\
         || mode == POSITION_CONTROL_FFF)
     {

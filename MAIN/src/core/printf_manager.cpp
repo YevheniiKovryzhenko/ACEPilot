@@ -301,26 +301,73 @@ int print_flight_mode(flight_mode_t mode){
 	case TEST_6xSERVOS_DIRECT:
 		printf("%sTEST_6xSERVOS_DIRECT  %s", KYEL, KNRM);
 		return 0;
-	case ACRO:
-		printf("%sACRO                  %s", KCYN, KNRM);
-		return 0;
-	case MANUAL_S:
-		printf("%sMANUAL_S              %s",KCYN,KNRM);
-		return 0;
-	case MANUAL_F:
-		printf("%sMANUAL_F              %s", KCYN, KNRM);
-		return 0;
 	case DIRECT_THROTTLE_6DOF:
-		printf("%sDIR_THRTLE_6DOF       %s",KCYN,KNRM);
+		printf("%sDIR_THRTLE_6DOF       %s", KCYN, KNRM);
 		return 0;
-	case ALT_HOLD_SS:
-		printf("%sALT_HOLD_SS           %s",KBLU,KNRM);
+	case ACRO_Axxxxx:
+		printf("%sACRO_Axxxxx           %s", KCYN, KNRM);
 		return 0;
-	case ALT_HOLD_FS:
-		printf("%sALT_HOLD_FS           %s", KBLU, KNRM);
+	case ACRO_Fxxxxx:
+		printf("%sACRO_Fxxxxx           %s", KCYN, KNRM);
 		return 0;
-	case ALT_HOLD_FF:
-		printf("%sALT_HOLD_FF           %s", KBLU, KNRM);
+	case MANUAL_xAxxxx:
+		printf("%sMANUAL_xAxxxx         %s",KCYN,KNRM);
+		return 0;
+	case MANUAL_xFxxxx:
+		printf("%sMANUAL_xFxxxx         %s", KCYN, KNRM);
+	case MANUAL_AAxxxx:
+		printf("%sMANUAL_AAxxxx         %s", KCYN, KNRM);
+	case MANUAL_FAxxxx:
+		printf("%sMANUAL_FAxxxx         %s", KCYN, KNRM);
+	case MANUAL_FFxxxx:
+		printf("%sMANUAL_FFxxxx         %s", KCYN, KNRM);
+	case ALT_HOLD_xAxAxx:
+		printf("%sALT_HOLD_xAxAxx       %s",KBLU,KNRM);
+		return 0;
+	case ALT_HOLD_xFxAxx:
+		printf("%sALT_HOLD_xFxAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_xFxFxx:
+		printf("%sALT_HOLD_xFxFxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_AAxAxx:
+		printf("%sALT_HOLD_AAxAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FAxAxx:
+		printf("%sALT_HOLD_FAxAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FFxAxx:
+		printf("%sALT_HOLD_FFxAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FFxFxx:
+		printf("%sALT_HOLD_FFxFxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_AAAxxx:
+		printf("%sALT_HOLD_AAAxxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FAAxxx:
+		printf("%sALT_HOLD_FAAxxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FFAxxx:
+		printf("%sALT_HOLD_FFAxxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FFFxxx:
+		printf("%sALT_HOLD_FFFxxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_AAAAxx:
+		printf("%sALT_HOLD_AAAAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FAAAxx:
+		printf("%sALT_HOLD_FAAAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FFAAxx:
+		printf("%sALT_HOLD_FFAAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FFFAxx:
+		printf("%sALT_HOLD_FFFAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FFFFxx:
+		printf("%sALT_HOLD_FFFFxx       %s", KBLU, KNRM);
 		return 0;
 	case POSITION_CONTROL_SSS:
 		printf("%sPOSITION_CONTROL_SSS  %s", KBLU, KNRM);

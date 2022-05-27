@@ -300,26 +300,68 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	else if (strcmp(tmp_str, "TEST_6xSERVOS_DIRECT") == 0) {
 		*mode = TEST_6xSERVOS_DIRECT;
 	}
-	else if (strcmp(tmp_str, "ACRO") == 0) {
-		*mode = ACRO;
-	}
-	else if(strcmp(tmp_str, "MANUAL_S")==0){
-		*mode = MANUAL_S;
-	}
-	else if (strcmp(tmp_str, "MANUAL_F") == 0) {
-		*mode = MANUAL_F;
-	}
-	else if(strcmp(tmp_str, "DIRECT_THROTTLE_6DOF")==0){
+	else if (strcmp(tmp_str, "DIRECT_THROTTLE_6DOF") == 0) {
 		*mode = DIRECT_THROTTLE_6DOF;
 	}
-	else if(strcmp(tmp_str, "ALT_HOLD_SS")==0){
-		*mode = ALT_HOLD_SS;
+	else if (strcmp(tmp_str, "ACRO_Axxxxx") == 0) {
+		*mode = ACRO_Axxxxx;
 	}
-	else if (strcmp(tmp_str, "ALT_HOLD_FS") == 0) {
-		*mode = ALT_HOLD_FS;
+	else if (strcmp(tmp_str, "ACRO_Fxxxxx") == 0) {
+		*mode = ACRO_Fxxxxx;
 	}
-	else if (strcmp(tmp_str, "ALT_HOLD_FF") == 0) {
-		*mode = ALT_HOLD_FF;
+	else if(strcmp(tmp_str, "MANUAL_xAxxxx")==0){
+		*mode = MANUAL_xAxxxx;
+	}
+	else if (strcmp(tmp_str, "MANUAL_xFxxxx") == 0) {
+		*mode = MANUAL_xFxxxx;
+	}
+	else if (strcmp(tmp_str, "MANUAL_AAxxxx") == 0) {
+		*mode = MANUAL_AAxxxx;
+	}
+	else if (strcmp(tmp_str, "MANUAL_FAxxxx") == 0) {
+		*mode = MANUAL_FAxxxx;
+	}
+	else if (strcmp(tmp_str, "MANUAL_FFxxxx") == 0) {
+		*mode = MANUAL_FFxxxx;
+	}	
+	else if(strcmp(tmp_str, "ALT_HOLD_AAAxxx")==0){
+		*mode = ALT_HOLD_AAAxxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FAAxxx") == 0) {
+		*mode = ALT_HOLD_FAAxxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FFAxxx") == 0) {
+		*mode = ALT_HOLD_FFAxxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FFFxxx") == 0) {
+		*mode = ALT_HOLD_FFFxxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_AAxAxx") == 0) {
+		*mode = ALT_HOLD_AAxAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FAxAxx") == 0) {
+		*mode = ALT_HOLD_FAxAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FFxAxx") == 0) {
+		*mode = ALT_HOLD_FFxAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FFxFxx") == 0) {
+		*mode = ALT_HOLD_FFxFxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_AAAAxx") == 0) {
+		*mode = ALT_HOLD_AAAAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FAAAxx") == 0) {
+		*mode = ALT_HOLD_FAAAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FFAAxx") == 0) {
+		*mode = ALT_HOLD_FFAAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FFFAxx") == 0) {
+		*mode = ALT_HOLD_FFFAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FFFFxx") == 0) {
+		*mode = ALT_HOLD_FFFFxx;
 	}
 	else if (strcmp(tmp_str, "POSITION_CONTROL_SSS") == 0) {
 		*mode = POSITION_CONTROL_SSS;
@@ -865,8 +907,10 @@ int settings_load_from_file(char* path)
 	// FEEDBACK CONTROLLERS
 	PARSE_CONTROLLER(roll_rate_controller_pd);
 	PARSE_CONTROLLER(roll_rate_controller_i);
+	PARSE_DOUBLE_MIN_MAX(roll_rate_controller_FF, 0.0, 1000.0);
 	PARSE_CONTROLLER(pitch_rate_controller_pd);
 	PARSE_CONTROLLER(pitch_rate_controller_i);
+	PARSE_DOUBLE_MIN_MAX(pitch_rate_controller_FF, 0.0, 1000.0);
 	PARSE_CONTROLLER(yaw_rate_controller_pd);
 	PARSE_CONTROLLER(yaw_rate_controller_i);
 
@@ -876,21 +920,30 @@ int settings_load_from_file(char* path)
 	PARSE_CONTROLLER(roll_controller_i);
 	PARSE_CONTROLLER(pitch_controller_i);
 	PARSE_CONTROLLER(yaw_controller_i);
+	PARSE_DOUBLE_MIN_MAX(roll_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(pitch_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(yaw_controller_FF, 0.0, 1000.0);
 
 	PARSE_CONTROLLER(altitude_rate_controller_pd);
 	PARSE_CONTROLLER(altitude_rate_controller_i);
+	PARSE_DOUBLE_MIN_MAX(altitude_rate_controller_FF, 0.0, 1000.0);
 	PARSE_CONTROLLER(altitude_controller_pd);
 	PARSE_CONTROLLER(altitude_controller_i);
+	PARSE_DOUBLE_MIN_MAX(altitude_controller_FF, 0.0, 1000.0);
 
 	PARSE_CONTROLLER(horiz_vel_ctrl_pd_X);
 	PARSE_CONTROLLER(horiz_vel_ctrl_i_X);
+	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_FF, 0.0, 1000.0);
 	PARSE_CONTROLLER(horiz_vel_ctrl_pd_Y);
 	PARSE_CONTROLLER(horiz_vel_ctrl_i_Y);
+	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_FF, 0.0, 1000.0);
 
 	PARSE_CONTROLLER(horiz_pos_ctrl_X_pd);
 	PARSE_CONTROLLER(horiz_pos_ctrl_Y_pd);
 	PARSE_CONTROLLER(horiz_pos_ctrl_X_i);
 	PARSE_CONTROLLER(horiz_pos_ctrl_Y_i);
+	PARSE_DOUBLE_MIN_MAX(horiz_pos_X_ctrl_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(horiz_pos_Y_ctrl_FF, 0.0, 1000.0);
 
 	//REMOTE TUNING
 	PARSE_BOOL(allow_remote_tuning);

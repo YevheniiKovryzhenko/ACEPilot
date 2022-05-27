@@ -40,9 +40,9 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "ACRO",
-	"flight_mode_2": "MANUAL_F",
-	"flight_mode_3": "ALT_HOLD_FF",
+	"flight_mode_1": "ACRO_Fxxxxx",
+	"flight_mode_2": "MANUAL_FFxxxx",
+	"flight_mode_3": "ALT_HOLD_FFFxxx",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -135,6 +135,7 @@
 		"ki": 0.058091,
 		"imax": 0.10
 	},
+	"roll_rate_controller_FF": 0.5,
 
 
 	"pitch_rate_controller_pd": {
@@ -150,6 +151,7 @@
 		"ki": 0.058091,
 		"imax": 0.10
 	},
+	"pitch_rate_controller_FF": 0.5,
 
 
 	"yaw_rate_controller_pd": {
@@ -165,6 +167,7 @@
 		"ki": 0.05,
 		"imax": 0.10
 	},
+	"yaw_rate_controller_FF": 0.5,
 
 
 	"roll_controller_pd": {
@@ -180,6 +183,7 @@
 		"ki": 0.13071,
 		"imax": 0.10
 	},
+	"roll_controller_FF": 1.0,
 
 
 	"pitch_controller_pd": {
@@ -195,6 +199,7 @@
 		"ki": 0.13071,
 		"imax": 0.10
 	},
+	"pitch_controller_FF": 1.0,
 
 
 	"yaw_controller_pd": {
@@ -210,6 +215,7 @@
 		"ki": 0.0,
 		"imax": 0.10
 	},
+	"yaw_controller_FF": 1.0,
 
 
 	"altitude_rate_controller_pd": {
@@ -225,6 +231,7 @@
 		"ki": 0.05809300,
 		"imax": 3.00
 	},
+	"altitude_rate_controller_FF": 1.0,
 
 
 	"altitude_controller_pd": {
@@ -240,6 +247,7 @@
 		"ki": 0.01342824,
 		"imax": 1.00
 	},
+	"altitude_controller_FF": 1.0,
 
 
 	"horiz_vel_ctrl_pd_X": {
@@ -255,6 +263,7 @@
 		"ki": 0.02074690,
 		"imax": 1.00
 	},
+	"horiz_vel_X_controller_FF": 1.0,
 
 	"horiz_vel_ctrl_pd_Y": {
 		"CT_or_DT": "CT",
@@ -269,7 +278,7 @@
 		"ki": 0.02033200,
 		"imax": 1.00
 	},
-
+	"horiz_vel_Y_controller_FF": 1.0,
 
 	"horiz_pos_ctrl_X_pd": {
 		"CT_or_DT": "CT",
@@ -284,6 +293,7 @@
 		"ki": 0.01069185,
 		"imax": 3.0
 	},
+	"horiz_pos_X_ctrl_FF": 1.0,
 
 	"horiz_pos_ctrl_Y_pd": {
 		"CT_or_DT": "CT",
@@ -297,5 +307,6 @@
 		"TF_or_PID": "I",
 		"ki": 0.01029596,
 		"imax": 3.0
-	}
+	},
+	"horiz_pos_Y_ctrl_FF": 1.0
 }
