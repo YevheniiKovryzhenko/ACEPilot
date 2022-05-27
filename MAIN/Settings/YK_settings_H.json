@@ -32,7 +32,7 @@
 	"mocap_dropout_timeout_ms": 300.0,
 	"allow_remote_tuning": true,
 
-	"serial_port_1": "/dev/ttyS1",
+	"serial_port_1": "/dev/ttyS5",
 	"serial_baud_1": 230400,
 	"serial_port_2": "/dev/ttyS6",
 	"serial_baud_2": 230400,
@@ -40,9 +40,9 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "MANUAL_F",
-	"flight_mode_2": "POSITION_CONTROL_FFF",
-	"flight_mode_3": "AUTONOMOUS",
+	"flight_mode_1": "ACRO",
+	"flight_mode_2": "MANUAL_F",
+	"flight_mode_3": "ALT_HOLD_FF",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -76,7 +76,7 @@
 	"printf_rev": false,
 	"printf_counter": false,
 
-	"enable_logging": true,
+	"enable_logging": false,
 	"log_every_n_entry": 1,
 	"log_only_while_armed": true,
 	"log_sensors": true,
