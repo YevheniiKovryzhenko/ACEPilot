@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/13/2020 (MM/DD/YYYY)
+ * Last Edit:  05/28/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Functions to read the waypoint file and handle the path
@@ -330,11 +330,11 @@ int path_t::start_waypoint_counter_NH(setpoint_t &init_setpoint)
         last_en = true;
         time_ns = rc_nanos_since_boot();
 
-        waypoints_init.x = init_setpoint.X;
-        waypoints_init.y = init_setpoint.Y;
-        waypoints_init.z = init_setpoint.Z;
-        waypoints_init.roll = init_setpoint.roll;
-        waypoints_init.pitch = init_setpoint.pitch;
+        waypoints_init.x = init_setpoint.XY.x.value.get();
+        waypoints_init.y = init_setpoint.XY.y.value.get();
+        waypoints_init.z = init_setpoint.Z.value.get();
+        waypoints_init.roll = init_setpoint.ATT.x.value.get();
+        waypoints_init.pitch = init_setpoint.ATT.y.value.get();
         /*
         if (fabs(init_setpoint.yaw - state_estimate.continuous_yaw) >= M_PI / 18.0)
         {
@@ -342,7 +342,7 @@ int path_t::start_waypoint_counter_NH(setpoint_t &init_setpoint)
             printf("\nWARNING: High yaw error, overwriting setpoint");
         }
         */
-        waypoints_init.yaw = init_setpoint.yaw;
+        waypoints_init.yaw = init_setpoint.ATT.z.value.get();
 
         // read new waypoint from file:
         if (unlikely(read_waypoint_NH(fd_NH) == -1))
@@ -377,11 +377,11 @@ int path_t::start_waypoint_counter(setpoint_t& init_setpoint)
         last_en = true;
         time_ns = rc_nanos_since_boot();
 
-        waypoints_init.x = init_setpoint.X;
-        waypoints_init.y = init_setpoint.Y;
-        waypoints_init.z = init_setpoint.Z;
-        waypoints_init.roll = init_setpoint.roll;
-        waypoints_init.pitch = init_setpoint.pitch;
+        waypoints_init.x = init_setpoint.XY.x.value.get();;
+        waypoints_init.y = init_setpoint.XY.y.value.get();;
+        waypoints_init.z = init_setpoint.Z.value.get();
+        waypoints_init.roll = init_setpoint.ATT.x.value.get();;
+        waypoints_init.pitch = init_setpoint.ATT.y.value.get();;
         /*
         if (fabs(init_setpoint.yaw - state_estimate.continuous_yaw) >= M_PI / 18.0)
         {
@@ -389,7 +389,7 @@ int path_t::start_waypoint_counter(setpoint_t& init_setpoint)
             printf("\nWARNING: High yaw error, overwriting setpoint");
         }
         */
-        waypoints_init.yaw = init_setpoint.yaw;
+        waypoints_init.yaw = init_setpoint.ATT.z.value.get();;
         en = true;
     }
 
@@ -448,12 +448,12 @@ int path_t::update_setpoint_from_waypoint(setpoint_t& cur_setpoint, state_machin
             // Set the desired x, y, and z if allowed
             if (state_machine.is_en())
             {
-                cur_setpoint.X = waypoints_init.x + waypoints[cur_waypoint_num].x;
-                cur_setpoint.Y = waypoints_init.y + waypoints[cur_waypoint_num].y;
-                cur_setpoint.Z = waypoints_init.z + waypoints[cur_waypoint_num].z;
-                cur_setpoint.roll = waypoints_init.roll + waypoints[cur_waypoint_num].roll;
-                cur_setpoint.pitch = waypoints_init.pitch + waypoints[cur_waypoint_num].pitch;
-                cur_setpoint.yaw = waypoints_init.yaw + waypoints[cur_waypoint_num].yaw;
+                cur_setpoint.XY.x.value.set(waypoints_init.x + waypoints[cur_waypoint_num].x);
+                cur_setpoint.XY.y.value.set(waypoints_init.y + waypoints[cur_waypoint_num].y);
+                cur_setpoint.Z.value.set(waypoints_init.z + waypoints[cur_waypoint_num].z);
+                cur_setpoint.ATT.x.value.set(waypoints_init.roll + waypoints[cur_waypoint_num].roll);
+                cur_setpoint.ATT.y.value.set(waypoints_init.pitch + waypoints[cur_waypoint_num].pitch);
+                cur_setpoint.ATT.z.value.set(waypoints_init.yaw + waypoints[cur_waypoint_num].yaw);
             }
 
         }
@@ -516,12 +516,12 @@ int path_t::update_setpoint_from_waypoint_NH(setpoint_t& cur_setpoint, state_mac
             // Set the desired x, y, and z if allowed
             if (state_machine.is_en())
             {
-                cur_setpoint.X = waypoints_init.x + waypoint.x;
-                cur_setpoint.Y = waypoints_init.y + waypoint.y;
-                cur_setpoint.Z = waypoints_init.z + waypoint.z;
-                cur_setpoint.roll = waypoints_init.roll + waypoint.roll;
-                cur_setpoint.pitch = waypoints_init.pitch + waypoint.pitch;
-                cur_setpoint.yaw = waypoints_init.yaw + waypoint.yaw;
+                cur_setpoint.XY.x.value.set(waypoints_init.x + waypoint.x);
+                cur_setpoint.XY.y.value.set(waypoints_init.y + waypoint.y);
+                cur_setpoint.Z.value.set(waypoints_init.z + waypoint.z);
+                cur_setpoint.ATT.x.value.set(waypoints_init.roll + waypoint.roll);
+                cur_setpoint.ATT.y.value.set(waypoints_init.pitch + waypoint.pitch);
+                cur_setpoint.ATT.z.value.set(waypoints_init.yaw + waypoint.yaw);
             }
             // read new waypoint from file:
             read_waypoint_NH(fd_NH);

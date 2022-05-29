@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/20/2022 (MM/DD/YYYY)
+ * Last Edit:  05/28/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -193,7 +193,7 @@ int state_machine_t::march(void)
 {
     if (en_update)
     {
-        transition(user_input.flight_mode, (sm_alphabet)GS_RX.sm_event);
+        transition(user_input.get_flight_mode(), (sm_alphabet)GS_RX.sm_event);
     }
     return 0;
 }
@@ -214,7 +214,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
                 case ENTER_PARKED:
                     if (flight_mode == AUTONOMOUS)
                     {
-                        setpoint.yaw = state_estimate.continuous_yaw;
+                        setpoint.ATT.z.reset();
                     }
                     if (setpoint_guidance.is_XY_en()) setpoint_guidance.reset_XY();
                     if (setpoint_guidance.is_Z_en()) setpoint_guidance.reset_Z();

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/27/2022 (MM/DD/YYYY)
+ * Last Edit:  05/28/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -64,7 +64,7 @@
 
 #include "setpoint_manager.hpp"
 #include "benchmark.h"
- // preposessor macros
+// preposessor macros
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
 
@@ -74,6 +74,57 @@
 setpoint_t setpoint{}; // extern variable in setpoint_manager.hpp
 
 /***********************************/
+int setpoint_t::init_all_filters(void)
+{
+	if (unlikely(POS_throttle.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize POS_throttle setpoints filters\n");
+		return -1;
+	}
+	if (unlikely(ATT_throttle.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize ATT_throttle setpoints filters\n");
+		return -1;
+	}
+	if (unlikely(ATT_dot.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize ATT_dot setpoints filters\n");
+		return -1;
+	}
+	if (unlikely(ATT.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize ATT setpoints filters\n");
+		return -1;
+	}
+	if (unlikely(XYZ_ddot.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize XYZ_ddot setpoints filters\n");
+		return -1;
+	}
+	if (unlikely(Z.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize Z setpoints filters\n");
+		return -1;
+	}
+	if (unlikely(Z_dot.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize Z_dot setpoints filters\n");
+		return -1;
+	}
+	if (unlikely(XY_dot.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize XY_dot setpoints filters\n");
+		return -1;
+	}
+	if (unlikely(XY.init_filters() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize XY setpoints filters\n");
+		return -1;
+	}
+	return 0;
+}
+
+/*
 int setpoint_t::init_trans(void)
 {
 	trans_stick_int = RC_FILTER_INITIALIZER;
@@ -203,10 +254,10 @@ int setpoint_t::update_trans(void)
 	//update_stick_filter_lp(); //use low-pass to filter out the high frequency changes
 	//update_stick_filter_hp(); //use high-pass to get only constant signals
 	//update_stick_trim(roll_stick_lp, roll_stick_lp, yaw_stick_lp); //use filtered values for trim
-	update_stick_trim(0.05 * user_input.get_roll_stick(), 0.1 * user_input.get_pitch_stick(), 0.05 * user_input.get_yaw_stick());
+	update_stick_trim(0.05 * user_input.roll.get(), 0.1 * user_input.pitch.get(), 0.05 * user_input.yaw.get());
 
 	double manual_trim = -rc_filter_march(&trans_stick_int,\
-		0.6 * (user_input.get_mode_stick() - 0.5) * 2.0);
+		0.6 * (user_input.requested_flight_mode.get() - 0.5) * 2.0);
 	roll_tr = manual_trim;
 	pitch_tr = manual_trim;
 	yaw_tr =  manual_trim;
@@ -253,9 +304,9 @@ int setpoint_t::update_stick_filter_lp(void)
 		rc_filter_reset(&yaw_stick_lpf);
 	}
 
-	roll_stick_lp = rc_filter_march(&roll_stick_lpf, user_input.get_roll_stick());
-	pitch_stick_lp = rc_filter_march(&pitch_stick_lpf, user_input.get_pitch_stick());
-	yaw_stick_lp = rc_filter_march(&yaw_stick_lpf, user_input.get_yaw_stick());
+	roll_stick_lp = rc_filter_march(&roll_stick_lpf, user_input.roll.get());
+	pitch_stick_lp = rc_filter_march(&pitch_stick_lpf, user_input.pitch.get());
+	yaw_stick_lp = rc_filter_march(&yaw_stick_lpf, user_input.yaw.get());
 
 	last_en_stick_filter_lp = true;
 	return 0;
@@ -274,14 +325,14 @@ int setpoint_t::update_stick_filter_hp(void)
 		rc_filter_reset(&yaw_stick_hpf);
 	}
 
-	roll_stick_hp = rc_filter_march(&roll_stick_hpf, user_input.get_roll_stick());
-	pitch_stick_hp = rc_filter_march(&pitch_stick_hpf, user_input.get_pitch_stick());
-	yaw_stick_hp = rc_filter_march(&yaw_stick_hpf, user_input.get_yaw_stick());
+	roll_stick_hp = rc_filter_march(&roll_stick_hpf, user_input.roll.get());
+	pitch_stick_hp = rc_filter_march(&pitch_stick_hpf, user_input.pitch.get());
+	yaw_stick_hp = rc_filter_march(&yaw_stick_hpf, user_input.yaw.get());
 
 	last_en_stick_filter_hp = true;
 	return 0;
 }
-
+*/
 
 /* Functions which should be called internally to update setpoints based on radio input:*/
 void setpoint_t::update_yaw(void)
@@ -292,47 +343,47 @@ void setpoint_t::update_yaw(void)
 		state_estimate.X_dot * state_estimate.X_dot\
 		+ state_estimate.Y_dot * state_estimate.Y_dot\
 		+ state_estimate.Z_dot * state_estimate.Z_dot);
-	if(user_input.get_thr_stick() < 0.05 && vel_mag < 0.1){
-		yaw = state_estimate.continuous_yaw;
-		yaw_dot = 0.0;
+	if(user_input.throttle.get() < 0.05 && vel_mag < 0.1){
+		ATT.z.value.set(state_estimate.continuous_yaw);
 		return;
 	}
-	// otherwise, scale yaw_rate by max yaw rate in rad/s
+	// otherwise, scale yaw by max yaw rate in rad/s
 	// and move yaw setpoint
-	yaw_dot = user_input.get_yaw_stick() * MAX_YAW_RATE;
-	yaw += yaw_dot*DT;
+	double tmp_yaw_dot = user_input.yaw.get() * MAX_YAW_RATE;
+	ATT.z.value.set(ATT.z.value.get() + tmp_yaw_dot * DT);
 	return;
 }
 
 void setpoint_t::update_rp(void)
 {
-	roll = user_input.get_roll_stick();
-	pitch = user_input.get_pitch_stick();
+	ATT.x.set(user_input.roll.get());
+	ATT.y.set(user_input.pitch.get());
 	
 	return;
 }
 
 void setpoint_t::update_th(void)
 {
-	Z_throttle = -user_input.get_thr_stick() / \
-		(cos(state_estimate.roll) * cos(state_estimate.pitch));
+	POS_throttle.z.value.set(-user_input.throttle.get() / \
+		(cos(state_estimate.roll) * cos(state_estimate.pitch)));
+
 	return;
 }
 
 void setpoint_t::update_rpy_rate(void)
 {
-	roll_dot = user_input.get_roll_stick() * MAX_ROLL_RATE;
-	pitch_dot = user_input.get_pitch_stick() * MAX_PITCH_RATE;
-	yaw_dot = user_input.get_yaw_stick() * MAX_YAW_RATE;
+	ATT.x.value.set(user_input.roll.get() * MAX_ROLL_RATE);
+	ATT.y.value.set(user_input.pitch.get() * MAX_PITCH_RATE);
+	ATT.z.value.set(user_input.yaw.get() * MAX_YAW_RATE);
 
 	return;
 }
 
 void setpoint_t::update_rpy_servo(void)
 {
-	roll_servo = user_input.get_roll_stick();
-	pitch_servo = user_input.get_pitch_stick();
-	yaw_servo = user_input.get_yaw_stick();
+	roll_servo = user_input.roll.get();
+	pitch_servo = user_input.pitch.get();
+	yaw_servo = user_input.yaw.get();
 
 	return;
 }
@@ -347,20 +398,21 @@ void setpoint_t::update_Z(void)
 
 	double tmp_Z_dot;
 
-	if	(user_input.get_thr_stick() > Z_throttle_0+0.1)
+	if	(user_input.throttle.get() > Z_throttle_0+0.1)
 	{
-		tmp_Z_dot = (user_input.get_thr_stick() - Z_throttle_0) * settings.max_Z_velocity;
+		tmp_Z_dot = (user_input.throttle.get() - Z_throttle_0) * settings.max_Z_velocity;
 	}
-	else if (user_input.get_thr_stick() < Z_throttle_0-0.1)
+	else if (user_input.throttle.get() < Z_throttle_0-0.1)
 	{
-		tmp_Z_dot = (user_input.get_thr_stick() - Z_throttle_0) * settings.max_Z_velocity;
+		tmp_Z_dot = (user_input.throttle.get() - Z_throttle_0) * settings.max_Z_velocity;
 	}
 	else
 	{
 		tmp_Z_dot = 0;
 		return;
 	}
-	Z -= tmp_Z_dot*DT; //negative since Z positive is defined to be down
+
+	Z.value.increment(-tmp_Z_dot * DT); //negative since Z positive is defined to be down
 	
 	return;
 }
@@ -375,21 +427,20 @@ void setpoint_t::update_Z_dot(void)
 
 	double tmp_Z_ddot;
 
-	if (user_input.get_thr_stick() > Z_throttle_0 + 0.1)
+	if (user_input.throttle.get() > Z_throttle_0 + 0.1)
 	{
-		tmp_Z_ddot = (user_input.get_thr_stick() - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
+		tmp_Z_ddot = (user_input.throttle.get() - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
 	}
-	else if (user_input.get_thr_stick() < Z_throttle_0 - 0.1)
+	else if (user_input.throttle.get() < Z_throttle_0 - 0.1)
 	{
-		tmp_Z_ddot = (user_input.get_thr_stick() - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
+		tmp_Z_ddot = (user_input.throttle.get() - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
 	}
 	else
 	{
 		tmp_Z_ddot = 0;
 		return;
 	}
-	Z_dot -= tmp_Z_ddot * DT; //negative since Z positive is defined to be down
-
+	Z_dot.value.increment(-tmp_Z_ddot * DT);//negative since Z positive is defined to be down
 	return;
 }
 
@@ -400,44 +451,44 @@ void setpoint_t::update_XY_pos(void)
 	double tmp_X_dot, tmp_Y_dot;
 	// X in the body frame (forward flight)
 	// make sure setpoint doesn't go too far from state in case touching something
-	if(X > (state_estimate.X + XYZ_MAX_ERROR)){
-		X = state_estimate.X + XYZ_MAX_ERROR;
+	if(XY.x.value.get() > (state_estimate.X + XYZ_MAX_ERROR)) {
+		XY.x.value.set(state_estimate.X + XYZ_MAX_ERROR);
 		tmp_X_dot = 0.0;
 	}
-	else if(X < (state_estimate.X - XYZ_MAX_ERROR)){
-		X = state_estimate.X - XYZ_MAX_ERROR;
+	else if(XY.x.value.get() < (state_estimate.X - XYZ_MAX_ERROR)){
+		XY.x.value.set(state_estimate.X - XYZ_MAX_ERROR);
 		tmp_X_dot = 0.0;
 		return;
 	}
 	else{
-		tmp_X_dot = (-user_input.get_pitch_stick() * cos(state_estimate.continuous_yaw)\
-			- user_input.get_roll_stick() * sin(state_estimate.continuous_yaw))\
+		tmp_X_dot = (-user_input.pitch.get() * cos(state_estimate.continuous_yaw)\
+			- user_input.roll.get() * sin(state_estimate.continuous_yaw))\
 			* settings.max_XY_velocity;
 
 		//apply velocity command 
-		X += tmp_X_dot * DT;
+		XY.x.value.increment(tmp_X_dot * DT);
 	}
 	
 	// Y in the body frame (lateral translation)
 	// make sure setpoint doesn't go too far from state in case touching something
 	
-	if(Y > (state_estimate.Y + XYZ_MAX_ERROR)){
-		Y = state_estimate.Y + XYZ_MAX_ERROR;
+	if(XY.y.value.get() > (state_estimate.Y + XYZ_MAX_ERROR)){
+		XY.y.value.set(state_estimate.Y + XYZ_MAX_ERROR);
 		tmp_Y_dot = 0.0;
 		return;
 	}
-	else if(Y < (state_estimate.Y - XYZ_MAX_ERROR)){
-		Y = state_estimate.Y - XYZ_MAX_ERROR;
+	else if(XY.y.value.get() < (state_estimate.Y - XYZ_MAX_ERROR)){
+		XY.y.value.set(state_estimate.Y - XYZ_MAX_ERROR);
 		tmp_Y_dot = 0.0;
 		return;
 	}
 	else{
-		tmp_Y_dot = (user_input.get_roll_stick() * cos(state_estimate.continuous_yaw)\
-			- user_input.get_pitch_stick() * sin(state_estimate.continuous_yaw))\
+		tmp_Y_dot = (user_input.roll.get() * cos(state_estimate.continuous_yaw)\
+			- user_input.pitch.get() * sin(state_estimate.continuous_yaw))\
 			* settings.max_XY_velocity;
 
 		//apply velocity command 
-		Y += tmp_Y_dot * DT; //Y is defined positive to the left
+		XY.y.value.increment(tmp_Y_dot * DT); //Y is defined positive to the left 
 	}
 	
 
@@ -458,12 +509,12 @@ int setpoint_t::init(void)
 		return -1;
 	}
 
-	if (unlikely(init_trans() == -1))
+	if (unlikely(init_all_filters() == -1))
 	{
-		fprintf(stderr, "ERROR in init: failed to initialize transition functions\n");
+		fprintf(stderr, "ERROR in init: failed to initialize all filters\n");
 		return -1;
 	}
-
+	/*
 	if (unlikely(init_stick_trim() == -1))
 	{
 		fprintf(stderr, "ERROR in init: failed to initialize stick trims\n");
@@ -475,7 +526,7 @@ int setpoint_t::init(void)
 		fprintf(stderr, "ERROR in init: failed to initialize stick filters\n");
 		return -1;
 	}
-
+	*/
 	if (unlikely(setpoint_guidance.init() == -1))
 	{
 		fprintf(stderr, "ERROR in init, failed to initialize setpoint guidance\n");
@@ -493,489 +544,41 @@ bool setpoint_t::is_initialized(void)
 }
 
 /**
-* @brief      Functions to retreve inernal boolean vals.
-*
-* @return     true or false
-*/
-bool setpoint_t::is_en_rpy_rate_ctrl(void)
-{
-	return en_rpy_rate_ctrl;
-}
-
-bool setpoint_t::is_en_rpy_rate_FF(void)
-{
-	return en_rpy_rate_FF;
-}
-
-bool setpoint_t::is_en_rpy_ctrl(void)
-{
-	return en_rpy_ctrl;
-}
-
-bool setpoint_t::is_en_rpy_FF(void)
-{
-	return en_rpy_FF;
-}
-
-bool setpoint_t::is_en_Z_ctrl(void)
-{
-	return en_Z_ctrl;
-}
-
-bool setpoint_t::is_en_Z_FF(void)
-{
-	return en_Z_FF;
-}
-
-bool setpoint_t::is_en_Z_rate_ctrl(void)
-{
-	return en_Z_rate_ctrl;
-}
-
-bool setpoint_t::is_en_Z_rate_FF(void)
-{
-	return en_Z_rate_FF;
-}
-
-bool setpoint_t::is_en_XY_vel_ctrl(void)
-{
-	return en_XY_vel_ctrl;
-}
-
-bool setpoint_t::is_en_XY_vel_FF(void)
-{
-	return en_XY_vel_FF;
-}
-
-bool setpoint_t::is_en_XY_pos_ctrl(void)
-{
-	return en_XY_pos_ctrl;
-}
-
-bool setpoint_t::is_en_XY_pos_FF(void)
-{
-	return en_XY_pos_FF;
-}
-
-
-/**
-* @brief      Set setpoints to input value.
+* @brief      Configure setpoints to reset to state_estimate.
 *
 * @return     0 on success, -1 on failure
 */
-int setpoint_t::set_roll_dot(double val)
+int setpoint_t::set_reset_sources(void)
 {
-	roll_dot = val;
-	return 0;
-}
-int setpoint_t::set_pitch_dot(double val)
-{
-	pitch_dot = val;
-	return 0;
-}
-int setpoint_t::set_yaw_dot(double val)
-{
-	yaw_dot = val;
-	return 0;
-}
-int setpoint_t::set_roll_dot_ff(double val)
-{
-	roll_dot_ff = val;
-	return 0;
-}
-int setpoint_t::set_pitch_dot_ff(double val)
-{
-	pitch_dot_ff = val;
-	return 0;
-}
-int setpoint_t::set_yaw_dot_ff(double val)
-{
-	yaw_dot_ff = val;
-	return 0;
-}
+	// reset is configured to set values to zero by def.
+	// change the def source if non always zero:
 
-int setpoint_t::set_roll(double val)
-{
-	roll = val;
-	return 0;
-}
-int setpoint_t::set_pitch(double val)
-{
-	pitch = val;
-	return 0;
-}
-int setpoint_t::set_yaw(double val)
-{
-	yaw = val;
-	return 0;
-}
-int setpoint_t::set_roll_ff(double val)
-{
-	roll_ff = val;
-	return 0;
-}
-int setpoint_t::set_pitch_ff(double val)
-{
-	pitch_ff = val;
-	return 0;
-}
-int setpoint_t::set_yaw_ff(double val)
-{
-	yaw_ff = val;
-	return 0;
-}
+	ATT_dot.x.value.set_def(&state_estimate.roll_dot);
+	ATT_dot.y.value.set_def(&state_estimate.pitch_dot);
+	ATT_dot.z.value.set_def(&state_estimate.yaw_dot);
 
-int setpoint_t::set_X_ddot(double val)
-{
-	X_ddot = val;
-	return 0;
-}
-int setpoint_t::set_Y_ddot(double val)
-{
-	Y_ddot = val;
-	return 0;
-}
-int setpoint_t::set_Z_ddot(double val)
-{
-	Z_ddot = val;
-	return 0;
-}
-int setpoint_t::set_X_ddot_ff(double val)
-{
-	X_ddot_ff = val;
-	return 0;
-}
-int setpoint_t::set_Y_ddot_ff(double val)
-{
-	Y_ddot_ff = val;
-	return 0;
-}
-int setpoint_t::set_Z_ddot_ff(double val)
-{
-	Z_ddot_ff = val;
-	return 0;
-}
+	ATT.x.value.set_def(&state_estimate.roll);
+	ATT.y.value.set_def(&state_estimate.pitch);
+	ATT.z.value.set_def(&state_estimate.continuous_yaw);
 
-int setpoint_t::set_X_dot(double val)
-{
-	X_dot = val;
-	return 0;
-}
-int setpoint_t::set_Y_dot(double val)
-{
-	Y_dot = val;
-	return 0;
-}
-int setpoint_t::set_Z_dot(double val)
-{
-	Z_dot = val;
-	return 0;
-}
-int setpoint_t::set_X_dot_ff(double val)
-{
-	X_dot_ff = val;
-	return 0;
-}
-int setpoint_t::set_Y_dot_ff(double val)
-{
-	Y_dot_ff = val;
-	return 0;
-}
-int setpoint_t::set_Z_dot_ff(double val)
-{
-	Z_dot_ff = val;
-	return 0;
-}
+	XY_dot.x.value.set_def(&state_estimate.X_dot);
+	XY_dot.y.value.set_def(&state_estimate.Y_dot);
+	Z_dot.value.set_def(&state_estimate.Z_dot);
 
-int setpoint_t::set_X(double val)
-{
-	X = val;
-	return 0;
-}
-int setpoint_t::set_Y(double val)
-{
-	Y = val;
-	return 0;
-}
-int setpoint_t::set_Z(double val)
-{
-	Z = val;
-	return 0;
-}
-int setpoint_t::set_X_ff(double val)
-{
-	X_ff = val;
-	return 0;
-}
-int setpoint_t::set_Y_ff(double val)
-{
-	Y_ff = val;
-	return 0;
-}
-int setpoint_t::set_Z_ff(double val)
-{
-	Z_ff = val;
-	return 0;
-}
-
-
-/**
-* @brief      Reset setpoints to state_estimate.
-*
-* @return     0 on success, -1 on failure
-*/
-int setpoint_t::reset_roll_dot(void)
-{
-	return set_roll_dot(state_estimate.roll_dot);
-}
-int setpoint_t::reset_pitch_dot(void)
-{
-	return set_pitch_dot(state_estimate.pitch_dot);
-}
-int setpoint_t::reset_yaw_dot(void)
-{
-	return set_yaw_dot(state_estimate.yaw_dot);
-}
-int setpoint_t::reset_roll_dot_ff(void)
-{
-	return set_roll_dot_ff(0.0);
-}
-int setpoint_t::reset_pitch_dot_ff(void)
-{
-	return set_pitch_dot_ff(0.0);
-}
-int setpoint_t::reset_yaw_dot_ff(void)
-{
-	return set_yaw_dot_ff(0.0);
-}
-
-int setpoint_t::reset_att_dot(void)
-{
-	reset_roll_dot();
-	reset_pitch_dot();
-	reset_yaw_dot();
-
-	return 0;
-}
-int setpoint_t::reset_att_dot_ff(void)
-{
-	reset_roll_dot_ff();
-	reset_pitch_dot_ff();
-	reset_yaw_dot_ff();
-
-	return 0;
-}
-int setpoint_t::reset_att_dot_all(void)
-{
-	reset_att_dot();
-	reset_att_dot_ff();
-
-	return 0;
-}
-
-
-int setpoint_t::reset_roll(void)
-{
-	return set_roll(state_estimate.roll);
-}
-int setpoint_t::reset_pitch(void)
-{
-	return set_pitch(state_estimate.pitch);
-}
-int setpoint_t::reset_yaw(void)
-{
-	return set_yaw(state_estimate.continuous_yaw);
-}
-int setpoint_t::reset_roll_ff(void)
-{
-	return set_roll_ff(0.0);
-}
-int setpoint_t::reset_pitch_ff(void)
-{
-	return set_pitch_ff(0.0);
-}
-int setpoint_t::reset_yaw_ff(void)
-{
-	return set_yaw(0.0);
-}
-
-int setpoint_t::reset_att(void)
-{
-	reset_roll();
-	reset_pitch();
-	reset_yaw();
-
-	return 0;
-}
-int setpoint_t::reset_att_ff(void)
-{
-	reset_roll_ff();
-	reset_pitch_ff();
-	reset_yaw_ff();
-
-	return 0;
-}
-int setpoint_t::reset_att_all(void)
-{
-	reset_att();
-	reset_att_ff();
-
-	return 0;
-}
-
-int setpoint_t::reset_X_ddot(void)
-{
-	return set_X_ddot(0.0);
-}
-int setpoint_t::reset_Y_ddot(void)
-{
-	return set_Y_ddot(0.0);
-}
-int setpoint_t::reset_Z_ddot(void)
-{
-	return set_Z_ddot(0.0);
-}
-int setpoint_t::reset_X_ddot_ff(void)
-{
-	return set_X_ddot_ff(0.0);
-}
-int setpoint_t::reset_Y_ddot_ff(void)
-{
-	return set_Y_ddot_ff(0.0);
-}
-int setpoint_t::reset_Z_ddot_ff(void)
-{
-	return set_Z_ddot_ff(0.0);
-}
-
-int setpoint_t::reset_pos_ddot(void)
-{
-	reset_X_ddot();
-	reset_Y_ddot();
-	reset_Z_ddot();
-
-	return 0;
-}
-int setpoint_t::reset_pos_ddot_ff(void)
-{
-	reset_X_ddot_ff();
-	reset_Y_ddot_ff();
-	reset_Z_ddot_ff();
-
-	return 0;
-}
-int setpoint_t::reset_pos_ddot_all(void)
-{
-	reset_pos_ddot();
-	reset_pos_ddot_ff();
-
-	return 0;
-}
-
-int setpoint_t::reset_X_dot(void)
-{
-	return set_X_dot(state_estimate.X_dot);
-}
-int setpoint_t::reset_Y_dot(void)
-{
-	return set_Y_dot(state_estimate.Y_dot);
-}
-int setpoint_t::reset_Z_dot(void)
-{
-	return set_Z_dot(state_estimate.Z_dot);
-}
-int setpoint_t::reset_X_dot_ff(void)
-{
-	return set_X_dot_ff(0.0);
-}
-int setpoint_t::reset_Y_dot_ff(void)
-{
-	return set_Y_dot_ff(0.0);
-}
-int setpoint_t::reset_Z_dot_ff(void)
-{
-	return set_Z_dot_ff(0.0);
-}
-
-int setpoint_t::reset_pos_dot(void)
-{
-	reset_X_dot();
-	reset_Y_dot();
-	reset_Z_dot();
-
-	return 0;
-}
-int setpoint_t::reset_pos_dot_ff(void)
-{
-	reset_X_dot_ff();
-	reset_Y_dot_ff();
-	reset_Z_dot_ff();
-
-	return 0;
-}
-int setpoint_t::reset_pos_dot_all(void)
-{
-	reset_pos_dot();
-	reset_pos_dot_ff();
-
-	return 0;
-}
-
-int setpoint_t::reset_X(void)
-{
-	return set_X(state_estimate.X);
-}
-int setpoint_t::reset_Y(void)
-{
-	return set_Y(state_estimate.Y);
-}
-int setpoint_t::reset_Z(void)
-{
-	return set_Z(state_estimate.Z);
-}
-int setpoint_t::reset_X_ff(void)
-{
-	return set_X_ff(0.0);
-}
-int setpoint_t::reset_Y_ff(void)
-{
-	return set_Y_ff(0.0);
-}
-int setpoint_t::reset_Z_ff(void)
-{
-	return set_Z_ff(0.0);
-}
-int setpoint_t::reset_pos(void)
-{
-	reset_X();
-	reset_Y();
-	reset_Z();
-
-	return 0;
-}
-int setpoint_t::reset_pos_ff(void)
-{
-	reset_X_ff();
-	reset_Y_ff();
-	reset_Z_ff();
-
-	return 0;
-}
-int setpoint_t::reset_pos_all(void)
-{
-	reset_pos();
-	reset_pos_ff();
-
+	XY.x.value.set_def(&state_estimate.X);
+	XY.y.value.set_def(&state_estimate.Y);
+	Z.value.set_def(&state_estimate.Z);
 	return 0;
 }
 
 int setpoint_t::reset_all(void)
 {
-	reset_pos_all();
-	reset_pos_dot_all();
-	reset_pos_ddot_all();
-	reset_att_all();
-	reset_att_dot_all();
+	ATT_dot.reset_all();
+	ATT.reset_all();
+	XY_dot.reset_all();
+	Z_dot.reset_all();
+	XY.reset_all();
+	Z.reset_all();
 	return 0;
 }
 
@@ -1001,7 +604,7 @@ int setpoint_t::update(void)
 	// if PAUSED or UNINITIALIZED, do nothing
 	if (rc_get_state() != RUNNING) return 0;
 
-	if (user_input.flight_mode != AUTONOMOUS) waypoint_state_machine.disable_update();
+	if (user_input.get_flight_mode() != AUTONOMOUS) waypoint_state_machine.disable_update();
 
 	// shutdown feedback on kill switch
 	if (user_input.requested_arm_mode == DISARMED)
@@ -1009,7 +612,7 @@ int setpoint_t::update(void)
 		if (fstate.get_arm_state() != DISARMED)
 		{
 			fstate.disarm();
-			last_en_trans = false;
+			//last_en_trans = false;
 			setpoint_guidance.reset_Z();
 			setpoint_guidance.reset_XY();
 		}
@@ -1029,7 +632,7 @@ int setpoint_t::update(void)
 	update_setpoints(); //get manual radio updates first
 
 	// Update the state machine if in autonomous operation
-	if (user_input.flight_mode == AUTONOMOUS)
+	if (user_input.get_flight_mode() == AUTONOMOUS)
 	{
 		waypoint_state_machine.march();
 		if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
@@ -1054,325 +657,119 @@ int setpoint_t::cleanup(void)
 
 int setpoint_t::update_setpoints(void)
 {
-	// finally, switch between flight modes and adjust setpoint properly
-	switch (user_input.flight_mode) {
+	// Check if switching to a different flight mode:
+	flight_mode_switching = flight_mode_prev != user_input.get_flight_mode();
+	flight_mode_prev = user_input.get_flight_mode();
 
-
-	case TEST_BENCH_4DOF:
-		// configure which controllers are enabled
+	// Perform swithcing of control scheme if nessesary:
+	if (flight_mode_switching) //switch everything off to defaults
+	{
 		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
+		
+		ATT_dot.disable_all();
+		//en_rpy_rate_trans = false;
+		
+		ATT.disable_all();
+		//en_rpy_trans = false;
+		
+		Z_dot.disable_all();
+		XY_dot.disable_all();
+		
+		Z.disable_all();
+		XY.disable_all();
 
 		en_6dof_servo = false;
 		en_rpy_rate_servo_ctrl = false;
 		en_rpy_rate_servo_trans = false;
 		en_rpy_servo_ctrl = false;
 		en_rpy_servo_trans = false;
+	}
 
-		roll_throttle = user_input.get_roll_stick();
-		pitch_throttle = user_input.get_pitch_stick();
-		yaw_throttle = user_input.get_yaw_stick();
-		X_throttle = 0.0;
-		Y_throttle = 0.0;
-		Z_throttle = -user_input.get_thr_stick();
+
+	// finally, switch between flight modes and adjust setpoint properly
+	switch (user_input.get_flight_mode()) {
+	case TEST_BENCH_4DOF:
+		// configure which controllers are enabled
+
+
+		setpoint.ATT_throttle.set(user_input.roll.get(), user_input.pitch.get(), user_input.yaw.get());
+		setpoint.POS_throttle.set(0.0, 0.0, -user_input.throttle.get());
 
 		break;
 
 	case TEST_BENCH_6DOF:
 		// configure which controllers are enabled
 		en_6dof = true;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
 
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		roll_throttle = 0.0;
-		pitch_throttle = 0.0;
-		yaw_throttle = user_input.get_yaw_stick();
-		X_throttle = -user_input.get_pitch_stick();
-		Y_throttle = user_input.get_roll_stick();
-		Z_throttle = -user_input.get_thr_stick();
+		setpoint.ATT_throttle.set(0.0, 0.0, user_input.yaw.get());
+		setpoint.POS_throttle.set(-user_input.pitch.get(), user_input.roll.get(), -user_input.throttle.get());
 		break;
 
 	case TEST_6xSERVOS_DIRECT:
 		// configure which controllers are enabled
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		roll_throttle = 0.0;
-		pitch_throttle = 0.0;
-		yaw_throttle = 0.0;
-		X_throttle = 0.0;
-		Y_throttle = 0.0;
-		Z_throttle = 0.0;
 
 
 		//servos:
-		roll_servo_throttle = user_input.get_roll_stick();	//map [-1 1] into [0 1]
-		pitch_servo_throttle = user_input.get_pitch_stick();	//map [-1 1] into [0 1]
-		yaw_servo_throttle = user_input.get_yaw_stick();		//map [-1 1] into [0 1]
-		Z_servo_throttle = -user_input.get_thr_stick();
+		roll_servo_throttle = user_input.roll.get();	//map [-1 1] into [0 1]
+		pitch_servo_throttle = user_input.pitch.get();	//map [-1 1] into [0 1]
+		yaw_servo_throttle = user_input.yaw.get();		//map [-1 1] into [0 1]
+		Z_servo_throttle = -user_input.throttle.get();
 		break;
 
 	case DIRECT_THROTTLE_6DOF:
-		en_6dof = true;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-
-		X_throttle = -user_input.get_pitch_stick();
-		Y_throttle = user_input.get_roll_stick();
-		Z_throttle = -user_input.get_thr_stick();
+		en_6dof = true;		
+		ATT.enable();
+		
+		setpoint.POS_throttle.set(-user_input.pitch.get(), user_input.roll.get(), -user_input.throttle.get());
 		update_yaw();
 		break;
 
 	case ACRO_Axxxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable();		
 
 		update_rpy_rate();
 		update_th();
 		break;
 
 	case ACRO_Fxxxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = true;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable();
+		ATT_dot.enable_FF();
+		
 
 		update_rpy_rate();
 		update_th();
 		break;
 
-	case MANUAL_xAxxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-		roll = user_input.get_roll_stick();
-		pitch = user_input.get_pitch_stick();
-		Z_throttle = -user_input.get_thr_stick() / \
-			(cos(state_estimate.roll) * cos(state_estimate.pitch));
-
+	case MANUAL_xAxxxx:		
+		ATT.enable();
+		
+		update_rp();
+		update_th();
 		update_yaw();
 		break;
 
 	case MANUAL_xFxxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = true;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
-		roll = user_input.get_roll_stick();
-		pitch = user_input.get_pitch_stick();
-		Z_throttle = -user_input.get_thr_stick() / \
-			(cos(state_estimate.roll) * cos(state_estimate.pitch));
-
-		update_yaw();
-		break;
-
-	case MANUAL_AAxxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
+		ATT.enable();
+		ATT.enable_FF();
 
 		update_rp();
 		update_th();
 		update_yaw();
 		break;
 
+	case MANUAL_AAxxxx:
+		ATT_dot.enable();
+		ATT.enable();
+		
+		update_rp();
+		update_th();
+		update_yaw();
+		break;
+
 	case MANUAL_FAxxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = true;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
+		ATT_dot.enable();
+		ATT.enable();
+		ATT_dot.enable_FF();
 
 		update_rp();
 		update_th();
@@ -1380,29 +777,10 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case MANUAL_FFxxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = true;
-		en_rpy_FF = true;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
+		ATT_dot.enable();
+		ATT.enable();
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
 
 		update_rp();
 		update_th();
@@ -1410,28 +788,9 @@ int setpoint_t::update_setpoints(void)
 		break;	
 
 	case ALT_HOLD_xAxAxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT.enable();
+		Z.enable();
+		
 
 		update_rp();
 		update_Z();
@@ -1439,28 +798,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_xFxAxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = true;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT.enable();
+		Z.enable();
+		ATT.enable_FF();
 
 		update_rp();
 		update_Z();
@@ -1468,28 +808,10 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_xFxFxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = true;
-		en_Z_rate_FF = false;
-		en_Z_FF = true;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT.enable();
+		Z.enable();
+		ATT.enable_FF();
+		Z.enable_FF();
 
 		update_rp();
 		update_Z();
@@ -1497,28 +819,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_AAAxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
 
 
 		update_rp();
@@ -1527,28 +830,11 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FAAxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
 
-		en_rpy_rate_FF = true;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable_FF();
 
 
 		update_rp();
@@ -1557,28 +843,12 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFAxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
 
-		en_rpy_rate_FF = true;
-		en_rpy_FF = true;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
 
 
 		update_rp();
@@ -1587,28 +857,13 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFFxxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
 
-		en_rpy_rate_FF = true;
-		en_rpy_FF = true;
-		en_Z_rate_FF = true;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
 
 
 		update_rp();
@@ -1617,29 +872,10 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_AAAAxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
-
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
 
 		update_rp();
 		update_Z();
@@ -1647,28 +883,12 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FAAAxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
 
-		en_rpy_rate_FF = true;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable_FF();
 
 
 		update_rp();
@@ -1677,28 +897,13 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFAAxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
 
-		en_rpy_rate_FF = true;
-		en_rpy_FF = true;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
 
 
 		update_rp();
@@ -1707,28 +912,14 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFFAxx:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
 
-		en_rpy_rate_FF = true;
-		en_rpy_FF = true;
-		en_Z_rate_FF = true;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
 
 
 		update_rp();
@@ -1738,27 +929,15 @@ int setpoint_t::update_setpoints(void)
 
 	case ALT_HOLD_FFFFxx:
 		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
 
-		en_rpy_rate_FF = true;
-		en_rpy_FF = true;
-		en_Z_rate_FF = true;
-		en_Z_FF = true;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
+		Z.enable_FF();
 
 
 		update_rp();
@@ -1768,28 +947,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case POSITION_CONTROL_SSS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = true;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT.enable();
+		Z.enable();
+		XY.enable();
 
 
 		//check validity of the velocity command, construct virtual setpoint
@@ -1799,28 +959,10 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case POSITION_CONTROL_FSS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = true;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		XY.enable();
 
 
 		//check validity of the velocity command, construct virtual setpoint
@@ -1830,28 +972,11 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case POSITION_CONTROL_FFS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = true;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
+		XY.enable();
 
 
 		//check validity of the velocity command, construct virtual setpoint
@@ -1861,28 +986,12 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case POSITION_CONTROL_FFF:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = true;
-		en_XY_pos_ctrl = true;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
+		XY_dot.enable();
+		XY.enable();
 
 
 		//check validity of the velocity command, construct virtual setpoint
@@ -1892,62 +1001,25 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case EMERGENCY_LAND:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
 
 
 		//Assign Setpoints
-		roll = 0;
-		pitch = 0;
-
 		setpoint_guidance.start_land();  // start landing algorithm
 
 		update_yaw();
 		break;
 
 	case AUTONOMOUS:
-		en_6dof = false;
-		en_rpy_rate_ctrl = true;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = true;
-		en_rpy_trans = false;
-		en_Z_ctrl = true;
-		en_Z_rate_ctrl = true;
-		en_XY_vel_ctrl = true;
-		en_XY_pos_ctrl = true;
-
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
-
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		ATT_dot.enable();
+		ATT.enable();
+		Z.enable();
+		Z_dot.enable();
+		XY_dot.enable();
+		XY.enable();
 
 
 		waypoint_state_machine.enable_update();
@@ -1955,52 +1027,37 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ZEPPELIN:
-		en_6dof = false;
-		en_rpy_rate_ctrl = false;
-		en_rpy_rate_trans = false;
-		en_rpy_ctrl = false;
-		en_rpy_trans = true;
-		en_Z_ctrl = false;
-		en_Z_rate_ctrl = false;
-		en_XY_vel_ctrl = false;
-		en_XY_pos_ctrl = false;
+		printf("WARNING: ZEPPELIN flight mode is not longer supported\n");
+		break;
 
-		en_rpy_rate_FF = false;
-		en_rpy_FF = false;
-		en_Z_rate_FF = false;
-		en_Z_FF = false;
-		en_XY_vel_FF = false;
-		en_XY_pos_FF = false;
+		/*
+		//en_rpy_trans = true;
 
 		en_6dof_servo = true;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
 		en_rpy_servo_trans = true;
 
-		update_trans(); //update transitions, filters and trims
+		//update_trans(); //update transitions, filters and trims
 
-		roll_throttle = user_input.get_roll_stick() + roll_stick_trim;
-		pitch_throttle = user_input.get_pitch_stick(); // pitch_stick_hp;
-		yaw_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
-		Z_throttle = -user_input.get_thr_stick();
+		ATT_throttle.set(user_input.roll.get() + roll_stick_trim, user_input.pitch.get(), user_input.yaw.get() + yaw_stick_trim);
+		POS_throttle.z.value.set(-user_input.throttle.get());
 		
-		roll_servo_throttle = user_input.get_roll_stick() + roll_stick_trim;
-		pitch_servo_throttle = user_input.get_pitch_stick(); // pitch_stick_hp;
-		yaw_servo_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
+		roll_servo_throttle = user_input.roll.get() + roll_stick_trim;
+		pitch_servo_throttle = user_input.pitch.get(); // pitch_stick_hp;
+		yaw_servo_throttle = user_input.yaw.get() + yaw_stick_trim;
 		
-		X_servo_throttle = user_input.get_yaw_stick() + yaw_stick_trim;
+		X_servo_throttle = user_input.yaw.get() + yaw_stick_trim;
 		Y_servo_throttle = pitch_servo_tr;
 		Z_servo_throttle = 0.0;
 		
 		
 		break;
+		*/
 
 	default: // should never get here
 		fprintf(stderr, "ERROR in setpoint_manager thread, unknown flight mode\n");
 		break;
 
-	} // end switch(user_input.flight_mode)
+	} // end switch(user_input.get_flight_mode())
 	return 0;
 }
 

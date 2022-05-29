@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/23/2022 (MM/DD/YYYY)
+ * Last Edit:  05/28/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -506,37 +506,37 @@ void log_entry_t::construct_new_entry(void)
     gps_second 	    = gps_data.second;
     gps_time_received_ns = gps_data.gps_data_received_ns;
 
-    X_throttle 	    = setpoint.X_throttle;
-    Y_throttle 	    = setpoint.Y_throttle;
-    Z_throttle 	    = setpoint.Z_throttle;
-    roll_throttle   = setpoint.roll_throttle;
-    pitch_throttle  = setpoint.pitch_throttle;
-    yaw_throttle 	= setpoint.yaw_throttle;
+    X_throttle 	    = setpoint.POS_throttle.x.value.get();//setpoint.X_throttle;
+    Y_throttle 	    = setpoint.POS_throttle.y.value.get();//setpoint.Y_throttle;
+    Z_throttle      = setpoint.POS_throttle.z.value.get();//setpoint.Z_throttle;
+    roll_throttle   = setpoint.ATT_throttle.x.value.get();//setpoint.roll_throttle;
+    pitch_throttle  = setpoint.ATT_throttle.y.value.get();//setpoint.pitch_throttle;
+    yaw_throttle 	= setpoint.ATT_throttle.z.value.get();//setpoint.yaw_throttle;
 
-    sp_roll_dot 	= setpoint.roll_dot;
-    sp_pitch_dot 	= setpoint.pitch_dot;
-    sp_yaw_dot 	    = setpoint.yaw_dot;
-    sp_roll_dot_ff  = setpoint.roll_dot_ff;
-    sp_pitch_dot_ff = setpoint.pitch_dot_ff;
-    sp_yaw_dot_ff   = setpoint.yaw_dot_ff;
-    sp_roll 		= setpoint.roll;
-    sp_pitch 		= setpoint.pitch;
-    sp_yaw 		    = setpoint.yaw;
-    sp_roll_ff 	    = setpoint.roll_ff;
-    sp_pitch_ff 	= setpoint.pitch_ff;
+    sp_roll_dot 	= setpoint.ATT_dot.x.value.get();
+    sp_pitch_dot 	= setpoint.ATT_dot.y.value.get();
+    sp_yaw_dot 	    = setpoint.ATT_dot.z.value.get();
+    sp_roll_dot_ff  = setpoint.ATT_dot.x.FF.get();
+    sp_pitch_dot_ff = setpoint.ATT_dot.y.FF.get();
+    sp_yaw_dot_ff   = setpoint.ATT_dot.z.FF.get();
+    sp_roll 		= setpoint.ATT.x.value.get();
+    sp_pitch 		= setpoint.ATT.y.value.get();
+    sp_yaw 		    = setpoint.ATT.z.value.get();
+    sp_roll_ff 	    = setpoint.ATT.x.FF.get();
+    sp_pitch_ff 	= setpoint.ATT.y.FF.get();
 
-    sp_X 			= setpoint.X;
-    sp_Y 			= setpoint.Y;
-    sp_Z 			= setpoint.Z;
-    sp_Xdot 		= setpoint.X_dot;
-    sp_Ydot 		= setpoint.Y_dot;
-    sp_Zdot 		= setpoint.Z_dot;
-    sp_Xdot_ff 	    = setpoint.X_dot_ff;
-    sp_Ydot_ff  	= setpoint.Y_dot_ff;
-    sp_Zdot_ff 	    = setpoint.Z_dot_ff;
-    sp_Xddot 		= setpoint.X_ddot;
-    sp_Yddot 		= setpoint.Y_ddot;
-    sp_Zddot 		= setpoint.Z_ddot;
+    sp_X 			= setpoint.XY.x.value.get();
+    sp_Y 			= setpoint.XY.y.value.get();
+    sp_Z 			= setpoint.Z.value.get();
+    sp_Xdot 		= setpoint.XY_dot.x.value.get();
+    sp_Ydot 		= setpoint.XY_dot.y.value.get();
+    sp_Zdot 		= setpoint.Z.value.get();
+    sp_Xdot_ff 	    = setpoint.XY_dot.x.FF.get();
+    sp_Ydot_ff  	= setpoint.XY_dot.y.FF.get();
+    sp_Zdot_ff 	    = setpoint.Z.value.get();
+    sp_Xddot        = setpoint.XYZ_ddot.x.value.get();
+    sp_Yddot 		= setpoint.XYZ_ddot.y.value.get();
+    sp_Zddot 		= setpoint.XYZ_ddot.z.value.get();
 
     u_roll 		    = fstate.get_u(VEC_ROLL);
     u_pitch 		= fstate.get_u(VEC_PITCH);
@@ -556,7 +556,7 @@ void log_entry_t::construct_new_entry(void)
 
     dsm_con 		= user_input.input_active;
 
-    flight_mode 	= user_input.flight_mode;
+    flight_mode 	= user_input.get_flight_mode();
 
     tIMU_END 		= benchmark_timers.tIMU_END;
     tSM 			= benchmark_timers.tSM;

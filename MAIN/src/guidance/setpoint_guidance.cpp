@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/10/2020 (MM/DD/YYYY)
+ * Last Edit:  05/28/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Contains all the automated trajectory guidance and related functionality.
@@ -187,7 +187,7 @@ int setpoint_guidance_t::march_Z(void)
     if (!last_en_Z)
     {
         Z_time_ns = rc_nanos_since_boot();   // capture time of initialization
-        Z_initial = setpoint.Z;
+        Z_initial = setpoint.Z.value.get();
         last_en_Z = true;                    // flag that Z guidance is active now
     }
 
@@ -218,7 +218,8 @@ int setpoint_guidance_t::march_Z(void)
         return 0;
     }
 
-    setpoint.Z += Z_dot * DT; //Z positive down (so Z_dot must be negative)
+    setpoint.Z.value.increment(Z_dot * DT); //Z positive down (so Z_dot must be negative)
+    
     return 0;
 }
 
@@ -230,7 +231,7 @@ void setpoint_guidance_t::reset_Z(void)
     en_takeoff  = false;
     en_land     = false;
     Z_dot       = 0.0;  // stop moving the setpoint down
-    Z_initial   = setpoint.Z;
+    Z_initial   = setpoint.Z.value.get();
 
     return;
 }
@@ -308,7 +309,7 @@ int setpoint_guidance_t::march_land(void)
     }
 
     //-----Landing Detection----//
-    if (setpoint.Z < (state_estimate.Z - XYZ_MAX_ERROR))
+    if (setpoint.Z.value.get() < (state_estimate.Z - XYZ_MAX_ERROR))
     {
         printf("\n WARNING: Flying too far up! Exceeding XYZ_MAX_ERROR, can't keep up \n");
         reset_Z();                              //terminante any Z guidance
@@ -317,7 +318,7 @@ int setpoint_guidance_t::march_land(void)
         return -2;                              //failed to land (velocity can be too high)
     }
 
-    if (setpoint.Z > (state_estimate.Z + XYZ_MAX_ERROR))
+    if (setpoint.Z.value.get() > (state_estimate.Z + XYZ_MAX_ERROR))
     {
         st_Z = true;                            // landed - let the Z guidance algorithm finish on it's own
         land_finished = true;                   //flag landing as finished to prevent restart
@@ -349,7 +350,7 @@ void setpoint_guidance_t::start_land(void) //intended to allow running at each i
     {
         en_Z        = true; // allow Z guidance
         en_land     = true; // start landing
-        setpoint.Z  = state_estimate.Z; //zero out the altitude error
+        setpoint.Z.value.set(state_estimate.Z); //zero out the altitude error
         printf("\nStarting landing algorithm....");
     }//otherwise do nothing
     
@@ -429,8 +430,8 @@ int setpoint_guidance_t::march_takeoff(void)
         return 0;
     }
 
-    setpoint.Z_throttle_0 = settings.hover_throttle;      //this is needed for altitude hold 
-    if (Z_cubic.march(setpoint.Z)) st_Z = true;
+    setpoint.Z_throttle_0 = settings.hover_throttle;      //this is needed for altitude hold
+    if (Z_cubic.march(*setpoint.Z.value.get_pt())) st_Z = true;
     /*if (finddt_s(Z_time_ns) >= t_takeoff_s)
     {
         //printf("\nCompleted takeoff! Time: %f / %f\n", finddt_s(setpoint.takeoff_time_ns), setpoint.t_takeoff);
@@ -483,7 +484,7 @@ void setpoint_guidance_t::start_takeoff(void) //intended to allow running at eac
     {
         en_Z        = true; // allow Z guidance
         en_takeoff  = true; // start takeoff
-        setpoint.Z  = state_estimate.Z; //zero out the error
+        setpoint.Z.value.set(state_estimate.Z); //zero out the error
 
         Z_cubic.set(Z_initial, Z_initial - takeoff_height, 0,
             0, t_takeoff_s);
@@ -539,9 +540,9 @@ int setpoint_guidance_t::march_XY(void)
     if (!last_en_XY)
     {
         XY_time_ns  = rc_nanos_since_boot();   // capture time of initialization
-        X_initial   = setpoint.X;
-        Y_initial   = setpoint.Y;
-        Yaw_initial = setpoint.yaw;
+        X_initial   = setpoint.XY.x.value.get();
+        Y_initial   = setpoint.XY.y.value.get();
+        Yaw_initial = setpoint.ATT.z.value.get();
         last_en_XY  = true;                    // flag that Z guidance is active now
     }
 
@@ -565,9 +566,9 @@ int setpoint_guidance_t::march_XY(void)
         return 0;
     }
 
-    setpoint.X += X_dot * DT;
-    setpoint.Y += Y_dot * DT;
-    if (en_yaw) setpoint.yaw += Yaw_dot * DT;
+    setpoint.XY.x.value.increment(X_dot * DT);
+    setpoint.XY.y.value.increment(Y_dot * DT);
+    if (en_yaw) setpoint.ATT.z.value.increment(Yaw_dot * DT);
     return 0;
 }
 
@@ -581,9 +582,9 @@ void setpoint_guidance_t::reset_XY(void)
     en_circ     = false;
     X_dot       = 0.0;          // stop moving the setpoint
     Y_dot       = 0.0;          // stop moving the setpoint
-    X_initial   = setpoint.X;
-    Y_initial   = setpoint.Y;
-    Yaw_initial = setpoint.yaw;
+    X_initial   = setpoint.XY.x.value.get();
+    Y_initial   = setpoint.XY.y.value.get();
+    Yaw_initial = setpoint.ATT.z.value.get();
     XY_waypt    = 0;
 
     XY_start_delay_s = settings.XY_start_delay_s;
@@ -667,14 +668,14 @@ int setpoint_guidance_t::march_square(void)
         else
         {
             //keep current position:
-            setpoint.X = X_initial;
-            setpoint.Y = Y_initial;
+            setpoint.XY.x.value.set(X_initial);
+            setpoint.XY.y.value.set(Y_initial);
             break;
         }
     case 1:
         // move to first corner
-        tmp1 = Y_cubic.march(setpoint.Y); // always march both
-        tmp2 = X_cubic.march(setpoint.X);
+        tmp1 = Y_cubic.march(*setpoint.XY.y.value.get_pt()); // always march both
+        tmp2 = X_cubic.march(*setpoint.XY.x.value.get_pt());
         if (tmp1 && tmp2)
         {
             XY_waypt = 2;
@@ -693,15 +694,15 @@ int setpoint_guidance_t::march_square(void)
         else
         {
             //keep current position:
-            setpoint.X = square_X_offset / 2.0 + X_initial;
-            setpoint.Y = square_Y_offset / 2.0 + Y_initial;
-            setpoint.yaw = Yaw_initial;
+            setpoint.XY.x.value.set(square_X_offset / 2.0 + X_initial);
+            setpoint.XY.y.value.set(square_Y_offset / 2.0 + Y_initial);
+            setpoint.ATT.z.value.set(Yaw_initial);
             break;
         }
     
     case 3:
         // move to corner 2:
-        if (X_cubic.march(setpoint.X))
+        if (X_cubic.march(*setpoint.XY.x.value.get_pt()))
         {
             XY_waypt = 4;
             XY_time_ns = rc_nanos_since_boot();
@@ -719,13 +720,13 @@ int setpoint_guidance_t::march_square(void)
         else
         {
             //keep current position:
-            setpoint.X = -square_X_offset / 2.0 + X_initial;
-            setpoint.Y = square_Y_offset / 2.0 + Y_initial;
+            setpoint.XY.x.value.set(-square_X_offset / 2.0 + X_initial);
+            setpoint.XY.y.value.set(square_Y_offset / 2.0 + Y_initial);
             break;
         }
     case 5:
         // move to corner 3:
-        if (Y_cubic.march(setpoint.Y))
+        if (Y_cubic.march(*setpoint.XY.y.value.get_pt()))
         {
             XY_waypt = 6;
             XY_time_ns = rc_nanos_since_boot();
@@ -743,13 +744,13 @@ int setpoint_guidance_t::march_square(void)
         else
         {
             //keep current position:
-            setpoint.X = -square_X_offset / 2.0 + X_initial;
-            setpoint.Y = -square_Y_offset / 2.0 + Y_initial;
+            setpoint.XY.x.value.set(-square_X_offset / 2.0 + X_initial);
+            setpoint.XY.y.value.set(-square_Y_offset / 2.0 + Y_initial);
             break;
         }
     case 7:
         // move to corner 4:
-        if (X_cubic.march(setpoint.X))
+        if (X_cubic.march(*setpoint.XY.x.value.get_pt()))
         {
             XY_waypt = 8;
             XY_time_ns = rc_nanos_since_boot();
@@ -767,13 +768,13 @@ int setpoint_guidance_t::march_square(void)
         else
         {
             //keep current position:
-            setpoint.X = square_X_offset / 2.0 + X_initial;
-            setpoint.Y = -square_Y_offset / 2.0 + Y_initial;
+            setpoint.XY.x.value.set(square_X_offset / 2.0 + X_initial);
+            setpoint.XY.y.value.set(-square_Y_offset / 2.0 + Y_initial);
             break;
         }
     case 9:
         // move back to corner 1:
-        if (Y_cubic.march(setpoint.Y))
+        if (Y_cubic.march(*setpoint.XY.y.value.get_pt()))
         {
             XY_time_ns = rc_nanos_since_boot();
             XY_waypt = 10;
@@ -783,9 +784,9 @@ int setpoint_guidance_t::march_square(void)
     case 10:
         if (finddt_s(XY_time_ns) > XY_start_delay_s)
         {
-            Y_cubic.set(setpoint.Y, Y_initial, 0,
+            Y_cubic.set(setpoint.XY.y.value.get(), Y_initial, 0,
                 0, square_Y_time_s / 2.0);
-            X_cubic.set(setpoint.X, X_initial, 0,
+            X_cubic.set(setpoint.XY.x.value.get(), X_initial, 0,
                 0, square_X_time_s / 2.0);
             XY_waypt = 11;
             break;
@@ -799,8 +800,8 @@ int setpoint_guidance_t::march_square(void)
         }
     case 11:
         // move back to the origin:
-        tmp1 = Y_cubic.march(setpoint.Y);
-        tmp2 = X_cubic.march(setpoint.X);
+        tmp1 = Y_cubic.march(*setpoint.XY.y.value.get_pt());
+        tmp2 = X_cubic.march(*setpoint.XY.x.value.get_pt());
         if (tmp1 && tmp2)
         {
             XY_waypt = 12;
@@ -819,8 +820,8 @@ int setpoint_guidance_t::march_square(void)
         else
         {
             //keep current position:
-            setpoint.X = X_initial;
-            setpoint.Y = Y_initial;
+            setpoint.XY.x.value.set(X_initial);
+            setpoint.XY.y.value.set(Y_initial);
             break;
         }
         //---------End of trajectory-------------//
@@ -850,8 +851,8 @@ void setpoint_guidance_t::start_square(void) //intended to allow running at each
     {
         en_XY = true; // allow XY guidance
         en_square = true; // start square guidance
-        setpoint.X = state_estimate.X; //zero out the error
-        setpoint.Y = state_estimate.Y; //zero out the error
+        setpoint.XY.x.value.set(state_estimate.X); //zero out the error
+        setpoint.XY.y.value.set(state_estimate.Y); //zero out the error
 
         printf("\nStarting square trajectory algorithm....");
     }//otherwise do nothing
@@ -906,14 +907,14 @@ int setpoint_guidance_t::march_circ(void)
         else
         {
             //keep current position:
-            setpoint.X = X_initial;
-            setpoint.Y = Y_initial;
-            setpoint.yaw = Yaw_initial;
+            setpoint.XY.x.value.set(X_initial);
+            setpoint.XY.y.value.set(Y_initial);
+            setpoint.ATT.z.value.set(Yaw_initial);
             break;
         }
     case 1:
         // move to corner edge of the circle (theta = 0):
-        if (Y_cubic.march(setpoint.Y))
+        if (Y_cubic.march(*setpoint.XY.y.value.get_pt()))
         {
             XY_waypt = 2;
             XY_time_ns = rc_nanos_since_boot();
@@ -929,14 +930,14 @@ int setpoint_guidance_t::march_circ(void)
         else
         {
             //keep current position:
-            setpoint.X = X_initial;
-            setpoint.Y = Y_initial + turn_radius;
-            setpoint.yaw = Yaw_initial;
+            setpoint.XY.x.value.set(X_initial);
+            setpoint.XY.y.value.set(Y_initial + turn_radius);
+            setpoint.ATT.z.value.set(Yaw_initial);
             break;
         }
     case 3:
         // move arround the circle untill time is up
-        if (circ_guide.march(setpoint.X, setpoint.Y, setpoint.yaw))
+        if (circ_guide.march(*setpoint.XY.x.value.get_pt(), *setpoint.XY.y.value.get_pt(), *setpoint.ATT.z.value.get_pt()))
         {
             XY_waypt = 4;
             XY_time_ns = rc_nanos_since_boot();
@@ -946,9 +947,9 @@ int setpoint_guidance_t::march_circ(void)
     case 4:
         if (finddt_s(XY_time_ns) > XY_start_delay_s)
         {
-            Y_cubic.set(setpoint.Y, Y_initial, 0,
+            Y_cubic.set(setpoint.XY.y.value.get(), Y_initial, 0,
                 0, TWO_PI * turn_radius * turn_radius / turn_period);
-            X_cubic.set(setpoint.X, X_initial, 0,
+            X_cubic.set(setpoint.XY.x.value.get(), X_initial, 0,
                 0, TWO_PI * turn_radius * turn_radius / turn_period);
             XY_waypt = 5;
             break;
@@ -962,7 +963,7 @@ int setpoint_guidance_t::march_circ(void)
         }
     case 5:
         // move back from edge of the circle to the center:
-        if (Y_cubic.march(setpoint.Y) && X_cubic.march(setpoint.X))
+        if (Y_cubic.march(*setpoint.XY.y.value.get_pt()) && X_cubic.march(*setpoint.XY.x.value.get_pt()))
         {
             XY_waypt = 6;
             XY_time_ns = rc_nanos_since_boot();
@@ -980,8 +981,8 @@ int setpoint_guidance_t::march_circ(void)
         else
         {
             //keep current position:
-            setpoint.X = X_initial;
-            setpoint.Y = Y_initial;
+            setpoint.XY.x.value.set(X_initial);
+            setpoint.XY.y.value.set(Y_initial);
             break;
         }
         //---------End of trajectory-------------//
@@ -1011,9 +1012,9 @@ void setpoint_guidance_t::start_circ(void) //intended to allow running at each i
     {
         en_XY = true; // allow XY guidance
         en_circ = true; // start circ guidance
-        setpoint.X = state_estimate.X; //zero out the error
-        setpoint.Y = state_estimate.Y; //zero out the error
-        setpoint.yaw = state_estimate.continuous_yaw; //zero out the error
+        setpoint.XY.x.value.set(state_estimate.X); //zero out the error
+        setpoint.XY.y.value.set(state_estimate.Y); //zero out the error
+        setpoint.ATT.z.value.set(state_estimate.continuous_yaw); //zero out the error
 
         circ_guide.set(turn_period, turn_radius, turn_time_s, turn_dir, \
             X_initial, Y_initial, Yaw_initial);
@@ -1083,7 +1084,7 @@ int setpoint_guidance_t::march(void)
         return -1;
     }
 
-    if (user_input.flight_mode != AUTONOMOUS)
+    if (user_input.get_flight_mode() != AUTONOMOUS)
     {
         if (en_Z) reset_Z();
         if (en_XY) reset_XY();
@@ -1102,7 +1103,7 @@ int setpoint_guidance_t::march(void)
 
     }
 
-    if (en_Z && setpoint.en_Z_ctrl)
+    if (en_Z && setpoint.Z.value.is_en())
     {
         if (unlikely(march_Z() == -1))
         {
@@ -1111,7 +1112,7 @@ int setpoint_guidance_t::march(void)
         }
     }
     
-    if (en_XY && setpoint.is_en_XY_pos_ctrl())
+    if (en_XY && setpoint.XY.is_en())
     {
         if (unlikely(march_XY() == -1))
         {

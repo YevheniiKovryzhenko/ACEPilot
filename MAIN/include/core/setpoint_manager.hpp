@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/27/2022 (MM/DD/YYYY)
+ * Last Edit:  05/28/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -53,6 +53,8 @@
 #include <rc/start_stop.h>
 #include <rc/math/quaternion.h>
 #include <rc/math/filter.h>
+#include "setpoint_gen.hpp"
+#include "flight_mode.h"
 
 #ifndef SETPOINT_MANAGER_H
 #define SETPOINT_MANAGER_H
@@ -67,15 +69,20 @@ private:
 	/** @name general */
 	///< @{
 	bool initialized;	///< set to 1 once setpoint manager has initialized
+	flight_mode_t flight_mode_prev;
+	bool flight_mode_switching = true;
 	///< @}
 
 	/* stick trim flags */
+	/*
 	bool last_en_trans;
 	bool last_en_stick_trim;
 	bool last_en_stick_filter_lp;
 	bool last_en_stick_filter_hp;
+	*/
 
 	/* stick trims */
+	/*
 	double roll_stick_trim;
 	double pitch_stick_trim;
 	double yaw_stick_trim;
@@ -83,8 +90,10 @@ private:
 	rc_filter_t pitch_stick_int;
 	rc_filter_t yaw_stick_int;
 	rc_filter_t trans_stick_int;
-	
+	*/
+
 	/* stick filters */
+	/*
 	double roll_stick_lp;
 	double pitch_stick_lp;
 	double yaw_stick_lp;
@@ -97,20 +106,35 @@ private:
 	rc_filter_t roll_stick_hpf;
 	rc_filter_t pitch_stick_hpf;
 	rc_filter_t yaw_stick_hpf;
-
+	*/
 	/**
 	* Function only used locally
 	*/
+	int init_all_filters(void);
+	/*
 	int init_trans(void);
 	int init_stick_trim(void);
 	int init_stick_filter(void);
+	
 	int update_trans(void);
 	int update_stick_trim(double roll_st, double pitch_st, double yaw_st);
 	int update_stick_filter_lp(void);
 	int update_stick_filter_hp(void);
+	*/
 	int update_setpoints(void);
 
-	/* Functions which should be called internally to update setpoints based on radio input:*/
+	/**
+	* @brief      Configure setpoints to reset to state_estimate.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int set_reset_sources(void);
+
+	/**
+	* @brief      Set setpoints to input values from the radio.
+	*
+	* @return     0 on success, -1 on failure
+	*/
 	void update_th(void);
 	void update_rp(void);
 	void update_rpy_rate(void);
@@ -130,12 +154,8 @@ public:
 	* user inputs tranlate directly to mixing matrix
 	*/
 	///< @{
-	double Z_throttle;				///< final value which is being actually used for control mixing
-	double X_throttle;				///< final value which is being actually used for control mixing
-	double Y_throttle;				///< final value which is being actually used for control mixing
-	double roll_throttle;			///< final value which is being actually used for control mixing
-	double pitch_throttle;			///< final value which is being actually used for control mixing
-	double yaw_throttle;			///< final value which is being actually used for control mixing
+	setpoint_gen_3D_t POS_throttle{};	///< final value which is being actually used for control mixing
+	setpoint_gen_3D_t ATT_throttle{};	///< final value which is being actually used for control mixing
 	///< @}
 	///< @{
 	double Z_servo_throttle;		///< final value which is being actually used for control mixing
@@ -148,18 +168,12 @@ public:
 
 	/** @name attitude rate setpoints */
 	///< @{
-	bool en_rpy_rate_ctrl;			///< enable the roll pitch yaw rate controllers
-	bool en_rpy_rate_FF;			///< enables roll pitch yaw rate feedforward control
-	double roll_dot;				///< roll angle rate (rad/s)
-	double pitch_dot;				///< pitch angle rate (rad/s)
-	double yaw_dot;					///< yaw angle rate (rad/s)
-	double roll_dot_ff;				///< feedforward roll rate (rad/s)
-	double pitch_dot_ff;			///< feedforward pitch rate (rad/s)
-	double yaw_dot_ff;				///< feedforward yaw rate (rad/s)
+	setpoint_gen_3D_t ATT_dot{};	///< roll pitch yaw derivative setpoints
 	///< @}
 
 	/** @name attitude rate setpoints transition rates */
 	///< @{
+	/*
 	bool en_rpy_rate_trans;			///< enable the roll pitch yaw rate transition functions
 	double roll_dot_tr;				///< roll angle rate transition gain
 	double pitch_dot_tr;			///< pitch angle rate transition gain
@@ -167,6 +181,7 @@ public:
 	double roll_dot_ff_tr;			///< feedforward roll rate transition gain
 	double pitch_dot_ff_tr;			///< feedforward pitch rate transition gain
 	double yaw_dot_ff_tr;			///< feedforward yaw rate transition gain
+	*/
 	///< @}
 
 	/** @name attitude rate servo setpoints */
@@ -193,18 +208,12 @@ public:
 
 	/** @name attitude setpoints */
 	///< @{
-	bool en_rpy_ctrl;				///< enable the roll pitch yaw controllers
-	bool en_rpy_FF;					///< enables roll pitch yaw feedforward control
-	double roll;					///< roll angle (positive tip right) (rad)
-	double pitch;					///< pitch angle (positive tip back) (rad)
-	double yaw;						///< glabal yaw angle, positive left
-	double roll_ff;					///< feedforward roll angle (rad)
-	double pitch_ff;				///< feedforward pitch angle (rad)
-	double yaw_ff;					///< feedforward yaw angle (rad)
+	setpoint_gen_3D_t ATT{};		///< roll pitch yaw setpoints
 	///< @}
 
 	/** @name attitude setpoint transition rates */
 	///< @{
+	/*
 	bool en_rpy_trans;				///< enable the roll pitch yaw transition functions
 	double roll_tr;					///< roll angle transition gain
 	double pitch_tr;				///< pitch angle transition gain
@@ -212,6 +221,7 @@ public:
 	double roll_ff_tr;				///< feedforward roll transition gain
 	double pitch_ff_tr;				///< feedforward pitch transition gain
 	double yaw_ff_tr;				///< feedforward yaw transition gain
+	*/
 	///< @}
 	 
 	/** @name attitude servo setpoints*/
@@ -238,50 +248,31 @@ public:
 
 	/** @name acceleration setpoints */
 	///< @{
-	double X_ddot;
-	double Y_ddot;
-	double Z_ddot;
-	double X_ddot_ff;
-	double Y_ddot_ff;
-	double Z_ddot_ff;
+	setpoint_gen_3D_t XYZ_ddot{};		///< X Y Z acceleration setpoints
 	///< @}
 
 	/** @name altitude */
 	///< @{
-	bool en_Z_ctrl;			///< enable altitude feedback.
-	bool en_Z_rate_ctrl;	///< enable altitude rate feedback.
-	bool en_Z_rate_FF;		///< enables altitude rate feedforward control
-	bool en_Z_FF;			///< enables altitude feedforward control
-	double Z;				///< vertical distance from where controller was armed
-	double Z_ff;			///< vertical distance feedforward
-	double Z_dot;			///< vertical velocity m/s^2, remember Z points down
-	double Z_dot_ff;		///< feedforward vertical velocity (m/s)
+	setpoint_gen_1D_t Z{};		///< Z setpoints
+	setpoint_gen_1D_t Z_dot{};		///< Z derivative setpoints
 	double Z_throttle_0;	/// hover throttle
 
 	/** @name horizontal velocity setpoint */
 	///< @{
-	bool en_XY_vel_ctrl;
-	bool en_XY_vel_FF;		///< enables XY velocity feedforward control
-	double X_dot;
-	double Y_dot;
-	double X_dot_ff;		///< feedforward x velocity (m/s)
-	double Y_dot_ff;		///< feedforward y velocity (m/s)
+	setpoint_gen_2D_t XY_dot{};		///< XY derivative setpoints
 	///< @}
 
 	/** @name horizontal position setpoint */
 	///< @{
-	bool en_XY_pos_ctrl;
-	bool en_XY_pos_FF;		///< enables XY position feedforward control
-	double X;
-	double Y;
-	double X_ff;		///< feedforward x position (m)
-	double Y_ff;		///< feedforward y position (m)
+	setpoint_gen_2D_t XY{};		///< XY setpoints
 	///< @}
 	/** @name horizontal position setpoint transition rates */
 	///< @{
+	/*
 	bool en_XY_pos_ctrl_trans;		///< enable the XY transition functions
 	double X_tr;					///< X transition gain
 	double Y_tr;					///< Y transition gain
+	*/
 	///< @}
 	 
 	/** @name horizontal position servo setpoint */
@@ -304,122 +295,20 @@ public:
 	* @return     0 on success, -1 on failure
 	*/
 	int init(void);
-	bool is_initialized(void);
 
 	/**
 	* @brief      Functions to retreve inernal boolean vals.
 	*
 	* @return     true or false
 	*/
-	bool is_en_rpy_rate_ctrl(void);
-	bool is_en_rpy_rate_FF(void);
-	bool is_en_rpy_ctrl(void);
-	bool is_en_rpy_FF(void);
-	bool is_en_Z_ctrl(void);
-	bool is_en_Z_FF(void);
-	bool is_en_Z_rate_ctrl(void);
-	bool is_en_Z_rate_FF(void);
-	bool is_en_XY_vel_ctrl(void);
-	bool is_en_XY_vel_FF(void);
-	bool is_en_XY_pos_ctrl(void);
-	bool is_en_XY_pos_FF(void);
-
-
-
-	/**
-	* @brief      Set setpoints to input value.
-	*
-	* @return     0 on success, -1 on failure
-	*/
-	int set_roll_dot(double val);
-	int set_pitch_dot(double val);
-	int set_yaw_dot(double val);
-	int set_roll_dot_ff(double val);
-	int set_pitch_dot_ff(double val);
-	int set_yaw_dot_ff(double val);
-
-	int set_roll(double val);
-	int set_pitch(double val);
-	int set_yaw(double val);
-	int set_roll_ff(double val);
-	int set_pitch_ff(double val);
-	int set_yaw_ff(double val);
-
-	int set_X_ddot(double val);
-	int set_Y_ddot(double val);
-	int set_Z_ddot(double val);
-	int set_X_ddot_ff(double val);
-	int set_Y_ddot_ff(double val);
-	int set_Z_ddot_ff(double val);
-
-	int set_X_dot(double val);
-	int set_Y_dot(double val);
-	int set_Z_dot(double val);
-	int set_X_dot_ff(double val);
-	int set_Y_dot_ff(double val);
-	int set_Z_dot_ff(double val);
-
-	int set_X(double val);
-	int set_Y(double val);
-	int set_Z(double val);
-	int set_X_ff(double val);
-	int set_Y_ff(double val);
-	int set_Z_ff(double val);
+	bool is_initialized(void);
 	
+
 	/**
 	* @brief      Reset setpoints to state_estimate.
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int reset_roll_dot(void);
-	int reset_pitch_dot(void);
-	int reset_yaw_dot(void);
-	int reset_roll_dot_ff(void);
-	int reset_pitch_dot_ff(void);
-	int reset_yaw_dot_ff(void);
-	int reset_att_dot(void);
-	int reset_att_dot_ff(void);
-	int reset_att_dot_all(void);
-
-	int reset_roll(void);
-	int reset_pitch(void);
-	int reset_yaw(void);
-	int reset_roll_ff(void);
-	int reset_pitch_ff(void);
-	int reset_yaw_ff(void);
-	int reset_att(void);
-	int reset_att_ff(void);
-	int reset_att_all(void);
-
-	int reset_X_ddot(void);
-	int reset_Y_ddot(void);
-	int reset_Z_ddot(void);
-	int reset_X_ddot_ff(void);
-	int reset_Y_ddot_ff(void);
-	int reset_Z_ddot_ff(void);
-	int reset_pos_ddot(void);
-	int reset_pos_ddot_ff(void);
-	int reset_pos_ddot_all(void);
-
-	int reset_X_dot(void);
-	int reset_Y_dot(void);
-	int reset_Z_dot(void);
-	int reset_X_dot_ff(void);
-	int reset_Y_dot_ff(void);
-	int reset_Z_dot_ff(void);
-	int reset_pos_dot(void);
-	int reset_pos_dot_ff(void);
-	int reset_pos_dot_all(void);
-
-	int reset_X(void);
-	int reset_Y(void);
-	int reset_Z(void);
-	int reset_X_ff(void);
-	int reset_Y_ff(void);
-	int reset_Z_ff(void);
-	int reset_pos(void);
-	int reset_pos_ff(void);
-	int reset_pos_all(void);
 
 	int reset_all(void);
 

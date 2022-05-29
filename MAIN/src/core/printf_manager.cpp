@@ -192,16 +192,16 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 			printf(KGRN);
 			printf("%s|%+5.2f|%+5.2f|%+5.2f|%+5.2f|",\
 							__next_colour(),\
-							user_input.get_thr_stick(),\
-							user_input.get_roll_stick(),\
-							user_input.get_pitch_stick(),\
-							user_input.get_yaw_stick());
+							user_input.throttle.get(),\
+							user_input.roll.get(),\
+							user_input.pitch.get(),\
+							user_input.yaw.get());
 		}
 		if (settings.printf_setpoint)
 		{
 			printf("%s%+5.2f|%+5.2f|%+5.2f|%+5.2f|%+5.2f|%+5.2f|", __next_colour(),
-				setpoint.X, setpoint.Y, setpoint.Z,
-				setpoint.roll, setpoint.pitch, setpoint.yaw);
+				setpoint.XY.x.value.get(), setpoint.XY.y.value.get(), setpoint.Z.value.get(),
+				setpoint.ATT.x.value.get(), setpoint.ATT.y.value.get(), setpoint.ATT.z.value.get());
 		}
 		if (settings.printf_u)
 		{
@@ -249,7 +249,7 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
  		}
 
 		if(settings.printf_mode){
-			print_flight_mode(user_input.flight_mode);
+			print_flight_mode(user_input.get_flight_mode());
 		}
 		if(settings.printf_counter){
 			printf("%d ",state_estimate.counter);

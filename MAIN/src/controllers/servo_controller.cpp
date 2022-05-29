@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/27/2022 (MM/DD/YYYY)
+ * Last Edit:  05/28/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -67,7 +67,7 @@ int feedback_servo_controller_t::rpy_march(void)
 	err_pitch = setpoint.pitch_servo;
 	err_yaw = setpoint.yaw_servo;
 	//use smooth transition if control blending is enabled:
-	if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw);
+	//if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw);
 
 	//feedback loop: angle error -> angular rate cmd.
 	//no feedback for now:
@@ -155,7 +155,7 @@ int feedback_servo_controller_t::rpy_rate_march(void)
 	err_pitch_dot = setpoint.pitch_dot_servo;
 	err_yaw_dot = setpoint.yaw_dot_servo;
 	//use smooth transition if control blending is enabled:
-	if (setpoint.en_rpy_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
+	//if (setpoint.en_rpy_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
 
 	//feedback loop: angular rate error -> torque cmd.
 	//no feedback for now:
@@ -185,17 +185,17 @@ int feedback_servo_controller_t::rpy_rate_transition(double& roll_dot_err, \
 }
 int feedback_servo_controller_t::r_rate_transition(double& roll_dot_err)
 {
-	roll_dot_err = roll_dot_err * (tanh(7.0 + setpoint.roll_dot_tr / 0.06) + 1.0) / 2.0;
+	//roll_dot_err = roll_dot_err * (tanh(7.0 + setpoint.roll_dot_tr / 0.06) + 1.0) / 2.0;
 	return 0;
 }
 int feedback_servo_controller_t::p_rate_transition(double& pitch_dot_err)
 {
-	pitch_dot_err = pitch_dot_err * (tanh(4.9 + setpoint.pitch_dot_tr / 0.12) + 1.0) / 2.0;
+	//pitch_dot_err = pitch_dot_err * (tanh(4.9 + setpoint.pitch_dot_tr / 0.12) + 1.0) / 2.0;
 	return 0;
 }
 int feedback_servo_controller_t::y_rate_transition(double& yaw_dot_err)
 {
-	yaw_dot_err = yaw_dot_err * (tanh(4.9 + setpoint.yaw_dot_tr / 0.12) + 1.0) / 2.0;
+	//yaw_dot_err = yaw_dot_err * (tanh(4.9 + setpoint.yaw_dot_tr / 0.12) + 1.0) / 2.0;
 	return 0;
 }
 
@@ -228,7 +228,7 @@ int feedback_servo_controller_t::mix_all_control(double(&u)[MAX_SERVO_INPUTS], d
 
 	/* 1. Throttle/Altitude Control */
 	rc_saturate_double(&setpoint.Z_servo_throttle, MIN_SERVO_THRUST_COMPONENT, MAX_SERVO_THRUST_COMPONENT);
-	u[VEC_Z] = setpoint.Z_servo_throttle;
+	u[VEC_Z] = setpoint.Z.value.get();
 	servo_mix.add_input(u[VEC_Z], VEC_Z, mot);
 
 
@@ -339,7 +339,7 @@ int feedback_servo_controller_t::march(double(&u)[MAX_SERVO_INPUTS], double(&mot
 		rpy_transition(setpoint.roll_servo_throttle,\
 			setpoint.pitch_servo_throttle, setpoint.yaw_servo_throttle);
 
-		if (user_input.flight_mode == ZEPPELIN)
+		if (user_input.get_flight_mode() == ZEPPELIN)
 		{
 			r_transition(setpoint.X_servo_throttle);
 		}

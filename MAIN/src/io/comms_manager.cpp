@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/22/2022 (MM/DD/YYYY)
+ * Last Edit:  05/28/2022 (MM/DD/YYYY)
  *
  * Object that governs all the logic related to communications.
  */
@@ -295,21 +295,21 @@ char comms_manager_t::mocap_start(const char* port, const int baudRate, void* bu
 	 */
 char comms_manager_t::mocap_save_data_sp(void)
 {	
-	GS_TX.x_sp = setpoint.X;
-	GS_TX.y_sp = setpoint.Y;
-	GS_TX.z_sp = setpoint.Z;
-	GS_TX.x_dot_sp = setpoint.X_dot;
-	GS_TX.y_dot_sp = setpoint.Y_dot;
-	GS_TX.z_dot_sp = setpoint.Z_dot;
+	GS_TX.x_sp = setpoint.XY.x.value.get();
+	GS_TX.y_sp = setpoint.XY.y.value.get();
+	GS_TX.z_sp = setpoint.Z.value.get();
+	GS_TX.x_dot_sp = setpoint.XY_dot.x.value.get();
+	GS_TX.y_dot_sp = setpoint.XY_dot.y.value.get();
+	GS_TX.z_dot_sp = setpoint.Z.value.get();
 	
 	
-	GS_TX.roll_sp = setpoint.roll;
-	GS_TX.pitch_sp = setpoint.pitch;
-	GS_TX.yaw_sp = setpoint.yaw;
+	GS_TX.roll_sp = setpoint.ATT.x.value.get();
+	GS_TX.pitch_sp = setpoint.ATT.y.value.get();
+	GS_TX.yaw_sp = setpoint.ATT.z.value.get();
 	
-	GS_TX.roll_dot_sp = setpoint.roll_dot;
-	GS_TX.pitch_dot_sp = setpoint.pitch_dot;
-	GS_TX.yaw_dot_sp = setpoint.yaw_dot;
+	GS_TX.roll_dot_sp = setpoint.ATT_dot.x.value.get();
+	GS_TX.pitch_dot_sp = setpoint.ATT_dot.y.value.get();
+	GS_TX.yaw_dot_sp = setpoint.ATT_dot.z.value.get();
 
 	return 0;
 }
@@ -347,7 +347,7 @@ char comms_manager_t::mocap_save_data_st(void)
 char comms_manager_t::mocap_save_data(void)
 {
 	GS_TX.time = rc_nanos_since_boot();
-	GS_TX.st_f = (uint8_t)user_input.flight_mode;
+	GS_TX.st_f = (uint8_t)user_input.get_flight_mode();
 	GS_TX.st_SM = (uint8_t)waypoint_state_machine.get_current_state();
 
 
