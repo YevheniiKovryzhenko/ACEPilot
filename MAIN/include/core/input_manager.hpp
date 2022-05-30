@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  05/30/2022 (MM/DD/YYYY)
  * 
  * Functions to start and stop the input manager thread which is the translation
  * beween control inputs from DSM to the user_input struct which is read by the
@@ -50,6 +50,7 @@ public:
 	* than the input mannager. Reading can be done externally.
 	*/
 	double get(void); //get stick value
+	double& get_pt(void);
 	int set(double in); //set stick value
 	int set(double* in); //set stick source
 	int reset(void); // reset value to zero

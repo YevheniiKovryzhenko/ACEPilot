@@ -122,6 +122,7 @@ typedef struct settings_t{
 	bool printf_motors;
 	bool printf_mode;
 	bool printf_mocap;
+	bool printf_gain_tunning;
 	bool printf_tracking;
 	bool printf_gps;
 	bool printf_int_mag;

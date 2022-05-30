@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  05/30/2022 (MM/DD/YYYY)
  *
  * Summary :
  * General-purpose class for handling clustered signals. 
@@ -64,10 +64,15 @@ private:
 	double value = 0.0; // value
 	double* pt_value = &value; // pointer to value
 
+	double gain = 0.0; // signal gain
+	double* gain_pt = &gain;// pointer to signal gain
+
 	double def_value = 0.0; //set default value
 	double* pt_def_value = &def_value; //pointer to default value for reset function
 
 	bool filters_initialized = false;
+
+	void reset_gain(void);
 
 public:
 	bool is_en(void); // returns en flag
@@ -81,6 +86,8 @@ public:
 	/* Functions for seting value parameter */
 	int set(double val); // sets value; resets pointer to point at value
 	int set(double* val); // sets value source;
+	int set(double* val, double new_gain); // sets value source; sets constant gain;
+	int set(double* val, double* new_gain); // sets value source; sets source for gain;
 	int set(setpoint_gen_t& val); //sets value equal to val
 
 	/* functions for setting default value */
@@ -110,12 +117,18 @@ public:
 	setpoint_gen_t value{}; // setpoint control
 	setpoint_gen_t FF{}; // feedforward control
 
-	int set(double in);
-	int set_FF(double in);
+	int set(double in);	
 	int set(double* in);
-	int set_FF(double* in);
+	int set(double* in, double new_gain);
+	int set(double* in, double* new_gain);
 	int set(setpoint_gen_1D_t& in);
+	
+	int set_FF(double in);
+	int set_FF(double* in);	
+	int set_FF(double* in, double new_gain);
+	int set_FF(double* in, double* new_gain);
 	int set_FF(setpoint_gen_1D_t& in);
+	
 	int set_all(setpoint_gen_1D_t& in);
 
 	int reset(void);
@@ -140,8 +153,6 @@ public:
 class setpoint_gen_2D_t
 {
 private:
-	bool en = false; // enable flag	
-	bool en_FF = false; // enable FF flag	
 public:
 	setpoint_gen_1D_t x{}; //setpoint for x/roll
 	setpoint_gen_1D_t y{}; //setpoint for y/pitch
@@ -178,7 +189,6 @@ public:
 class setpoint_gen_3D_t
 {
 private:
-	bool en = false; // enable flag	
 public:
 	setpoint_gen_1D_t x{}; //setpoint for x/roll
 	setpoint_gen_1D_t y{}; //setpoint for y/pitch

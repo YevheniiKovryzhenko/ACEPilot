@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  05/30/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Subclass for simplifying setpoint_manager. Defines multiple overloads for wider compatibility.
@@ -108,16 +108,43 @@ double* setpoint_gen_t::get_pt(void)
 {
 	return pt_value;
 }
+void setpoint_gen_t::reset_gain(void)
+{
+	gain = 0.0;
+	gain_pt = &gain;
+}
 int setpoint_gen_t::set(double val)
 {
 	value = val;
 	pt_value = &value;
+	
+	reset_gain();
 	return 0;
 }
 int setpoint_gen_t::set(double* val)
 {
 	value = *val;
 	pt_value = val;
+
+	reset_gain();
+	return 0;
+}
+int setpoint_gen_t::set(double* val, double new_gain)
+{
+	value = *val;
+	pt_value = val;
+
+	reset_gain();
+	gain = new_gain;
+	return 0;
+}
+int setpoint_gen_t::set(double* val, double* new_gain)
+{
+	value = *val;
+	pt_value = val;
+
+	gain_pt = new_gain;
+	gain = *gain_pt;
 	return 0;
 }
 int setpoint_gen_t::set(setpoint_gen_t& val)
@@ -137,6 +164,7 @@ int setpoint_gen_t::set_def(double* val)
 }
 int setpoint_gen_t::reset(void)
 {
+	reset_gain();
 	return set(*pt_def_value);
 }
 int setpoint_gen_t::reset_all(void)
@@ -168,6 +196,18 @@ int setpoint_gen_1D_t::set(double* in)
 {
 	return value.set(in);
 }
+int setpoint_gen_1D_t::set(double* in, double new_gain)
+{
+	return value.set(in, new_gain);
+}
+int setpoint_gen_1D_t::set(double* in, double* new_gain)
+{
+	return value.set(in, new_gain);
+}
+int setpoint_gen_1D_t::set(setpoint_gen_1D_t& in)
+{
+	return value.set(in.value);
+}
 int setpoint_gen_1D_t::set_FF(double in)
 {
 	return FF.set(in);
@@ -176,9 +216,13 @@ int setpoint_gen_1D_t::set_FF(double* in)
 {
 	return FF.set(in);
 }
-int setpoint_gen_1D_t::set(setpoint_gen_1D_t& in)
+int setpoint_gen_1D_t::set_FF(double* in, double new_gain)
 {
-	return value.set(in.value);
+	return FF.set(in, new_gain);
+}
+int setpoint_gen_1D_t::set_FF(double* in, double* new_gain)
+{
+	return FF.set(in, new_gain);
 }
 int setpoint_gen_1D_t::set_FF(setpoint_gen_1D_t& in)
 {
@@ -281,13 +325,13 @@ int setpoint_gen_1D_t::stop_filters(void)
 */
 bool setpoint_gen_2D_t::is_en(void)
 {
-	en = x.value.is_en() && y.value.is_en();
-	return en;
+	bool tmp = x.value.is_en() && y.value.is_en();
+	return tmp;
 }
 bool setpoint_gen_2D_t::is_en_FF(void)
 {
-	en_FF = x.FF.is_en() && y.FF.is_en();
-	return en;
+	bool tmp = x.FF.is_en() && y.FF.is_en();
+	return tmp;
 }
 int setpoint_gen_2D_t::set(double x_in, double y_in)
 {
@@ -434,17 +478,13 @@ int setpoint_gen_2D_t::stop_filters(void)
 */
 bool setpoint_gen_3D_t::is_en(void)
 {
-	bool tmp_1 = z.value.is_en() < 0;
-	bool tmp_2 = y.value.is_en() < 0;
-	en = x.value.is_en() && tmp_1 && tmp_2;
-	return en;
+	bool tmp_1 = x.value.is_en() && x.value.is_en() && z.value.is_en();
+	return tmp_1;
 }
 bool setpoint_gen_3D_t::is_en_FF(void)
 {
-	bool tmp_1 = z.FF.is_en();
-	bool tmp_2 = y.FF.is_en();
-	en = x.FF.is_en() && tmp_1 && tmp_2;
-	return en;
+	bool tmp_1 = x.FF.is_en() && x.FF.is_en() && z.FF.is_en();
+	return tmp_1;
 }
 int setpoint_gen_3D_t::set(double x_in, double y_in, double z_in)
 {

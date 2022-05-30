@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  05/30/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -143,7 +143,7 @@ int feedback_filter_gen_t::march(double* out, double err_in, double ref_in)
 		printf("ERROR in march: not initialized\n");
 		return -1;
 	}
-	*out = rc_filter_march(&gain_pd, err_in)
+	*out = rc_filter_march(&gain_pd, err_in)\
 		+ rc_filter_march(&gain_i, err_in) + gain_FF * ref_in;
 
 

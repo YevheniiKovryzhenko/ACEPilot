@@ -211,17 +211,17 @@ int mix_all_controls(double u[MAX_INPUTS], double* mot)
 		return -1;
 	}
 	// sum control inputs
-	for(i=0;i<rotors;i++){
-		mot[i]=0.0;
+	for (i = 0; i < rotors; i++) {
+		mot[i] = 0.0;
 		for (j = 0; j < 6; j++) {
 			mot[i] += mix_matrix[i][j] * u[j];
 		}
 	}
 	// ensure saturation, should not need to do this if mix_check_saturation
 	// was used properly, but here for safety anyway.
-	for(i=0;i<rotors;i++){
-		if(mot[i]>1.0) mot[i]=1.0;
-		else if(mot[i]<0.0) mot[i]=0.0;
+	for (i = 0; i < rotors; i++) {
+		if (mot[i] > 1.0) mot[i] = 1.0;
+		else if (mot[i] < 0.0) mot[i] = 0.0;
 	}
 	return 0;
 }
@@ -234,8 +234,8 @@ int mix_check_saturation(int ch, double* mot, double* min, double* max)
 	double new_max = DBL_MAX;
 	double new_min = -DBL_MAX;
 
-	if(initialized!=1){
-		fprintf(stderr,"ERROR: in check_channel_saturation, mix matrix not set yet\n");
+	if (initialized != 1) {
+		fprintf(stderr, "ERROR: in check_channel_saturation, mix matrix not set yet\n");
 		return -1;
 	}
 
@@ -251,41 +251,41 @@ int mix_check_saturation(int ch, double* mot, double* min, double* max)
 		return -1;
 	}
 
-	if(ch<min_ch || ch>=6){
-		fprintf(stderr,"ERROR: in check_channel_saturation, ch out of bounds\n");
+	if (ch < min_ch || ch >= 6) {
+		fprintf(stderr, "ERROR: in check_channel_saturation, ch out of bounds\n");
 		return -1;
 	}
 
 	// make sure motors are not already saturated
-	for(i=0;i<rotors;i++){
-		if(mot[i]>1.0 || mot[i]<0.0){
-			fprintf(stderr,"ERROR: motor channel already out of bounds\n");
+	for (i = 0; i < rotors; i++) {
+		if (mot[i] > 1.0 || mot[i] < 0.0) {
+			fprintf(stderr, "ERROR: motor channel already out of bounds\n");
 			return -1;
 		}
 	}
 
 	// find max positive input
-	for(i=0;i<rotors;i++){
+	for (i = 0; i < rotors; i++) {
 		// if mix channel is 0, impossible to saturate
-		if(mix_matrix[i][ch]==0.0) continue;
+		if (mix_matrix[i][ch] == 0.0) continue;
 		// for positive entry in mix matrix
-		if(mix_matrix[i][ch]>0.0)	tmp = (1.0-mot[i])/mix_matrix[i][ch];
+		if (mix_matrix[i][ch] > 0.0)	tmp = (1.0 - mot[i]) / mix_matrix[i][ch];
 		// for negative entry in mix matrix
-		else tmp = -mot[i]/mix_matrix[i][ch];
+		else tmp = -mot[i] / mix_matrix[i][ch];
 		// set new upper limit if lower than current
-		if(tmp<new_max) new_max = tmp;
+		if (tmp < new_max) new_max = tmp;
 	}
 
 	// find min (most negative) input
-	for(i=0;i<rotors;i++){
+	for (i = 0; i < rotors; i++) {
 		// if mix channel is 0, impossible to saturate
-		if(mix_matrix[i][ch]==0.0) continue;
+		if (mix_matrix[i][ch] == 0.0) continue;
 		// for positive entry in mix matrix
-		if(mix_matrix[i][ch]>0.0)	tmp = -mot[i]/mix_matrix[i][ch];
+		if (mix_matrix[i][ch] > 0.0)	tmp = -mot[i] / mix_matrix[i][ch];
 		// for negative entry in mix matrix
-		else tmp = (1.0-mot[i])/mix_matrix[i][ch];
+		else tmp = (1.0 - mot[i]) / mix_matrix[i][ch];
 		// set new upper limit if lower than current
-		if(tmp>new_min) new_min = tmp;
+		if (tmp > new_min) new_min = tmp;
 	}
 
 	*min = new_min;
@@ -321,12 +321,12 @@ int mix_add_input(double u, int ch, double* mot)
 	}
 
 	// add inputs
-	for(i=0;i<rotors;i++){
-		mot[i] += u*mix_matrix[i][ch];
+	for (i = 0; i < rotors; i++) {
+		mot[i] += u * mix_matrix[i][ch];
 		// ensure saturation, should not need to do this if mix_check_saturation
 		// was used properly, but here for safety anyway.
-		if(mot[i]>1.0) mot[i]=1.0;
-		else if(mot[i]<0.0) mot[i]=0.0;
+		if (mot[i] > 1.0) mot[i] = 1.0;
+		else if (mot[i] < 0.0) mot[i] = 0.0;
 	}
 	return 0;
 }

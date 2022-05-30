@@ -837,6 +837,7 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(printf_motors);
 	PARSE_BOOL(printf_mode);
 	PARSE_BOOL(printf_mocap);
+	PARSE_BOOL(printf_gain_tunning);
 	PARSE_BOOL(printf_tracking);
 	PARSE_BOOL(printf_gps);
 	PARSE_BOOL(printf_ext_mag);

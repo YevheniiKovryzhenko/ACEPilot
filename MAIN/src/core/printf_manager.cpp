@@ -1,5 +1,29 @@
-/**
- * @file printf_manager.c
+/*
+ * printf_manager.cpp
+ *
+ * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
+ * Contact: yzk0058@auburn.edu
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL I
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Last Edit:  05/30/2022 (MM/DD/YYYY)
+ *
  */
 
 #include <stdio.h>
@@ -92,6 +116,10 @@ static int __print_header()
 	if (settings.printf_mocap)
 	{
 		printf("%s x_mc | y_mc | z_mc | xdot_mc | ydot_mc | zdot_mc | qx_mc | qy_mc | qz_mc | qw_mc | sm_mc |", __next_colour());
+	}
+	if (settings.printf_gain_tunning)
+	{
+		printf("%s gain_ch |", __next_colour());
 	}
 	if (settings.printf_gps)
 	{
@@ -215,6 +243,11 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 				state_estimate.Z_dot, state_estimate.quat_mocap[1], state_estimate.quat_mocap[2], state_estimate.quat_mocap[3], state_estimate.quat_mocap[0],
 				GS_RX.sm_event);
 		}
+		if (settings.printf_gain_tunning)
+		{
+			printf("%s %2X   |", __next_colour(),
+				GS_RX.GainCH);
+		}
 		if (settings.printf_gps)
 		{
 			printf("%s%+7.2f|%+7.2f|%+7.2f|", __next_colour(),
@@ -293,10 +326,10 @@ int printf_cleanup()
 int print_flight_mode(flight_mode_t mode){
 	switch(mode){
 	case TEST_BENCH_4DOF:
-		printf("%sTEST_BENCH_4DOF       %s",KYEL,KNRM);
+		printf("%sTEST_BENCH_4DOF       %s", KYEL, KNRM);
 		return 0;
 	case TEST_BENCH_6DOF:
-		printf("%sTEST_BENCH_6DOF       %s",KYEL,KNRM);
+		printf("%sTEST_BENCH_6DOF       %s", KYEL, KNRM);
 		return 0;
 	case TEST_6xSERVOS_DIRECT:
 		printf("%sTEST_6xSERVOS_DIRECT  %s", KYEL, KNRM);
@@ -311,18 +344,22 @@ int print_flight_mode(flight_mode_t mode){
 		printf("%sACRO_Fxxxxx           %s", KCYN, KNRM);
 		return 0;
 	case MANUAL_xAxxxx:
-		printf("%sMANUAL_xAxxxx         %s",KCYN,KNRM);
+		printf("%sMANUAL_xAxxxx         %s", KCYN, KNRM);
 		return 0;
 	case MANUAL_xFxxxx:
 		printf("%sMANUAL_xFxxxx         %s", KCYN, KNRM);
+		return 0;
 	case MANUAL_AAxxxx:
 		printf("%sMANUAL_AAxxxx         %s", KCYN, KNRM);
+		return 0;
 	case MANUAL_FAxxxx:
 		printf("%sMANUAL_FAxxxx         %s", KCYN, KNRM);
+		return 0;
 	case MANUAL_FFxxxx:
 		printf("%sMANUAL_FFxxxx         %s", KCYN, KNRM);
+		return 0;
 	case ALT_HOLD_xAxAxx:
-		printf("%sALT_HOLD_xAxAxx       %s",KBLU,KNRM);
+		printf("%sALT_HOLD_xAxAxx       %s", KBLU, KNRM);
 		return 0;
 	case ALT_HOLD_xFxAxx:
 		printf("%sALT_HOLD_xFxAxx       %s", KBLU, KNRM);
@@ -385,7 +422,7 @@ int print_flight_mode(flight_mode_t mode){
 		printf("%sEMERGENCY_LAND        %s", KBLU, KNRM);
 		return 0;
 	case AUTONOMOUS:
-		printf("%sAUTONOMOUS            %s",KBLU,KNRM);
+		printf("%sAUTONOMOUS            %s", KBLU, KNRM);
 		return 0;
 	case ZEPPELIN:
 		printf("%sZEPPELIN              %s", KBLU, KNRM);

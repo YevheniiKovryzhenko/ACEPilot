@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  05/30/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -339,6 +339,7 @@ void setpoint_t::update_yaw(void)
 {
 	// if throttle stick is down all the way, probably landed, so
 	// keep the yaw setpoint at current yaw so it takes off straight
+	/*
 	double  vel_mag = sqrt(\
 		state_estimate.X_dot * state_estimate.X_dot\
 		+ state_estimate.Y_dot * state_estimate.Y_dot\
@@ -347,17 +348,17 @@ void setpoint_t::update_yaw(void)
 		ATT.z.value.set(state_estimate.continuous_yaw);
 		return;
 	}
+	*/
 	// otherwise, scale yaw by max yaw rate in rad/s
 	// and move yaw setpoint
-	double tmp_yaw_dot = user_input.yaw.get() * MAX_YAW_RATE;
-	ATT.z.value.set(ATT.z.value.get() + tmp_yaw_dot * DT);
+	ATT.z.value.increment(user_input.yaw.get() * MAX_YAW_RATE * DT);
 	return;
 }
 
 void setpoint_t::update_rp(void)
 {
-	ATT.x.set(user_input.roll.get());
-	ATT.y.set(user_input.pitch.get());
+	ATT.x.set(&user_input.roll.get_pt());
+	ATT.y.set(&user_input.pitch.get_pt());
 	
 	return;
 }
@@ -372,18 +373,18 @@ void setpoint_t::update_th(void)
 
 void setpoint_t::update_rpy_rate(void)
 {
-	ATT.x.value.set(user_input.roll.get() * MAX_ROLL_RATE);
-	ATT.y.value.set(user_input.pitch.get() * MAX_PITCH_RATE);
-	ATT.z.value.set(user_input.yaw.get() * MAX_YAW_RATE);
+	ATT_dot.x.value.set(&user_input.roll.get_pt(), MAX_ROLL_RATE);
+	ATT_dot.y.value.set(&user_input.pitch.get_pt(), MAX_PITCH_RATE);
+	ATT_dot.z.value.set(&user_input.yaw.get_pt(), MAX_YAW_RATE);
 
 	return;
 }
 
 void setpoint_t::update_rpy_servo(void)
 {
-	ATT_servo.x.value.set(user_input.roll.get());
-	ATT_servo.y.value.set(user_input.pitch.get());
-	ATT_servo.z.value.set(user_input.yaw.get());
+	ATT_servo.x.value.set(&user_input.roll.get_pt());
+	ATT_servo.y.value.set(&user_input.pitch.get_pt());
+	ATT_servo.z.value.set(&user_input.yaw.get_pt());
 	return;
 }
 
@@ -396,14 +397,15 @@ void setpoint_t::update_Z(void)
 	
 
 	double tmp_Z_dot;
+	double tmp_throtle = user_input.throttle.get();
 
-	if	(user_input.throttle.get() > Z_throttle_0+0.1)
+	if	(tmp_throtle > Z_throttle_0+0.1)
 	{
-		tmp_Z_dot = (user_input.throttle.get() - Z_throttle_0) * settings.max_Z_velocity;
+		tmp_Z_dot = (tmp_throtle - Z_throttle_0) * settings.max_Z_velocity;
 	}
-	else if (user_input.throttle.get() < Z_throttle_0-0.1)
+	else if (tmp_throtle < Z_throttle_0-0.1)
 	{
-		tmp_Z_dot = (user_input.throttle.get() - Z_throttle_0) * settings.max_Z_velocity;
+		tmp_Z_dot = (tmp_throtle - Z_throttle_0) * settings.max_Z_velocity;
 	}
 	else
 	{
@@ -425,14 +427,15 @@ void setpoint_t::update_Z_dot(void)
 
 
 	double tmp_Z_ddot;
+	double tmp_throtle = user_input.throttle.get();
 
-	if (user_input.throttle.get() > Z_throttle_0 + 0.1)
+	if (tmp_throtle > Z_throttle_0 + 0.1)
 	{
-		tmp_Z_ddot = (user_input.throttle.get() - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
+		tmp_Z_ddot = (tmp_throtle - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
 	}
-	else if (user_input.throttle.get() < Z_throttle_0 - 0.1)
+	else if (tmp_throtle < Z_throttle_0 - 0.1)
 	{
-		tmp_Z_ddot = (user_input.throttle.get() - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
+		tmp_Z_ddot = (tmp_throtle - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
 	}
 	else
 	{
@@ -683,9 +686,6 @@ int setpoint_t::update_setpoints(void)
 
 		XY.disable_all();
 		XY_servo.disable_all();
-
-
-		
 	}
 
 
