@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  */
 
 #ifndef CONTROLLER_HPP
@@ -38,7 +38,7 @@
 
 #include "mix.h"
 #include <stdbool.h>
-#include "filter_gen.hpp"
+#include "feedback_filter_gen.hpp"
 
 /* This is a class for the actual control system of the vehicle (ESC control) */
 class feedback_controller_t
@@ -56,21 +56,21 @@ private:
 	bool last_en_XYdot_ctrl = false;
 
 	// filters:
-	feedback_filter_t roll_dot;
-	feedback_filter_t pitch_dot;
-	feedback_filter_t yaw_dot;
+	feedback_filter_gen_t roll_dot;
+	feedback_filter_gen_t pitch_dot;
+	feedback_filter_gen_t yaw_dot;
 
-	feedback_filter_t roll;
-	feedback_filter_t pitch;
-	feedback_filter_t yaw;
+	feedback_filter_gen_t roll;
+	feedback_filter_gen_t pitch;
+	feedback_filter_gen_t yaw;
 
-	feedback_filter_t x_dot;
-	feedback_filter_t y_dot;
-	feedback_filter_t z_dot;
+	feedback_filter_gen_t x_dot;
+	feedback_filter_gen_t y_dot;
+	feedback_filter_gen_t z_dot;
 
-	feedback_filter_t x;
-	feedback_filter_t y;
-	feedback_filter_t z;
+	feedback_filter_gen_t x;
+	feedback_filter_gen_t y;
+	feedback_filter_gen_t z;
 
 	bool tune_status_fl = false; //indicates if gains have been updated last time 
 	PID_vars_set_t received_gain_set;

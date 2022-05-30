@@ -22,76 +22,40 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  *
  * Summary :
- * Subclass for simplifying setpoint_manager. Defines multiple overloads for wider compatibility. 
+ * General-purpose class for handling clustered signals. 
+ * Used for simplifying setpoint_manager. Defines multiple overloads for wider compatibility. 
  *
  */
 
-
-/**
-* <setpoint_gen.h>
-*
-* @brief      
-*/
 #ifndef SETPOINT_GEN_HPP
 #define SETPOINT_GEN_HPP
-#include <rc/math/filter.h>
-#include "rc_pilot_defs.h"
 
-/**
-* Setpoint filter types.
-*/
-enum setpoint_filter_type_t {
-	Lowpass = 0,
-	Highpass = 1,
-	Integrator = 2
-};
+#include "signal_filter_gen.hpp"
 
-/**
-* Setpoint filter class.
-*/
-class setpoint_filter_t
+/* generalized attachement node */
+class attachement_gen_t
 {
 private:
-	rc_filter_t filter = RC_FILTER_INITIALIZER;
-	bool initialized = false;
-	bool en = false;
-	double input = 0.0;
-	double output = 0.0;
-	bool last_en = false;
+	bool use_pt = false;
 
-	double dt = DT;
-	double tc = 10.0*DT;
-	
-	bool  en_saturation = true;
-	double min = -1.0;
-	double max = 1.0;
+	double source = 0.0;
+	double* source_pt = &source;
 
+	double target = 0.0;
+	double* target_pt = &target;
 public:
-	bool is_init(void);
-	int set_type(setpoint_filter_type_t type);
-
-	bool is_en(void);
-	int enable(void);
-	int disable(void);
-
-	double get(void);
-
-	int set_dt(double in);
-	int set_tc(double in);
-	int set_min_max(double new_min, double new_max);
-	int set_saturation(bool in);
-
-	int update(double in);
-
-	int reset(void);
+	int reset(void); // resets target and source to internal values
+	int bridge(double* new_target, double* new_source); //sets source to target using pointer
+	int bridge(double new_target, double new_source); //sets internal source to target
+	int update(void);
 };
 
 
 /**
-* Generalized setpoint subclass.
+* Generalized setpoint class.
 */
 class setpoint_gen_t
 {
@@ -110,27 +74,30 @@ public:
 	int disable(void); // sets en flag to true
 	int enable(void); // sets en flag to false
 
-	double get(void); // returns value
+	/* functions for retreving value parameter */
+	double get(void); //updates internal functions if enabled; returns value;
 	double* get_pt(void); // returns pt_value
+	
+	/* Functions for seting value parameter */
 	int set(double val); // sets value; resets pointer to point at value
 	int set(double* val); // sets value source;
 	int set(setpoint_gen_t& val); //sets value equal to val
-	int saturate(double min, double max); //saturates value between min and max
-	int increment(double gain); //performs value += gain
 
+	/* functions for setting default value */
 	int set_def(double val); //sets def_value; resets pointer to point at def_value
 	int set_def(double* val); //sets def_value sourse
 
-	int reset(void); //resets value to def_value pointer
+	int saturate(double min, double max); //saturates value between min and max
+	int increment(double gain); //performs value += gain	
 
+	int reset(void); //resets value to def_value pointer
+	int reset_all(void); //resets everything
+
+	/* functions for manipulating data pipelines */
+	attachement_gen_t connector{}; // is updated if enabled
 
 	/* signal filters */
-	setpoint_filter_t lp{};
-	setpoint_filter_t hp{};
-	setpoint_filter_t integrator{};
-
-	int init_filters(void);
-	int stop_filters(void);
+	signal_filter_triplet_gen_t filters{}; // is updated if enabled
 
 };
 

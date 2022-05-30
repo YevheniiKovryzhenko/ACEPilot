@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -381,10 +381,9 @@ void setpoint_t::update_rpy_rate(void)
 
 void setpoint_t::update_rpy_servo(void)
 {
-	roll_servo = user_input.roll.get();
-	pitch_servo = user_input.pitch.get();
-	yaw_servo = user_input.yaw.get();
-
+	ATT_servo.x.value.set(user_input.roll.get());
+	ATT_servo.y.value.set(user_input.pitch.get());
+	ATT_servo.z.value.set(user_input.yaw.get());
 	return;
 }
 
@@ -662,27 +661,31 @@ int setpoint_t::update_setpoints(void)
 	flight_mode_prev = user_input.get_flight_mode();
 
 	// Perform swithcing of control scheme if nessesary:
-	if (flight_mode_switching) //switch everything off to defaults
+	if (flight_mode_switching) //switch everything off
 	{
 		en_6dof = false;
+		en_6dof_servo = false;
 		
 		ATT_dot.disable_all();
-		//en_rpy_rate_trans = false;
+		ATT_dot_servo.disable_all();
 		
 		ATT.disable_all();
-		//en_rpy_trans = false;
+		ATT_servo.disable_all();
 		
 		Z_dot.disable_all();
+		Z_dot_servo.disable_all();
+		
 		XY_dot.disable_all();
+		XY_dot_servo.disable_all();
 		
 		Z.disable_all();
-		XY.disable_all();
+		Z_servo.disable_all();
 
-		en_6dof_servo = false;
-		en_rpy_rate_servo_ctrl = false;
-		en_rpy_rate_servo_trans = false;
-		en_rpy_servo_ctrl = false;
-		en_rpy_servo_trans = false;
+		XY.disable_all();
+		XY_servo.disable_all();
+
+
+		
 	}
 
 
@@ -708,12 +711,8 @@ int setpoint_t::update_setpoints(void)
 	case TEST_6xSERVOS_DIRECT:
 		// configure which controllers are enabled
 
-
-		//servos:
-		roll_servo_throttle = user_input.roll.get();	//map [-1 1] into [0 1]
-		pitch_servo_throttle = user_input.pitch.get();	//map [-1 1] into [0 1]
-		yaw_servo_throttle = user_input.yaw.get();		//map [-1 1] into [0 1]
-		Z_servo_throttle = -user_input.throttle.get();
+		setpoint.ATT_throttle_servo.set(user_input.roll.get(), user_input.pitch.get(), user_input.yaw.get());
+		setpoint.POS_throttle_servo.set(0.0, 0.0, -user_input.throttle.get());
 		break;
 
 	case DIRECT_THROTTLE_6DOF:
@@ -928,7 +927,6 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFFFxx:
-		en_6dof = false;
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -1030,28 +1028,28 @@ int setpoint_t::update_setpoints(void)
 		printf("WARNING: ZEPPELIN flight mode is not longer supported\n");
 		break;
 
-		/*
+		
 		//en_rpy_trans = true;
 
-		en_6dof_servo = true;
-		en_rpy_servo_trans = true;
+		//en_6dof_servo = true;
+		//en_rpy_servo_trans = true;
 
 		//update_trans(); //update transitions, filters and trims
 
-		ATT_throttle.set(user_input.roll.get() + roll_stick_trim, user_input.pitch.get(), user_input.yaw.get() + yaw_stick_trim);
-		POS_throttle.z.value.set(-user_input.throttle.get());
+		//ATT_throttle.set(user_input.roll.get() + roll_stick_trim, user_input.pitch.get(), user_input.yaw.get() + yaw_stick_trim);
+		//POS_throttle.z.value.set(-user_input.throttle.get());
 		
-		roll_servo_throttle = user_input.roll.get() + roll_stick_trim;
-		pitch_servo_throttle = user_input.pitch.get(); // pitch_stick_hp;
-		yaw_servo_throttle = user_input.yaw.get() + yaw_stick_trim;
+		//roll_servo_throttle = user_input.roll.get() + roll_stick_trim;
+		//pitch_servo_throttle = user_input.pitch.get(); // pitch_stick_hp;
+		//yaw_servo_throttle = user_input.yaw.get() + yaw_stick_trim;
 		
-		X_servo_throttle = user_input.yaw.get() + yaw_stick_trim;
-		Y_servo_throttle = pitch_servo_tr;
-		Z_servo_throttle = 0.0;
+		//X_servo_throttle = user_input.yaw.get() + yaw_stick_trim;
+		//Y_servo_throttle = pitch_servo_tr;
+		//Z_servo_throttle = 0.0;
 		
 		
-		break;
-		*/
+		//break;
+		
 
 	default: // should never get here
 		fprintf(stderr, "ERROR in setpoint_manager thread, unknown flight mode\n");

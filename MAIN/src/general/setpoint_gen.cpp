@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Subclass for simplifying setpoint_manager. Defines multiple overloads for wider compatibility.
@@ -41,159 +41,42 @@
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
 
- /**
- * Setpoint filter class.
- */
-bool setpoint_filter_t::is_init(void)
+ /* generalized attachement node */
+int attachement_gen_t::reset(void)
 {
-	return initialized;
-}
-int setpoint_filter_t::set_type(setpoint_filter_type_t type)
-{
-	filter = RC_FILTER_INITIALIZER;
-	switch (type)
-	{
-	case Lowpass:
-		if (unlikely(rc_filter_first_order_lowpass(&filter, dt, tc) == -1))
-		{
-			printf("ERROR in set_type: failed to create low-pass filter\n");
-			disable();
-			reset();
-			initialized = false;
-			return -1;
-		}
-
-		break;
-	case Highpass:
-		if (unlikely(rc_filter_first_order_highpass(&filter, dt, tc) == -1))
-		{
-			printf("ERROR in set_type: failed to create high-pass filter\n");
-			disable();
-			reset();
-			initialized = false;
-			return -1;
-		}
-		break;
-
-	case Integrator:
-		if (unlikely(rc_filter_integrator(&filter, dt) == -1))
-		{
-			printf("ERROR in set_type: failed to create integrator\n");
-			disable();
-			reset();
-			initialized = false;
-			return -1;
-		}
-		
-		break;
-
-	default:
-		printf("ERROR in set_type: undefined filter option.\n");
-		disable();
-		reset();
-		initialized = false;
-		return -1;
-	}
-	if (en_saturation)
-	{
-		if (unlikely(rc_filter_enable_saturation(&filter, min, max) == -1))
-		{
-			printf("ERROR in set_type: failed to enable saturation\n");
-			return -1;
-		}
-	}	
-
-
-	reset();
-
-	initialized = true;
-
+	source = 0.0;
+	target = 0.0;
+	source_pt = &source;
+	target_pt = &target;
 	return 0;
 }
-bool setpoint_filter_t::is_en(void)
+int attachement_gen_t::bridge(double* new_target, double* new_source)
 {
-	return en;
-}
-int setpoint_filter_t::enable(void)
-{
-	if (unlikely(!initialized))
-	{
-		printf("ERROR in enable: not initialized\n");
-		return -1;
-	}
-
-	en = true;
-
+	use_pt = true;
+	source_pt = new_source;
+	target_pt = new_target;
 	return 0;
 }
-int setpoint_filter_t::disable(void)
+int attachement_gen_t::bridge(double new_target, double new_source)
 {
-	en = false;
-	last_en = false;
-
+	use_pt = false;
+	source = new_source;
+	target = new_target;
 	return 0;
 }
-int setpoint_filter_t::reset(void)
+int attachement_gen_t::update(void)
 {
-	output = 0.0;
-	input = 0.0;
 	
-	if (unlikely(rc_filter_reset(&filter) < 0))
-	{
-		printf("ERROR in reset: failed to reset filter\n");
-		disable();
-		return -1;
-	}
-
-
+	if (use_pt) *target_pt = *source_pt;
+	else target = source;
+	
 	return 0;
 }
-double setpoint_filter_t::get(void)
-{
-	return output;
-}
-int setpoint_filter_t::set_dt(double in)
-{
-	dt = in;
-	return 0;
-}
-int setpoint_filter_t::set_tc(double in)
-{
-	tc = in;
-	return 0;
-}
-int setpoint_filter_t::set_min_max(double new_min, double new_max)
-{
-	min = new_min;
-	max = new_max;
-	return 0;
-}
-int setpoint_filter_t::set_saturation(bool in)
-{
-	en_saturation = in;
-
-	return 0;
-}
-int setpoint_filter_t::update(double in)
-{
-	if (!en) return 0;
-
-	if (unlikely(!initialized))
-	{
-		printf("ERROR in update: not initialized\n");
-		return -1;
-	}
-	input = in;
-	output = rc_filter_march(&filter, input);
-
-	if (en_saturation) rc_saturate_double(&output, min, max);
 
 
-	return 0;
-}
 
  /**
- * Generalized setpoint subclass.
+ * Generalized setpoint class.
  */
 bool setpoint_gen_t::is_en(void)
 {
@@ -211,6 +94,14 @@ int setpoint_gen_t::disable(void)
 }
 double setpoint_gen_t::get(void)
 {
+	if (en)
+	{
+		if (unlikely(connector.update() < 0))
+		{
+			printf("ERROR in get: failed to update connector\n");
+			en = false;
+		}
+	}
 	return *pt_value;
 }
 double* setpoint_gen_t::get_pt(void)
@@ -248,6 +139,14 @@ int setpoint_gen_t::reset(void)
 {
 	return set(*pt_def_value);
 }
+int setpoint_gen_t::reset_all(void)
+{
+	bool tmp_1 = reset() < 0;
+	bool tmp_2 = connector.reset() < 0;
+	bool tmp_3 = filters.reset_all() < 0;
+	if (tmp_1 || tmp_2 || tmp_3) return -1;
+	return 0;
+}
 int setpoint_gen_t::saturate(double min, double max)
 {
 	return rc_saturate_double(pt_value, min, max);
@@ -255,40 +154,6 @@ int setpoint_gen_t::saturate(double min, double max)
 int setpoint_gen_t::increment(double in)
 {
 	*pt_value += in;
-	return 0;
-}
-int setpoint_gen_t::init_filters(void)
-{
-	if (unlikely(lp.set_type(Lowpass) < 0))
-	{
-		printf("ERROR in init_filters: failed to initialize low-pass filter\n");
-		filters_initialized = false;
-		return -1;
-	}
-	if (unlikely(hp.set_type(Highpass) < 0))
-	{
-		printf("ERROR in init_filters: failed to initialize high-pass filter\n");
-		filters_initialized = false;
-		return -1;
-	}
-	if (unlikely(integrator.set_type(Integrator) < 0))
-	{
-		printf("ERROR in init_filters: failed to initialize inegrator filter\n");
-		filters_initialized = false;
-		return -1;
-	}
-	
-	filters_initialized = true;
-	return 0;
-}
-int setpoint_gen_t::stop_filters(void)
-{
-	lp.disable();
-	lp.reset();
-	hp.disable();
-	hp.reset();
-	integrator.disable();
-	integrator.reset();
 	return 0;
 }
 
@@ -330,20 +195,29 @@ int setpoint_gen_1D_t::set_all(setpoint_gen_1D_t& in)
 }
 int setpoint_gen_1D_t::reset(void)
 {
-	return value.reset();
-}
-int setpoint_gen_1D_t::reset_FF(void)
-{
-	return FF.reset();
-}
-int setpoint_gen_1D_t::reset_all(void)
-{
-	bool tmp = FF.reset() < 0;
-	if (value.reset() < 0 || tmp)
+	if (value.reset() < 0)
 	{
 		return -1;
 	}
-	return FF.reset();
+	return 0;
+}
+int setpoint_gen_1D_t::reset_FF(void)
+{
+	if (FF.reset() < 0)
+	{
+		return -1;
+	}
+	return 0;
+}
+int setpoint_gen_1D_t::reset_all(void)
+{
+	bool tmp_1 = FF.reset_all() < 0;
+
+	if (value.reset_all() < 0 || tmp_1)
+	{
+		return -1;
+	}
+	return 0;
 }
 int setpoint_gen_1D_t::enable(void)
 {
@@ -351,7 +225,9 @@ int setpoint_gen_1D_t::enable(void)
 }
 int setpoint_gen_1D_t::enable_FF(void)
 {
-	return FF.enable();
+	if (FF.connector.bridge(FF.get_pt(), value.get_pt()) < 0) return -1;
+	else FF.enable();
+	return 0;
 }
 int setpoint_gen_1D_t::enable_all(void)
 {
@@ -361,10 +237,18 @@ int setpoint_gen_1D_t::enable_all(void)
 }
 int setpoint_gen_1D_t::disable(void)
 {
+	if (unlikely(value.connector.reset() < 0))
+	{
+		printf("ERROR in disable: failed to reset connector\n");
+	}
 	return value.disable();
 }
 int setpoint_gen_1D_t::disable_FF(void)
 {
+	if (unlikely(FF.connector.reset() < 0))
+	{
+		printf("ERROR in disable_FF: failed to reset connector\n");
+	}
 	return FF.disable();
 }
 int setpoint_gen_1D_t::disable_all(void)
@@ -375,8 +259,8 @@ int setpoint_gen_1D_t::disable_all(void)
 }
 int setpoint_gen_1D_t::init_filters(void)
 {
-	bool tmp_1 = value.init_filters() < 0;
-	if (FF.init_filters() < 0 || tmp_1)
+	bool tmp_1 = value.filters.init_all() < 0;
+	if (FF.filters.init_all() < 0 || tmp_1)
 	{
 		return -1;
 	}
@@ -384,8 +268,8 @@ int setpoint_gen_1D_t::init_filters(void)
 }
 int setpoint_gen_1D_t::stop_filters(void)
 {
-	bool tmp_1 = value.stop_filters() < 0;
-	if (FF.stop_filters() < 0 || tmp_1)
+	bool tmp_1 = value.filters.stop_all() < 0;
+	if (FF.filters.stop_all() < 0 || tmp_1)
 	{
 		return -1;
 	}

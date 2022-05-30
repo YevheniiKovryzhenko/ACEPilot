@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -31,7 +31,7 @@
 #include <rc/math.h>
 #include <rc/time.h>
 #include <rc/math/filter.h>
-#include "filter_gen.hpp"
+#include "feedback_filter_gen.hpp"
 
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
@@ -41,7 +41,7 @@
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
+int feedback_filter_gen_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
 {
 	if (unlikely(rc_filter_duplicate(&def_gain_pd, new_gain_pd) == -1))
 	{
@@ -64,7 +64,7 @@ int feedback_filter_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
+int feedback_filter_gen_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
 {
 	if (unlikely(rc_filter_duplicate(&gain_pd, new_gain_pd) == -1))
 	{
@@ -87,7 +87,7 @@ int feedback_filter_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_g
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
+int feedback_filter_gen_t::init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
 {
 	if (unlikely(set_gain_set(new_gain_pd, new_gain_i, new_gain_FF) < 0))
 	{
@@ -108,7 +108,7 @@ int feedback_filter_t::init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, d
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::reset(void)
+int feedback_filter_gen_t::reset(void)
 {
 	gain_pd = def_gain_pd;
 	gain_i = def_gain_i;
@@ -136,7 +136,7 @@ int feedback_filter_t::reset(void)
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::march(double* out, double err_in, double ref_in)
+int feedback_filter_gen_t::march(double* out, double err_in, double ref_in)
 {
 	if (unlikely(!initialized))
 	{
@@ -158,7 +158,7 @@ int feedback_filter_t::march(double* out, double err_in, double ref_in)
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::march(double* out, double err_in)
+int feedback_filter_gen_t::march(double* out, double err_in)
 {
 	if (unlikely(!initialized))
 	{
@@ -180,7 +180,7 @@ int feedback_filter_t::march(double* out, double err_in)
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::scale_gains(double scale)
+int feedback_filter_gen_t::scale_gains(double scale)
 {
 	if (unlikely(!initialized))
 	{
@@ -204,7 +204,7 @@ int feedback_filter_t::scale_gains(double scale)
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::prefill_pd_input(double in)
+int feedback_filter_gen_t::prefill_pd_input(double in)
 {
 	if (unlikely(!initialized))
 	{
@@ -226,7 +226,7 @@ int feedback_filter_t::prefill_pd_input(double in)
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::prefill_i_input(double in)
+int feedback_filter_gen_t::prefill_i_input(double in)
 {
 	if (unlikely(!initialized))
 	{
@@ -248,7 +248,7 @@ int feedback_filter_t::prefill_i_input(double in)
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::prefill_pd_out(double out)
+int feedback_filter_gen_t::prefill_pd_out(double out)
 {
 	if (unlikely(!initialized))
 	{
@@ -270,7 +270,7 @@ int feedback_filter_t::prefill_pd_out(double out)
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::prefill_i_out(double out)
+int feedback_filter_gen_t::prefill_i_out(double out)
 {
 	if (unlikely(!initialized))
 	{
@@ -292,7 +292,7 @@ int feedback_filter_t::prefill_i_out(double out)
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_t::set_tune_gains(PID_vars_set_t& new_input)
+int feedback_filter_gen_t::set_tune_gains(PID_vars_set_t& new_input)
 {
 	if (unlikely(!initialized))
 	{

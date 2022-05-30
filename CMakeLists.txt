@@ -4,7 +4,7 @@
 cmake_minimum_required (VERSION 3.8) #sets the minimum required version for this Cmake project
 
 # set the project name
-project (HardwareTesting) #project name
+project (rc_pilot_v2) #project name
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)

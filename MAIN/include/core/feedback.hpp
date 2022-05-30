@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:   05/19/2022 (MM/DD/YYYY)
+ * Last Edit:   05/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -41,10 +41,10 @@
 #include "controller.hpp"
 
 /**
-	* This is the state of the feedback loop. contains most recent values
-	* reported by the feedback controller. Should only be written to by the
-	* feedback controller after initialization.
-	*/
+* This is the state of the feedback loop. contains most recent values
+* reported by the feedback controller. Should only be written to by the
+* feedback controller after initialization.
+*/
 class feedback_state_t
 {
 private:

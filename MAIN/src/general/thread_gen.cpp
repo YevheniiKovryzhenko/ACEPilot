@@ -1,5 +1,5 @@
 /*
- * gen_thread.cpp
+ * thread_gen.cpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/20/2020 (MM/DD/YYYY)
+ * Last Edit:  05/29/2020 (MM/DD/YYYY)
  *
  * Summary :
  * 
@@ -30,9 +30,9 @@
  */
 #include <rc/time.h>
 #include <stdio.h>
-#include "gen_thread.hpp"
+#include "thread_gen.hpp"
 
-int gen_thread_t::init(int PRIORITY, thread_policy POLICY)
+int thread_gen_t::init(int PRIORITY, thread_policy POLICY)
 {    
     if (PRIORITY > 99 || PRIORITY < 1)
     {
@@ -48,7 +48,7 @@ int gen_thread_t::init(int PRIORITY, thread_policy POLICY)
     return 0;
 }
 
-int gen_thread_t::start(void* (*func)(void*))
+int thread_gen_t::start(void* (*func)(void*))
 {
     if (!initialized)
     {
@@ -64,7 +64,7 @@ int gen_thread_t::start(void* (*func)(void*))
     started = true;
     return 0;
 }
-int gen_thread_t::stop(float TOUT)
+int thread_gen_t::stop(float TOUT)
 {
     int ret = 0;
     if (started) {
@@ -77,7 +77,7 @@ int gen_thread_t::stop(float TOUT)
     return ret;
 }
 
-bool gen_thread_t::is_started(void)
+bool thread_gen_t::is_started(void)
 {
     return started;
 }

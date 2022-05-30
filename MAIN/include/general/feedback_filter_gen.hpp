@@ -1,5 +1,5 @@
 /*
- * filter_gen.hpp
+ * feedback_filter_gen.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  */
 
 
@@ -42,8 +42,8 @@ typedef struct PID_vars_set_t
 	float GainFF;
 } PID_vars_set_t;
 
-/* This is a class for a general purpouse SISO filter */
-class feedback_filter_t
+/* This is a class for a general purpouse SISO filter for the control system */
+class feedback_filter_gen_t
 {
 private:
 	bool initialized = false;

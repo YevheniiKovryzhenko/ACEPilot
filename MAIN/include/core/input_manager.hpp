@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  * 
  * Functions to start and stop the input manager thread which is the translation
  * beween control inputs from DSM to the user_input struct which is read by the
@@ -39,6 +39,7 @@
 
 #include "rc_pilot_defs.h"
 #include "flight_mode.h"
+#include "signal_filter_gen.hpp"
 
 class stick_t {
 private:
@@ -51,7 +52,10 @@ public:
 	double get(void); //get stick value
 	int set(double in); //set stick value
 	int set(double* in); //set stick source
-	int reset(void);
+	int reset(void); // reset value to zero
+
+	// stick filters
+	signal_filter_triplet_gen_t filters{};
 };
 
 
@@ -66,31 +70,27 @@ private:
 	* Indivisual function for accessing these variables have been written.
 	*/
 	pthread_t thread;
-	bool initialized;				///< set to 1 after input_manager_init(void)
-	bool en_emergency_land;	///< on/off emergency landing procedure
-	
-	//double thr_stick;			///< positive forward
-	//double yaw_stick;		///< positive to the right, CW yaw
-	//double roll_stick;		///< positive to the right
-	//double pitch_stick;		///< positive forward
+	bool initialized;					///< set to 1 after input_manager_init(void)
+	bool en_emergency_land;				///< on/off emergency landing procedure
 
-	//double mode_stick;		///< flight mode stick position
-	arm_state_t arm_switch; ///< actual position of the physical switch
+	//double mode_stick;				///< flight mode stick position
+	arm_state_t arm_switch;				///< actual position of the physical switch
 	void set_arm_switch(arm_state_t val);	
 	int wait_for_arming_sequence(void);
 
+	int init_all_filters(void);
 public:
 
 	// All sticks scaled from -1 to 1
-	stick_t throttle{};			///< positive forward
-	stick_t yaw{};				///< positive to the right, CW yaw
-	stick_t roll{};				///< positive to the right
-	stick_t pitch{};				///< positive forward
+	stick_t throttle{};					///< positive forward
+	stick_t yaw{};						///< positive to the right, CW yaw
+	stick_t roll{};						///< positive to the right
+	stick_t pitch{};					///< positive forward
 	stick_t requested_flight_mode{};	///< flight mode stick position
 	
-	flight_mode_t flight_mode;		///< this is the user commanded flight_mode.
-	int input_active;				///< nonzero indicates some user control is coming in
-	arm_state_t requested_arm_mode;	///< set to ARMED after arming sequence is entered.
+	flight_mode_t flight_mode;			///< this is the user commanded flight_mode.
+	int input_active;					///< nonzero indicates some user control is coming in
+	arm_state_t requested_arm_mode;		///< set to ARMED after arming sequence is entered.
 	
 
 	
@@ -113,7 +113,7 @@ public:
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int input_manager_init(void);
+	int input_manager_init(void);	
 	bool is_initialized(void); // a way for other functions to ask if input mannager is initialized
 	void set_initialized(bool val); // use this only inside input mannager
 

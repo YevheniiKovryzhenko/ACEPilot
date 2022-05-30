@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/20/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -35,7 +35,7 @@
 #ifndef __STATE_MACHINE__
 #define __STATE_MACHINE__
 #include "flight_mode.h"
-#include "gen_thread.hpp"
+#include "thread_gen.hpp"
 
     /**
      * @brief List of possible states for the state machine. States can be added as needed for new
@@ -84,7 +84,7 @@
 
         bool load_file_fl;
         
-        gen_thread_t thread;
+        thread_gen_t thread;
 
         /**
         * @brief Parse the input and transition to new state if applicable

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/22/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -303,10 +303,6 @@ int feedback_state_t::march(void)
 		send_motor_stop_pulse();
 		return 0;
 	}
-
-	//update_setpoints();
-	// Zero out feedforward terms so unexpected things don't happen
-	//zero_out_ff();
 
 	// We are about to start marching the individual SISO controllers forward.
 	// Start by zeroing out the motors signals then add from there.

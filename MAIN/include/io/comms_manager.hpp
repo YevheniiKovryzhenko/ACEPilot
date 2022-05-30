@@ -22,7 +22,7 @@
   * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
-  * Last Edit:  05/22/2022 (MM/DD/YYYY)
+  * Last Edit:  05/29/2022 (MM/DD/YYYY)
   *
   * Object that governs all the high level logic related to communications.
   */
@@ -33,7 +33,7 @@
 #include <stdint.h>
 #include "serial_transmit.hpp"
 #include "comms_tmp_data_packet.h"
-#include "gen_thread.hpp"
+#include "thread_gen.hpp"
 
 #define MOCAP_THREAD_TX_HZ 20
 #define MOCAP_THREAD_TX_TOUT 1
@@ -50,14 +50,14 @@ private:
 	bool comms_manager_thread_active_fl;
 	bool comms_manager_thread_check_fl;
 	bool comms_manager_thread_terminate_fl;
-	gen_thread_t comms_manager_thread;
+	thread_gen_t comms_manager_thread;
 
 	bool mocap_thread_active_fl;
 	bool mocap_thread_check_fl;
 	bool mocap_thread_terminate_fl;
 	bool mocap_en_TX;
 	uint64_t TX_time;
-	gen_thread_t mocap_thread;
+	thread_gen_t mocap_thread;
 
 	/**
 	 * @brief   proper exit routine for mocap comm line.

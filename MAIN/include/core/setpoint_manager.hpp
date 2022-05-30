@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -38,13 +38,6 @@
  * setpoints here. Then feedback-controller only needs to march the
  * filters and zero them out when arming or enabling controllers
  *
- */
-
-
-/**
- * <setpoint_manager.h>
- *
- * @brief      
  */
 
 #include <stdint.h> // for uint64_t
@@ -73,54 +66,10 @@ private:
 	bool flight_mode_switching = true;
 	///< @}
 
-	/* stick trim flags */
-	/*
-	bool last_en_trans;
-	bool last_en_stick_trim;
-	bool last_en_stick_filter_lp;
-	bool last_en_stick_filter_hp;
-	*/
-
-	/* stick trims */
-	/*
-	double roll_stick_trim;
-	double pitch_stick_trim;
-	double yaw_stick_trim;
-	rc_filter_t roll_stick_int;
-	rc_filter_t pitch_stick_int;
-	rc_filter_t yaw_stick_int;
-	rc_filter_t trans_stick_int;
-	*/
-
-	/* stick filters */
-	/*
-	double roll_stick_lp;
-	double pitch_stick_lp;
-	double yaw_stick_lp;
-	double roll_stick_hp;
-	double pitch_stick_hp;
-	double yaw_stick_hp;
-	rc_filter_t roll_stick_lpf;
-	rc_filter_t pitch_stick_lpf;
-	rc_filter_t yaw_stick_lpf;
-	rc_filter_t roll_stick_hpf;
-	rc_filter_t pitch_stick_hpf;
-	rc_filter_t yaw_stick_hpf;
-	*/
 	/**
 	* Function only used locally
 	*/
 	int init_all_filters(void);
-	/*
-	int init_trans(void);
-	int init_stick_trim(void);
-	int init_stick_filter(void);
-	
-	int update_trans(void);
-	int update_stick_trim(double roll_st, double pitch_st, double yaw_st);
-	int update_stick_filter_lp(void);
-	int update_stick_filter_hp(void);
-	*/
 	int update_setpoints(void);
 
 	/**
@@ -156,138 +105,49 @@ public:
 	///< @{
 	setpoint_gen_3D_t POS_throttle{};	///< final value which is being actually used for control mixing
 	setpoint_gen_3D_t ATT_throttle{};	///< final value which is being actually used for control mixing
-	///< @}
-	///< @{
-	double Z_servo_throttle;		///< final value which is being actually used for control mixing
-	double X_servo_throttle;		///< final value which is being actually used for control mixing
-	double Y_servo_throttle;		///< final value which is being actually used for control mixing
-	double roll_servo_throttle;		///< final value which is being actually used for control mixing
-	double pitch_servo_throttle;	///< final value which is being actually used for control mixing
-	double yaw_servo_throttle;		///< final value which is being actually used for control mixing
+
+	setpoint_gen_3D_t POS_throttle_servo{};	///< final value which is being actually used for control mixing
+	setpoint_gen_3D_t ATT_throttle_servo{};	///< final value which is being actually used for control mixing
 	///< @}
 
 	/** @name attitude rate setpoints */
 	///< @{
 	setpoint_gen_3D_t ATT_dot{};	///< roll pitch yaw derivative setpoints
-	///< @}
-
-	/** @name attitude rate setpoints transition rates */
-	///< @{
-	/*
-	bool en_rpy_rate_trans;			///< enable the roll pitch yaw rate transition functions
-	double roll_dot_tr;				///< roll angle rate transition gain
-	double pitch_dot_tr;			///< pitch angle rate transition gain
-	double yaw_dot_tr;				///< yaw angle rate transition gain
-	double roll_dot_ff_tr;			///< feedforward roll rate transition gain
-	double pitch_dot_ff_tr;			///< feedforward pitch rate transition gain
-	double yaw_dot_ff_tr;			///< feedforward yaw rate transition gain
-	*/
-	///< @}
-
-	/** @name attitude rate servo setpoints */
-	///< @{
-	bool en_rpy_rate_servo_ctrl;	///< enable the roll pitch yaw rate controllers
-	double roll_dot_servo;			///< roll angle rate (rad/s)
-	double pitch_dot_servo;			///< pitch angle rate (rad/s)
-	double yaw_dot_servo;			///< yaw angle rate (rad/s)
-	double roll_dot_ff_servo;		///< feedforward roll rate (rad/s)
-	double pitch_dot_ff_servo;		///< feedforward pitch rate (rad/s)
-	double yaw_dot_ff_servo;		///< feedforward yaw rate (rad/s)
-	///< @}
-
-	/** @name attitude rate servo setpoints transition rates */
-	///< @{
-	bool en_rpy_rate_servo_trans;	///< enable the roll pitch yaw rate transition functions
-	double roll_dot_servo_tr;		///< roll angle rate transition gain
-	double pitch_dot_servo_tr;		///< pitch angle rate transition gain
-	double yaw_dot_servo_tr;		///< yaw angle rate transition gain
-	double roll_dot_ff_servo_tr;	///< feedforward roll rate transition gain
-	double pitch_dot_ff_servo_tr;	///< feedforward pitch rate transition gain
-	double yaw_dot_ff_servo_tr;		///< feedforward yaw rate transition gain
+	setpoint_gen_3D_t ATT_dot_servo{};	///< roll pitch yaw derivative setpoints
 	///< @}
 
 	/** @name attitude setpoints */
 	///< @{
 	setpoint_gen_3D_t ATT{};		///< roll pitch yaw setpoints
-	///< @}
-
-	/** @name attitude setpoint transition rates */
-	///< @{
-	/*
-	bool en_rpy_trans;				///< enable the roll pitch yaw transition functions
-	double roll_tr;					///< roll angle transition gain
-	double pitch_tr;				///< pitch angle transition gain
-	double yaw_tr;					///< yaw angle transition gain
-	double roll_ff_tr;				///< feedforward roll transition gain
-	double pitch_ff_tr;				///< feedforward pitch transition gain
-	double yaw_ff_tr;				///< feedforward yaw transition gain
-	*/
-	///< @}
-	 
-	/** @name attitude servo setpoints*/
-	///< @{
-	bool en_rpy_servo_ctrl;			///< enable the roll pitch yaw controllers
-	double roll_servo;				///< roll angle (positive tip right) (rad)
-	double pitch_servo;				///< pitch angle (positive tip back) (rad)
-	double yaw_servo;				///< glabal yaw angle, positive left
-	double roll_ff_servo;			///< feedforward roll angle (rad)
-	double pitch_ff_servo;			///< feedforward pitch angle (rad)
-	double yaw_ff_servo;
-	///< @}
-
-	/** @name attitude servo setpoint transition rates */
-	///< @{
-	bool en_rpy_servo_trans;		///< enable the roll pitch yaw transition functions
-	double roll_servo_tr;			///< roll angle transition gain
-	double pitch_servo_tr;			///< pitch angle transition gain
-	double yaw_servo_tr;			///< yaw angle transition gain
-	double roll_ff_servo_tr;		///< feedforward roll transition gain
-	double pitch_ff_servo_tr;		///< feedforward pitch transition gain
-	double yaw_ff_servo_tr;			///< feedforward yaw transition gain
+	setpoint_gen_3D_t ATT_servo{};		///< roll pitch yaw setpoints
 	///< @}
 
 	/** @name acceleration setpoints */
 	///< @{
-	setpoint_gen_3D_t XYZ_ddot{};		///< X Y Z acceleration setpoints
+	setpoint_gen_3D_t XYZ_ddot{};			///< X Y Z acceleration setpoints
+	setpoint_gen_3D_t XYZ_ddot_servo{};		///< X Y Z acceleration setpoints
 	///< @}
 
 	/** @name altitude */
 	///< @{
-	setpoint_gen_1D_t Z{};		///< Z setpoints
-	setpoint_gen_1D_t Z_dot{};		///< Z derivative setpoints
-	double Z_throttle_0;	/// hover throttle
+	setpoint_gen_1D_t Z{};					///< Z setpoints
+	setpoint_gen_1D_t Z_dot{};				///< Z derivative setpoints
+	double Z_throttle_0;					/// hover throttle
+
+	setpoint_gen_1D_t Z_servo{};			///< Z setpoints
+	setpoint_gen_1D_t Z_dot_servo{};		///< Z derivative setpoints
 
 	/** @name horizontal velocity setpoint */
 	///< @{
-	setpoint_gen_2D_t XY_dot{};		///< XY derivative setpoints
+	setpoint_gen_2D_t XY_dot{};				///< XY derivative setpoints
+	setpoint_gen_2D_t XY_dot_servo{};		///< XY derivative setpoints
 	///< @}
 
 	/** @name horizontal position setpoint */
 	///< @{
 	setpoint_gen_2D_t XY{};		///< XY setpoints
+	setpoint_gen_2D_t XY_servo{};			///< XY setpoints
 	///< @}
-	/** @name horizontal position setpoint transition rates */
-	///< @{
-	/*
-	bool en_XY_pos_ctrl_trans;		///< enable the XY transition functions
-	double X_tr;					///< X transition gain
-	double Y_tr;					///< Y transition gain
-	*/
-	///< @}
-	 
-	/** @name horizontal position servo setpoint */
-	///< @{
-	bool en_XY_servo_pos_ctrl;
-	double X_servo;
-	double Y_servo;
-	///< @}
-	/** @name horizontal position setpoint transition rates */
-	///< @{
-	bool en_XY_pos_servo_ctrl_trans;///< enable the XY transition functions
-	double X_servo_tr;				///< X transition gain
-	double Y_servo_tr;				///< Y transition gain
-	///< @}
-
 
 	/**
 	* @brief      Initializes the setpoint manager.

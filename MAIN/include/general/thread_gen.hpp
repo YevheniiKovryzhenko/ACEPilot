@@ -1,5 +1,5 @@
 /*
- * gen_thread.hpp
+ * thread_gen.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/22/2020 (MM/DD/YYYY)
+ * Last Edit:  05/29/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Provides general framework for convenient use of threads in object-oriented programming.
@@ -30,8 +30,8 @@
  */
 
 
-#ifndef GEN_THREAD
-#define GEN_THREAD
+#ifndef THREAD_GEN
+#define THREAD_GEN
 
 #include <rc/pthread.h>
 enum thread_policy
@@ -43,7 +43,7 @@ enum thread_policy
 
 
 
-class gen_thread_t
+class thread_gen_t
 {
 private:
 	pthread_t thread; // thread

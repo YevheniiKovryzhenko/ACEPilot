@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  *
  * Functions to start and stop the input manager thread which is the translation
  * beween control inputs from DSM to the user_input struct which is read by the
@@ -51,6 +51,10 @@
 #include "feedback.hpp"
 
 #include "input_manager.hpp"
+
+ // preposessor macros
+#define unlikely(x)	__builtin_expect (!!(x), 0)
+#define likely(x)	__builtin_expect (!!(x), 1)
 
 double stick_t::get(void)
 {
@@ -411,20 +415,60 @@ int user_input_t::update(void)
 	return 0;
 }
 
+int user_input_t::init_all_filters(void)
+{
+	if (unlikely(throttle.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize throttle stick filters\n");
+		return -1;
+	}
+	if (unlikely(roll.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize roll stick filters\n");
+		return -1;
+	}
+	if (unlikely(pitch.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize pitch stick filters\n");
+		return -1;
+	}
+	if (unlikely(yaw.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize yaw stick filters\n");
+		return -1;
+	}
+	if (unlikely(requested_flight_mode.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize requested_flight_mode stick filters\n");
+		return -1;
+	}
+	
+	return 0;
+}
 
 int user_input_t::input_manager_init(void)
 {
 	en_emergency_land = false;
 
 	initialized = false;
+	
+	
+	if (unlikely(init_all_filters() == -1))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize all filters\n");
+		return -1;
+	}
+	
 	int i;
 	// start dsm hardware
-	if(rc_dsm_init()==-1){
+	if (unlikely(rc_dsm_init() == -1))
+	{
 		fprintf(stderr, "ERROR in input_manager_init, failed to initialize dsm\n");
 		return -1;
 	}
 	rc_dsm_set_disconnect_callback(__dsm_disconnect_callback);
 	rc_dsm_set_callback(__new_dsm_data_callback);
+	
 	// start thread
 	if(rc_pthread_create(&thread, &input_manager, NULL,
 				SCHED_FIFO, INPUT_MANAGER_PRI)==-1){
@@ -432,8 +476,8 @@ int user_input_t::input_manager_init(void)
 		return -1;
 	}
 	// wait for thread to start
-	for(i=0;i<50;i++){
-		if(user_input.is_initialized()) return 0;
+	for (i = 0; i < 50; i++) {
+		if (user_input.is_initialized()) return 0;
 		rc_usleep(50000);
 	}
 	fprintf(stderr, "ERROR in input_manager_init, timeout waiting for thread to start\n");

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/23/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -32,7 +32,7 @@
 #ifndef LOG_MANAGER_H
 #define LOG_MANAGER_H
 #include <stdbool.h>
-#include "gen_thread.hpp"
+#include "thread_gen.hpp"
 
 #define MAX_LOG_FILES	500
 
@@ -55,7 +55,7 @@ private:
 	bool logging_enabled;
 	bool new_data_available;
 	bool request_reset_fl;
-	gen_thread_t thread;
+	thread_gen_t thread;
 
 	/** @name index, always printed */
 	///@{

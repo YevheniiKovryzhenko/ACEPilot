@@ -1,12 +1,14 @@
-#making all headers and sources global and attachin to Cmake variable "ALL_MAIN"
+#making all headers and sources global and attaching to Cmake variable "ALL_MAIN"
 file(GLOB ALL_MAIN 
 "include/core/*.h" "include/core/*.hpp"
+"include/general/*.h" "include/general/*.hpp"
 "include/controllers/*.h" "include/controllers/*.hpp"
 "include/mod/*.h" "include/mod/*.hpp"
 "include/io/*.h" "include/io/*.hpp"
 "include/opt/*.h" "include/opt/*.hpp"
 "include/guidance/*.h" "include/guidance/*.hpp"
 "src/core/*.c" "src/core/*.cpp"
+"src/general/*.c" "src/general/*.cpp"
 "src/controllers/*.c" "src/controllers/*.cpp"
 "src/mod/*.c" "src/mod/*.cpp"
 "src/io/*.c" "src/io/*.cpp"
@@ -29,6 +31,8 @@ source_group("ALL_FILES" FILES ${ALL_MAIN})
 # tree (called using variable "Main") so linker can search over it for all #inludes:
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/core")
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/core")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/general")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/general")
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/controllers")
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/controllers")
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/mod")

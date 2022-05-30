@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/29/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -73,7 +73,7 @@ int feedback_controller_t::rpy_march(void)
 {
 	if (!last_en_rpy_ctrl)
 	{
-		setpoint.ATT.reset_all();
+		setpoint.ATT.reset();
 		rpy_reset();
 
 		last_en_rpy_ctrl = true;
@@ -107,8 +107,6 @@ int feedback_controller_t::rpy_march(void)
 		roll.march(setpoint.ATT_dot.x.value.get_pt(), err_roll);
 		pitch.march(setpoint.ATT_dot.y.value.get_pt(), err_pitch);
 		yaw.march(setpoint.ATT_dot.z.value.get_pt(), err_yaw);
-
-		setpoint.ATT.reset_FF();
 	}
 
 	
@@ -182,7 +180,7 @@ int feedback_controller_t::rpy_rate_march(void)
 {
 	if (!last_en_rpy_rate_ctrl)
 	{
-		setpoint.ATT_dot.reset_all();
+		setpoint.ATT_dot.reset();
 		rpy_rate_reset();
 
 		last_en_rpy_rate_ctrl = true;
@@ -217,8 +215,6 @@ int feedback_controller_t::rpy_rate_march(void)
 		roll_dot.march(setpoint.ATT_throttle.x.value.get_pt(), err_roll_dot);
 		pitch_dot.march(setpoint.ATT_throttle.y.value.get_pt(), err_pitch_dot);
 		yaw_dot.march(setpoint.ATT_throttle.z.value.get_pt(), err_yaw_dot);
-
-		setpoint.ATT_dot.reset_FF();
 	}
 
 	last_en_rpy_rate_ctrl = true;
@@ -278,7 +274,7 @@ int feedback_controller_t::xy_march(void)
 {
 	if (!last_en_XY_ctrl)
 	{
-		setpoint.XY.reset_all();
+		setpoint.XY.reset();
 		xy_reset();
 
 		last_en_XY_ctrl = true;
@@ -303,8 +299,6 @@ int feedback_controller_t::xy_march(void)
 	{
 		x.march(setpoint.XY_dot.x.value.get_pt(), setpoint.XY.x.value.get() - state_estimate.X);
 		y.march(setpoint.XY_dot.y.value.get_pt(), setpoint.XY.y.value.get() - state_estimate.Y);
-
-		setpoint.XY.reset_FF();
 	}
 	
 	setpoint.XY_dot.x.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
@@ -370,7 +364,7 @@ int feedback_controller_t::xy_rate_march(void)
 {
 	if (!last_en_XYdot_ctrl)
 	{
-		setpoint.XY_dot.reset_all();
+		setpoint.XY_dot.reset();
 		xy_rate_reset();
 		last_en_XYdot_ctrl = true;
 	}
@@ -393,8 +387,6 @@ int feedback_controller_t::xy_rate_march(void)
 	{
 		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.X_dot);
 		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.X_dot);
-
-		setpoint.XY_dot.reset_FF();
 	}
 
 	rc_saturate_double(setpoint.XYZ_ddot.x.value.get_pt(), -MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
@@ -446,7 +438,7 @@ int feedback_controller_t::z_march(void)
 	// only the first step after altitude controll is on
 	if (!last_en_Z_ctrl)
 	{
-		setpoint.Z.reset_all();
+		setpoint.Z.reset();
 		//take stick position as nominal hover thrust but leave enough room for manual adjustements for extreme cases
 		if (settings.enable_mocap) {
 			if (user_input.throttle.get() > 0.80) {
@@ -482,8 +474,6 @@ int feedback_controller_t::z_march(void)
 	else
 	{
 		z.march(setpoint.Z_dot.value.get_pt(), setpoint.Z.value.get() - state_estimate.Z);
-
-		setpoint.Z.reset_FF();
 	}
 	
 	setpoint.Z_dot.value.saturate(-MAX_Z_VELOCITY, MAX_Z_VELOCITY);
@@ -531,7 +521,7 @@ int feedback_controller_t::z_rate_march(void)
 {
 	if (!last_en_Zdot_ctrl)
 	{
-		setpoint.Z_dot.reset_all();
+		setpoint.Z_dot.reset();
 		z_rate_reset();
 		
 		last_en_Zdot_ctrl = true;
@@ -551,8 +541,6 @@ int feedback_controller_t::z_rate_march(void)
 	else
 	{
 		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.Z_dot);
-
-		setpoint.Z_dot.reset_FF();
 	}
 	setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
 
