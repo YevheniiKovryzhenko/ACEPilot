@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/30/2022 (MM/DD/YYYY)
+ * Last Edit:  05/31/2022 (MM/DD/YYYY)
  *
  */
 
@@ -79,6 +79,7 @@ static void __reset_colour()
 }
 
 
+
 static int __print_header()
 {
 	int i;
@@ -95,11 +96,11 @@ static int __print_header()
 	}
 	if (settings.printf_battery)
 	{
-		printf("%s batt (V)|", __next_colour());
+		printf("%s batt_V|", __next_colour());
 	}
 	if(settings.printf_rpy)
 	{
-		printf("%s roll|pitch| yaw |", __next_colour());
+		printf("%s roll|pitch| yaw | yaw_c |", __next_colour());
 	}
 	if(settings.printf_sticks)
 	{
@@ -107,7 +108,30 @@ static int __print_header()
 	}
 	if (settings.printf_setpoint)
 	{
-		printf("%s sp_x| sp_y| sp_z| sp_r| sp_p| sp_y|", __next_colour());
+		if (settings.printf_setpoint_xy)
+		{
+			printf("%s sp_x | sp_y |", __next_colour());
+		}
+		if (settings.printf_setpoint_z)
+		{
+			printf("%s sp_z |", __next_colour());
+		}
+		if (settings.printf_setpoint_xy_dot)
+		{
+			printf("%s +sp_xd| sp_yd|", __next_colour());
+		}
+		if (settings.printf_setpoint_z_dot)
+		{
+			printf("%s sp_zd|", __next_colour());
+		}
+		if (settings.printf_setpoint_att_dot)
+		{
+			printf("%s sp_r | sp_p | sp_y |", __next_colour());
+		}
+		if (settings.printf_setpoint_att)
+		{
+			printf("%s sp_rd| sp_pd| sp_yd|", __next_colour());
+		}
 	}
 	if (settings.printf_u)
 	{
@@ -200,13 +224,13 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 		}
 		if (settings.printf_battery)
 		{
-			printf("%s%9.2f|", __next_colour(), state_estimate.v_batt_lp);
+			printf("%s%7.2f|", __next_colour(), state_estimate.v_batt_lp);
 		}
 		if (settings.printf_rpy)
 		{
 			printf(KCYN);
-			printf("%s%+5.2f|%+5.2f|%+5.2f|", __next_colour(), state_estimate.roll,
-				state_estimate.pitch, state_estimate.continuous_yaw);
+			printf("%s%+5.2f|%+5.2f|%+5.2f|%+7.2f|", __next_colour(), state_estimate.roll,
+				state_estimate.pitch, state_estimate.yaw, state_estimate.continuous_yaw);
 		}
 		if(settings.printf_sticks){
 			if (user_input.get_arm_switch() == ARMED)
@@ -227,9 +251,36 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 		}
 		if (settings.printf_setpoint)
 		{
-			printf("%s%+5.2f|%+5.2f|%+5.2f|%+5.2f|%+5.2f|%+5.2f|", __next_colour(),
-				setpoint.XY.x.value.get(), setpoint.XY.y.value.get(), setpoint.Z.value.get(),
-				setpoint.ATT.x.value.get(), setpoint.ATT.y.value.get(), setpoint.ATT.z.value.get());
+			if (settings.printf_setpoint_xy)
+			{
+				printf("%s%+6.2f|%+6.2f|", __next_colour(),
+					setpoint.XY.x.value.get(), setpoint.XY.y.value.get());
+			}
+			if (settings.printf_setpoint_z)
+			{
+				printf("%s%+6.2f|", __next_colour(),
+					setpoint.Z.value.get());
+			}
+			if (settings.printf_setpoint_xy_dot)
+			{
+				printf("%s%+6.2f|%+6.2f|", __next_colour(),
+					setpoint.XY_dot.x.value.get(), setpoint.XY_dot.y.value.get());
+			}
+			if (settings.printf_setpoint_z_dot)
+			{
+				printf("%s%+6.2f|", __next_colour(),
+					setpoint.Z_dot.value.get());
+			}
+			if (settings.printf_setpoint_att_dot)
+			{
+				printf("%s%+6.2f|%+6.2f|%+6.2f|", __next_colour(),
+					setpoint.ATT_dot.x.value.get(), setpoint.ATT_dot.y.value.get(), setpoint.ATT_dot.z.value.get());
+			}
+			if (settings.printf_setpoint_att)
+			{
+				printf("%s%+6.2f|%+6.2f|%+6.2f|", __next_colour(),
+					setpoint.ATT.x.value.get(), setpoint.ATT.y.value.get(), setpoint.ATT.z.value.get());
+			}
 		}
 		if (settings.printf_u)
 		{
@@ -238,15 +289,15 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 		}
 		if (settings.printf_mocap)
 		{
-			printf("%s%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+6.2f|%+7.2f|%+7.2f|%+7.2f|%+7.2f|  %2X   |", __next_colour(),
+			printf("%s%+6.2f|%+6.2f|%+6.2f|%+9.2f|%+9.2f|%+9.2f|%+7.2f|%+7.2f|%+7.2f|%+7.2f|  %3X  |", __next_colour(),
 				state_estimate.pos_mocap[0], state_estimate.pos_mocap[1], state_estimate.pos_mocap[2], state_estimate.X_dot, state_estimate.Y_dot,
 				state_estimate.Z_dot, state_estimate.quat_mocap[1], state_estimate.quat_mocap[2], state_estimate.quat_mocap[3], state_estimate.quat_mocap[0],
 				GS_RX.sm_event);
 		}
 		if (settings.printf_gain_tunning)
 		{
-			printf("%s %2X   |", __next_colour(),
-				GS_RX.GainCH);
+			printf("%s   %3i   |", __next_colour(),
+				(int)GS_RX.GainCH);
 		}
 		if (settings.printf_gps)
 		{
@@ -357,6 +408,27 @@ int print_flight_mode(flight_mode_t mode){
 		return 0;
 	case MANUAL_FFxxxx:
 		printf("%sMANUAL_FFxxxx         %s", KCYN, KNRM);
+		return 0;
+	case ALT_HOLD_AxAxxx:
+		printf("%sALT_HOLD_AxAxxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FxAxxx:
+		printf("%sALT_HOLD_FxAxxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FxFxxx:
+		printf("%sALT_HOLD_FxFxxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_AxAAxx:
+		printf("%sALT_HOLD_AxAAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FxAAxx:
+		printf("%sALT_HOLD_FxAAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FxFAxx:
+		printf("%sALT_HOLD_FxFAxx       %s", KBLU, KNRM);
+		return 0;
+	case ALT_HOLD_FxFFxx:
+		printf("%sALT_HOLD_FxFFxx       %s", KBLU, KNRM);
 		return 0;
 	case ALT_HOLD_xAxAxx:
 		printf("%sALT_HOLD_xAxAxx       %s", KBLU, KNRM);

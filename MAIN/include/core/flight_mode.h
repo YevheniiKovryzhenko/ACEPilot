@@ -96,6 +96,56 @@ typedef enum flight_mode_t{
 	MANUAL_FFxxxx,
 
 	/**
+	* like MANUAL_Axxxxx for roll/pitch/yaw rates but feedback is performed to
+	* hold vertival velocity setpoint which is them moved up and down steadily based
+	* on user input. No vertical position control.
+	*/
+	ALT_HOLD_AxAxxx,
+
+	/**
+	* like MANUAL_Fxxxxx for roll/pitch/yaw rates but feedback is performed to
+	* hold vertival velocity setpoint which is them moved up and down steadily based
+	* on user input. No vertical position control.
+	*/
+	ALT_HOLD_FxAxxx,
+
+	/**
+	* like MANUAL_Fxxxxx for roll/pitch/yaw rates but feedback is performed to
+	* hold vertival velocity setpoint which is them moved up and down steadily based
+	* on user input. No vertical position control. Feedforward path enabled for velocity.
+	*/
+	ALT_HOLD_FxFxxx,
+
+	/**
+	* like MANUAL_Axxxxx for roll/pitch/yaw rates but feedback is performed to
+	* hold vertival position setpoint which is them moved up and down steadily based
+	* on user input. Vertical velocity control is enabled.
+	*/
+	ALT_HOLD_AxAAxx,
+
+	/**
+	* like MANUAL_Fxxxxx for roll/pitch/yaw rates but feedback is performed to
+	* hold vertival position setpoint which is them moved up and down steadily based
+	* on user input. Vertical velocity control is enabled.
+	*/
+	ALT_HOLD_FxAAxx,
+
+	/**
+	* like MANUAL_Fxxxxx for roll/pitch/yaw rates but feedback is performed to
+	* hold vertival position setpoint which is them moved up and down steadily based
+	* on user input. Vertical velocity control is enabled. Feedforward path enabled
+	* for velocity only.
+	*/
+	ALT_HOLD_FxFAxx,
+
+	/**
+	* like MANUAL_Fxxxxx for roll/pitch/yaw rates but feedback is performed to
+	* hold vertival position setpoint which is them moved up and down steadily based
+	* on user input. Vertical velocity control is enabled. Feedforward path enabled.
+	*/
+	ALT_HOLD_FxFFxx,
+
+	/**
 	* like MANUAL_xAxxxx for roll/pitch/yaw but feedback is performed to
 	* hold altitude setpoint which is them moved up and down steadily based
 	* on user input. No vertical velocity control.

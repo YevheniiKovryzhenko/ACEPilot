@@ -94,7 +94,7 @@ extern "C"
 		double roll;
 		double pitch;
 		double yaw;
-		double continuous_yaw;	///<  keeps increasing/decreasing aboce +-2pi
+		double continuous_yaw;	///<  keeps increasing/decreasing above +-2pi
 		double roll_dot;
 		double pitch_dot;
 		double yaw_dot;

@@ -324,6 +324,36 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	else if (strcmp(tmp_str, "MANUAL_FFxxxx") == 0) {
 		*mode = MANUAL_FFxxxx;
 	}	
+	else if (strcmp(tmp_str, "ALT_HOLD_AxAxxx") == 0) {
+		*mode = ALT_HOLD_AxAxxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FxAxxx") == 0) {
+		*mode = ALT_HOLD_FxAxxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FxFxxx") == 0) {
+		*mode = ALT_HOLD_FxFxxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_xAxAxx") == 0) {
+		*mode = ALT_HOLD_xAxAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_xFxAxx") == 0) {
+		*mode = ALT_HOLD_xFxAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_xFxFxx") == 0) {
+		*mode = ALT_HOLD_xFxFxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_AxAAxx") == 0) {
+		*mode = ALT_HOLD_AxAAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FxAAxx") == 0) {
+		*mode = ALT_HOLD_FxAAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FxFAxx") == 0) {
+		*mode = ALT_HOLD_FxFAxx;
+	}
+	else if (strcmp(tmp_str, "ALT_HOLD_FxFFxx") == 0) {
+		*mode = ALT_HOLD_FxFFxx;
+	}
 	else if(strcmp(tmp_str, "ALT_HOLD_AAAxxx")==0){
 		*mode = ALT_HOLD_AAAxxx;
 	}
@@ -832,7 +862,15 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(printf_battery);
 	PARSE_BOOL(printf_rpy);
 	PARSE_BOOL(printf_sticks);
+	
 	PARSE_BOOL(printf_setpoint);
+	PARSE_BOOL(printf_setpoint_xy);
+	PARSE_BOOL(printf_setpoint_xy_dot);
+	PARSE_BOOL(printf_setpoint_z);
+	PARSE_BOOL(printf_setpoint_z_dot);
+	PARSE_BOOL(printf_setpoint_att);
+	PARSE_BOOL(printf_setpoint_att_dot);
+
 	PARSE_BOOL(printf_u);
 	PARSE_BOOL(printf_motors);
 	PARSE_BOOL(printf_mode);
@@ -914,6 +952,7 @@ int settings_load_from_file(char* path)
 	PARSE_DOUBLE_MIN_MAX(pitch_rate_controller_FF, 0.0, 1000.0);
 	PARSE_CONTROLLER(yaw_rate_controller_pd);
 	PARSE_CONTROLLER(yaw_rate_controller_i);
+	PARSE_DOUBLE_MIN_MAX(yaw_rate_controller_FF, 0.0, 1000.0);
 
 	PARSE_CONTROLLER(roll_controller_pd);
 	PARSE_CONTROLLER(pitch_controller_pd);

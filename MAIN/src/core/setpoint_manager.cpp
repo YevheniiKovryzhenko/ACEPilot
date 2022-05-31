@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/30/2022 (MM/DD/YYYY)
+ * Last Edit:  05/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -339,7 +339,7 @@ void setpoint_t::update_yaw(void)
 {
 	// if throttle stick is down all the way, probably landed, so
 	// keep the yaw setpoint at current yaw so it takes off straight
-	/*
+	
 	double  vel_mag = sqrt(\
 		state_estimate.X_dot * state_estimate.X_dot\
 		+ state_estimate.Y_dot * state_estimate.Y_dot\
@@ -348,10 +348,9 @@ void setpoint_t::update_yaw(void)
 		ATT.z.value.set(state_estimate.continuous_yaw);
 		return;
 	}
-	*/
 	// otherwise, scale yaw by max yaw rate in rad/s
 	// and move yaw setpoint
-	ATT.z.value.increment(user_input.yaw.get() * MAX_YAW_RATE * DT);
+	ATT.z.value.increment(user_input.yaw.get_pt() * MAX_YAW_RATE * DT);
 	return;
 }
 
@@ -399,13 +398,13 @@ void setpoint_t::update_Z(void)
 	double tmp_Z_dot;
 	double tmp_throtle = user_input.throttle.get();
 
-	if	(tmp_throtle > Z_throttle_0+0.1)
+	if (tmp_throtle > Z_throttle_0 + 0.1)
 	{
-		tmp_Z_dot = (tmp_throtle - Z_throttle_0) * settings.max_Z_velocity;
+		tmp_Z_dot = (tmp_throtle - Z_throttle_0 - 0.1) * MAX_Z_VELOCITY;
 	}
-	else if (tmp_throtle < Z_throttle_0-0.1)
+	else if (tmp_throtle < Z_throttle_0 - 0.1)
 	{
-		tmp_Z_dot = (tmp_throtle - Z_throttle_0) * settings.max_Z_velocity;
+		tmp_Z_dot = (tmp_throtle - Z_throttle_0 + 0.1) * MAX_Z_VELOCITY;
 	}
 	else
 	{
@@ -431,18 +430,18 @@ void setpoint_t::update_Z_dot(void)
 
 	if (tmp_throtle > Z_throttle_0 + 0.1)
 	{
-		tmp_Z_ddot = (tmp_throtle - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
+		tmp_Z_ddot = (tmp_throtle - Z_throttle_0 - 0.1) * MAX_Z_VELOCITY;
 	}
 	else if (tmp_throtle < Z_throttle_0 - 0.1)
 	{
-		tmp_Z_ddot = (tmp_throtle - Z_throttle_0) * MAX_SERVO_Z_ACCELERATION;
+		tmp_Z_ddot = (tmp_throtle - Z_throttle_0 + 0.1) * MAX_Z_VELOCITY;
 	}
 	else
 	{
 		tmp_Z_ddot = 0;
 		return;
 	}
-	Z_dot.value.increment(-tmp_Z_ddot * DT);//negative since Z positive is defined to be down
+	Z_dot.value.set(-tmp_Z_ddot);//negative since Z positive is defined to be down
 	return;
 }
 
@@ -677,12 +676,12 @@ int setpoint_t::update_setpoints(void)
 		
 		Z_dot.disable_all();
 		Z_dot_servo.disable_all();
+
+		Z.disable_all();
+		Z_servo.disable_all();
 		
 		XY_dot.disable_all();
 		XY_dot_servo.disable_all();
-		
-		Z.disable_all();
-		Z_servo.disable_all();
 
 		XY.disable_all();
 		XY_servo.disable_all();
@@ -785,6 +784,82 @@ int setpoint_t::update_setpoints(void)
 		update_th();
 		update_yaw();
 		break;	
+
+	case ALT_HOLD_AxAxxx:
+		ATT_dot.enable();
+		Z_dot.enable();
+
+
+		update_rpy_rate();
+		update_Z_dot();
+		break;
+
+	case ALT_HOLD_FxAxxx:
+		ATT_dot.enable();
+		Z_dot.enable();
+
+		ATT_dot.enable_FF();
+
+
+		update_rpy_rate();
+		update_Z_dot();
+		break;
+
+	case ALT_HOLD_FxFxxx:
+		ATT_dot.enable();
+		Z_dot.enable();
+
+		ATT_dot.enable_FF();
+		Z_dot.enable_FF();
+
+		update_rpy_rate();
+		update_Z_dot();
+		break;
+
+	case ALT_HOLD_AxAAxx:
+		ATT_dot.enable();
+		Z_dot.enable();
+		Z.enable();
+
+		update_rpy_rate();
+		update_Z();
+		break;
+
+	case ALT_HOLD_FxAAxx:
+		ATT_dot.enable();
+		Z_dot.enable();
+		Z.enable();
+
+		ATT_dot.enable_FF();
+
+		update_rpy_rate();
+		update_Z();
+		break;
+
+	case ALT_HOLD_FxFAxx:
+		ATT_dot.enable();
+		Z_dot.enable();
+		Z.enable();
+
+		ATT_dot.enable_FF();
+		Z_dot.enable_FF();
+
+		update_rpy_rate();
+		update_Z();
+		break;
+
+	case ALT_HOLD_FxFFxx:
+		ATT_dot.enable();
+		Z_dot.enable();
+		Z.enable();
+
+		ATT_dot.enable_FF();
+		Z_dot.enable_FF();
+		Z.enable_FF();
+
+		update_rpy_rate();
+		update_Z();
+		break;
 
 	case ALT_HOLD_xAxAxx:
 		ATT.enable();

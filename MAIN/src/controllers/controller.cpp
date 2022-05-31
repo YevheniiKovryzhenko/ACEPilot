@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  05/31/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -98,9 +98,9 @@ int feedback_controller_t::rpy_march(void)
 	// 1) Attitude -> Attitude Rate
 	if (setpoint.ATT.is_en_FF())
 	{
-		roll.march(setpoint.ATT_dot.x.value.get_pt(), err_roll, setpoint.ATT_dot.x.FF.get());
-		pitch.march(setpoint.ATT_dot.y.value.get_pt(), err_pitch, setpoint.ATT_dot.y.FF.get());
-		yaw.march(setpoint.ATT_dot.z.value.get_pt(), err_yaw, setpoint.ATT_dot.z.FF.get());
+		roll.march(setpoint.ATT_dot.x.value.get_pt(), err_roll, setpoint.ATT.x.FF.get());
+		pitch.march(setpoint.ATT_dot.y.value.get_pt(), err_pitch, setpoint.ATT.y.FF.get());
+		yaw.march(setpoint.ATT_dot.z.value.get_pt(), err_yaw, setpoint.ATT.z.FF.get());
 	}
 	else
 	{
@@ -439,8 +439,10 @@ int feedback_controller_t::z_march(void)
 	if (!last_en_Z_ctrl)
 	{
 		setpoint.Z.reset();
-		//take stick position as nominal hover thrust but leave enough room for manual adjustements for extreme cases
-		if (settings.enable_mocap) {
+
+		if (!last_en_Zdot_ctrl)
+		{
+			//take stick position as nominal hover thrust but leave enough room for manual adjustements for extreme cases
 			if (user_input.throttle.get() > 0.80) {
 				setpoint.Z_throttle_0 = 0.80; //don't let hover thrust be too high (but account for heavy drones with T/W < 1.7)
 			}
@@ -451,7 +453,6 @@ int feedback_controller_t::z_march(void)
 				setpoint.Z_throttle_0 = user_input.throttle.get(); //detect last user input
 			}
 		}
-
 		
 		setpoint.Z.value.set(state_estimate.Z); // set altitude setpoint to current altitude
 
@@ -467,7 +468,7 @@ int feedback_controller_t::z_march(void)
 	}
 
 	// Position error -> Velocity error:
-	if (setpoint.Z_dot.FF.is_en())
+	if (setpoint.Z.FF.is_en())
 	{
 		z.march(setpoint.Z_dot.value.get_pt(), setpoint.Z.value.get() - state_estimate.Z, setpoint.Z.FF.get());
 	}
@@ -484,11 +485,12 @@ int feedback_controller_t::z_march(void)
 	}
 	else
 	{
-		setpoint.XYZ_ddot.z.value.set(setpoint.Z.value.get());
-	}
-	
-	setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
-		/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
+		setpoint.XYZ_ddot.z.value.set(setpoint.Z.value);
+		setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
+
+		setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
+			/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
+	}	
 	
 	last_en_Z_ctrl = true;
 	return 0;
@@ -523,6 +525,20 @@ int feedback_controller_t::z_rate_march(void)
 	{
 		setpoint.Z_dot.reset();
 		z_rate_reset();
+
+		if (!last_en_Z_ctrl)
+		{
+			//take stick position as nominal hover thrust but leave enough room for manual adjustements for extreme cases
+			if (user_input.throttle.get() > 0.80) {
+				setpoint.Z_throttle_0 = 0.80; //don't let hover thrust be too high (but account for heavy drones with T/W < 1.7)
+			}
+			else if (user_input.throttle.get() < 0.15) {
+				setpoint.Z_throttle_0 = 0.15; //don't let hover thrust be too low if starting from the ground
+			}
+			else {
+				setpoint.Z_throttle_0 = user_input.throttle.get(); //detect last user input
+			}
+		}
 		
 		last_en_Zdot_ctrl = true;
 	}
@@ -543,6 +559,9 @@ int feedback_controller_t::z_rate_march(void)
 		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.Z_dot);
 	}
 	setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
+	setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
+		/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
+
 
 	last_en_Zdot_ctrl = true;
 	return 0;

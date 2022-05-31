@@ -118,6 +118,13 @@ typedef struct settings_t{
 	bool printf_rpy;
 	bool printf_sticks;
 	bool printf_setpoint;
+	bool printf_setpoint_xy;
+	bool printf_setpoint_xy_dot;
+	bool printf_setpoint_z;
+	bool printf_setpoint_z_dot;
+	bool printf_setpoint_att;
+	bool printf_setpoint_att_dot;
+
 	bool printf_u;
 	bool printf_motors;
 	bool printf_mode;

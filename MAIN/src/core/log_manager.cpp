@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  05/31/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -530,7 +530,7 @@ void log_entry_t::construct_new_entry(void)
     sp_Z 			= setpoint.Z.value.get();
     sp_Xdot 		= setpoint.XY_dot.x.value.get();
     sp_Ydot 		= setpoint.XY_dot.y.value.get();
-    sp_Zdot 		= setpoint.Z.value.get();
+    sp_Zdot 		= setpoint.Z_dot.value.get();
     sp_Xdot_ff 	    = setpoint.XY_dot.x.FF.get();
     sp_Ydot_ff  	= setpoint.XY_dot.y.FF.get();
     sp_Zdot_ff 	    = setpoint.Z.value.get();

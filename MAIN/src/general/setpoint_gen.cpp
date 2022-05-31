@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/30/2022 (MM/DD/YYYY)
+ * Last Edit:  05/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Subclass for simplifying setpoint_manager. Defines multiple overloads for wider compatibility.
@@ -558,7 +558,8 @@ int setpoint_gen_3D_t::reset(void)
 {
 	bool tmp_1 = z.reset() < 0;
 	bool tmp_2 = y.reset() < 0;
-	if (x.reset() < 0 || tmp_1 || tmp_2)
+	bool tmp_3 = x.reset() < 0;
+	if (tmp_3 || tmp_1 || tmp_2)
 	{
 		return -1;
 	}
@@ -568,7 +569,8 @@ int setpoint_gen_3D_t::reset_FF(void)
 {
 	bool tmp_1 = z.reset_FF() < 0;
 	bool tmp_2 = y.reset_FF() < 0;
-	if (x.reset_FF() < 0 || tmp_1 || tmp_2)
+	bool tmp_3 = x.reset_FF() < 0;
+	if (tmp_3 || tmp_1 || tmp_2)
 	{
 		return -1;
 	}
@@ -615,14 +617,16 @@ int setpoint_gen_3D_t::disable(void)
 {
 	bool tmp_1 = x.disable() < 0;
 	bool tmp_2 = y.disable() < 0;
-	if (z.disable() || tmp_1 || tmp_2) return -1;
+	bool tmp_3 = z.disable() < 0;
+	if (tmp_3 || tmp_1 || tmp_2) return -1;
 	return 0;
 }
 int setpoint_gen_3D_t::disable_FF(void)
 {
 	bool tmp_1 = x.disable_FF() < 0;
 	bool tmp_2 = y.disable_FF() < 0;
-	if (z.disable_FF() || tmp_1 || tmp_2) return -1;
+	bool tmp_3 = z.disable_FF() < 0;
+	if (tmp_3 || tmp_1 || tmp_2) return -1;
 	return 0;
 }
 int setpoint_gen_3D_t::init_filters(void)
