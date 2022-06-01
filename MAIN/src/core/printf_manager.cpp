@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/31/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  *
  */
 
@@ -143,7 +143,7 @@ static int __print_header()
 	}
 	if (settings.printf_gain_tunning)
 	{
-		printf("%s gain_ch |", __next_colour());
+		printf("%s  gain_ch |", __next_colour());
 	}
 	if (settings.printf_gps)
 	{
@@ -177,6 +177,81 @@ static int __print_header()
 	}
 	printf("\n");
 	fflush(stdout);
+	return 0;
+}
+
+
+char print_update_gains(void)
+{
+	/*
+	Print update gain channel.
+	*/
+	if (!GS_RX.en_tunning || !settings.allow_remote_tuning)
+	{
+		printf("%s DISABLED |", __next_colour());
+		return 0;
+	}
+	else
+	{
+		switch ((int)GS_RX.GainCH)
+		{
+		case 0:
+			printf("%s  DEFAULT |", __next_colour());
+			return 0;
+		case 1: //roll
+			printf("%s    Roll  |", __next_colour());
+			return 0;
+
+		case 2: //pitch
+			printf("%s   Pitch  |", __next_colour());
+			return 0;
+
+		case 3: //yaw
+			printf("%s    Yaw   |", __next_colour());
+			return 0;
+
+		case 4: //roll rate
+			printf("%s Roll Rate|", __next_colour());
+			return 0;
+
+		case 5: //pitch rate
+			printf("%sPitch Rate|", __next_colour());
+			return 0;
+
+		case 6: //yaw rate
+			printf("%s Yaw Rate |", __next_colour());
+			return 0;
+
+		case 7: //x
+			printf("%s    X     |", __next_colour());
+			return 0;
+
+		case 8: //y
+			printf("%s    Y     |", __next_colour());
+			return 0;
+
+		case 9: //z
+			printf("%s    Z     |", __next_colour());
+			return 0;
+
+		case 10: //x rate
+			printf("%s  X Rate  |", __next_colour());
+			return 0;
+
+		case 11: //y rate
+			printf("%s  Y Rate  |", __next_colour());
+			return 0;
+
+		case 12: //z rate
+			printf("%s  Z Rate  |", __next_colour());
+			return 0;
+
+		default: //no changes
+			printf("%s    NA    |", __next_colour());
+			return 0;
+		}
+	}
+	
 	return 0;
 }
 
@@ -296,8 +371,7 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 		}
 		if (settings.printf_gain_tunning)
 		{
-			printf("%s   %3i   |", __next_colour(),
-				(int)GS_RX.GainCH);
+			print_update_gains();
 		}
 		if (settings.printf_gps)
 		{

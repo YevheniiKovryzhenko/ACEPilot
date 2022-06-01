@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/31/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -572,14 +572,34 @@ int setpoint_t::set_reset_sources(void)
 	return 0;
 }
 
+int setpoint_t::set_reset_sources_all_defs(void)
+{
+	if (unlikely(set_reset_sources() < 0))
+	{
+		printf("ERROR in set_reset_sources_all_defs: failed to reset setpoint default sources\n");
+		return -1;
+	}
+	return 0;
+}
+
+/**
+* @brief      Reset setpoint mannager to its starting state.
+*
+*	Intended to be called each time the system is armed.
+*
+* @return     0 on success, -1 on failure
+*/
 int setpoint_t::reset_all(void)
 {
+	set_reset_sources_all_defs();
+
 	ATT_dot.reset_all();
 	ATT.reset_all();
 	XY_dot.reset_all();
 	Z_dot.reset_all();
 	XY.reset_all();
 	Z.reset_all();
+	
 	return 0;
 }
 
@@ -665,20 +685,27 @@ int setpoint_t::update_setpoints(void)
 	// Perform swithcing of control scheme if nessesary:
 	if (flight_mode_switching) //switch everything off
 	{
-		en_6dof = false;
-		en_6dof_servo = false;
+		ATT_throttle.disable_all();
+		ATT_throttle_servo.disable_all();
+
+		POS_throttle.disable_all();
+		POS_throttle_servo.disable_all();
+
 		
 		ATT_dot.disable_all();
 		ATT_dot_servo.disable_all();
 		
 		ATT.disable_all();
 		ATT_servo.disable_all();
-		
+
+		XYZ_ddot.disable_all();
+		XYZ_ddot_servo.disable_all();
+
 		Z_dot.disable_all();
 		Z_dot_servo.disable_all();
 
 		Z.disable_all();
-		Z_servo.disable_all();
+		Z_servo.disable_all();	
 		
 		XY_dot.disable_all();
 		XY_dot_servo.disable_all();
@@ -692,37 +719,46 @@ int setpoint_t::update_setpoints(void)
 	switch (user_input.get_flight_mode()) {
 	case TEST_BENCH_4DOF:
 		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 
-
-		setpoint.ATT_throttle.set(user_input.roll.get(), user_input.pitch.get(), user_input.yaw.get());
-		setpoint.POS_throttle.set(0.0, 0.0, -user_input.throttle.get());
+		ATT_throttle.set(user_input.roll.get(), user_input.pitch.get(), user_input.yaw.get());
+		POS_throttle.set(0.0, 0.0, -user_input.throttle.get());
 
 		break;
 
 	case TEST_BENCH_6DOF:
 		// configure which controllers are enabled
-		en_6dof = true;
+		ATT_throttle.z.enable();
+		POS_throttle.enable();
 
-		setpoint.ATT_throttle.set(0.0, 0.0, user_input.yaw.get());
-		setpoint.POS_throttle.set(-user_input.pitch.get(), user_input.roll.get(), -user_input.throttle.get());
+		ATT_throttle.set(0.0, 0.0, user_input.yaw.get());
+		POS_throttle.set(-user_input.pitch.get(), user_input.roll.get(), -user_input.throttle.get());
 		break;
 
 	case TEST_6xSERVOS_DIRECT:
 		// configure which controllers are enabled
+		ATT_throttle_servo.enable();
+		POS_throttle_servo.z.enable();
 
-		setpoint.ATT_throttle_servo.set(user_input.roll.get(), user_input.pitch.get(), user_input.yaw.get());
-		setpoint.POS_throttle_servo.set(0.0, 0.0, -user_input.throttle.get());
+		ATT_throttle_servo.set(user_input.roll.get(), user_input.pitch.get(), user_input.yaw.get());
+		POS_throttle_servo.set(0.0, 0.0, -user_input.throttle.get());
 		break;
 
 	case DIRECT_THROTTLE_6DOF:
-		en_6dof = true;		
+		// configure which controllers are enabled
+		ATT_throttle.z.enable();
+		POS_throttle.enable();
 		ATT.enable();
 		
-		setpoint.POS_throttle.set(-user_input.pitch.get(), user_input.roll.get(), -user_input.throttle.get());
+		POS_throttle.set(-user_input.pitch.get(), user_input.roll.get(), -user_input.throttle.get());
 		update_yaw();
 		break;
 
 	case ACRO_Axxxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();		
 
 		update_rpy_rate();
@@ -730,6 +766,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ACRO_Fxxxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT_dot.enable_FF();
 		
@@ -739,6 +778,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case MANUAL_xAxxxx:		
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT.enable();
 		
 		update_rp();
@@ -747,6 +789,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case MANUAL_xFxxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT.enable();
 		ATT.enable_FF();
 
@@ -756,6 +801,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case MANUAL_AAxxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		
@@ -765,6 +813,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case MANUAL_FAxxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		ATT_dot.enable_FF();
@@ -775,6 +826,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case MANUAL_FFxxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		ATT_dot.enable_FF();
@@ -786,6 +840,9 @@ int setpoint_t::update_setpoints(void)
 		break;	
 
 	case ALT_HOLD_AxAxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		Z_dot.enable();
 
@@ -795,6 +852,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FxAxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		Z_dot.enable();
 
@@ -806,6 +866,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FxFxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		Z_dot.enable();
 
@@ -817,6 +880,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_AxAAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		Z_dot.enable();
 		Z.enable();
@@ -826,6 +892,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FxAAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		Z_dot.enable();
 		Z.enable();
@@ -837,6 +906,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FxFAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		Z_dot.enable();
 		Z.enable();
@@ -849,6 +921,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FxFFxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		Z_dot.enable();
 		Z.enable();
@@ -862,6 +937,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_xAxAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT.enable();
 		Z.enable();
 		
@@ -872,6 +950,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_xFxAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT.enable();
 		Z.enable();
 		ATT.enable_FF();
@@ -882,6 +963,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_xFxFxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT.enable();
 		Z.enable();
 		ATT.enable_FF();
@@ -893,6 +977,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_AAAxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z_dot.enable();
@@ -904,6 +991,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FAAxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z_dot.enable();
@@ -917,6 +1007,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFAxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z_dot.enable();
@@ -931,6 +1024,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFFxxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z_dot.enable();
@@ -946,6 +1042,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_AAAAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -957,6 +1056,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FAAAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -971,6 +1073,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFAAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -986,6 +1091,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFFAxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -1002,6 +1110,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case ALT_HOLD_FFFFxx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -1020,6 +1131,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case POSITION_CONTROL_SSS:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT.enable();
 		Z.enable();
 		XY.enable();
@@ -1032,6 +1146,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case POSITION_CONTROL_FSS:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -1045,6 +1162,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case POSITION_CONTROL_FFS:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -1059,6 +1179,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case POSITION_CONTROL_FFF:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -1074,6 +1197,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case EMERGENCY_LAND:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -1087,6 +1213,9 @@ int setpoint_t::update_setpoints(void)
 		break;
 
 	case AUTONOMOUS:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
 		Z.enable();
@@ -1102,6 +1231,11 @@ int setpoint_t::update_setpoints(void)
 	case ZEPPELIN:
 		printf("WARNING: ZEPPELIN flight mode is not longer supported\n");
 		break;
+		/*
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
+		*/
 
 		
 		//en_rpy_trans = true;

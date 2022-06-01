@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/31/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -149,23 +149,70 @@ int log_entry_t::write_header(void)
             "headingNc,gps_cog,gps_gpsVsi,gps_hdop,gps_vdop,gps_year,gps_month,gps_day,gps_hour,"
             "gps_minute,gps_second,gps_time_received_ns");
     }
-	
-	if (settings.log_throttles)
+
+    if (settings.log_setpoints)
     {
-        fprintf(log_fd, ",X_thrt,Y_thrt,Z_thrt,roll_thrt,pitch_thrt,yaw_thrt");
-    }
+        if (settings.log_throttles)
+        {
+            fprintf(log_fd, ",X_thrt,Y_thrt,Z_thrt,roll_thrt,pitch_thrt,yaw_thrt");
+        }
+
+        if (settings.log_throttles_ff)
+        {
+            fprintf(log_fd, ",X_thrt_ff,Y_thrt_ff,Z_thrt_ff,roll_thrt_ff,pitch_thrt_ff,yaw_thrt_ff");
+        }
+
+        if (settings.log_attitude_rate_setpoint)
+        {
+            fprintf(log_fd, ",sp_roll_dot,sp_pitch_dot,sp_yaw_dot");
+        }
+
+        if (settings.log_attitude_rate_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_roll_dot_ff,sp_pitch_dot_ff,sp_yaw_dot_ff");
+        }
+
+        if (settings.log_attitude_setpoint)
+        {
+            fprintf(log_fd, ",sp_roll,sp_pitch,sp_yaw");
+        }
+
+        if (settings.log_attitude_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_roll_ff,sp_pitch_ff,sp_yaw_ff");
+        }
+
+        if (settings.log_acceleration_setpoint)
+        {
+            fprintf(log_fd, ",sp_Xddot,sp_Yddot,sp_Zddot");
+        }
+
+        if (settings.log_acceleration_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_Xddot,sp_Yddot,sp_Zddot");
+        }
+
+        if (settings.log_velocity_setpoint)
+        {
+            fprintf(log_fd, ",sp_Xdot,sp_Ydot,sp_Zdot");
+        }
+
+        if (settings.log_velocity_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_Xdot_ff,sp_Ydot_ff,sp_Zdot_ff");
+        }
+
+        if (settings.log_position_setpoint)
+        {
+            fprintf(log_fd, ",sp_X,sp_Y,sp_Z");
+        }
+
+        if (settings.log_position_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_X_ff,sp_Y_ff,sp_Z_ff");
+        }
+    }	
 	
-	if (settings.log_attitude_setpoint)
-    {
-        fprintf(log_fd, ",sp_roll_dot,sp_pitch_dot,sp_yaw_dot,sp_roll_dot_ff,sp_pitch_dot_ff,sp_yaw_dot_ff");
-        fprintf(log_fd, ",sp_roll,sp_pitch,sp_yaw,sp_roll_ff,sp_pitch_ff");
-    }
-	
-	if (settings.log_position_setpoint)
-    {
-        fprintf(log_fd, ",sp_X,sp_Y,sp_Z,sp_Xdot,sp_Ydot,sp_Zdot");
-        fprintf(log_fd, ",sp_Xdot_ff,sp_Ydot_ff,sp_Zdot_ff,sp_Xddot,sp_Yddot,sp_Zddot");
-    }
 
 	if (settings.log_control_u)
     {
@@ -247,25 +294,79 @@ int log_entry_t::write_log_entry(void)
         fprintf(log_fd, ",%" PRIu64, gps_time_received_ns);
     }
 
-    if (settings.log_throttles)
+    if (settings.log_setpoints)
     {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", X_throttle, Y_throttle, Z_throttle,
-            roll_throttle, pitch_throttle, yaw_throttle);
-    }
+        if (settings.log_throttles)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", X_throttle, Y_throttle, Z_throttle,
+                roll_throttle, pitch_throttle, yaw_throttle);
+        }
 
-    if (settings.log_attitude_setpoint)
-    {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", sp_roll_dot,
-            sp_pitch_dot, sp_yaw_dot, sp_roll_dot_ff, sp_pitch_dot_ff, sp_yaw_dot_ff, sp_roll, sp_pitch, sp_yaw,
-            sp_roll_ff, sp_pitch_ff);
-    }
+        if (settings.log_throttles_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", X_throttle_ff, Y_throttle_ff, Z_throttle_ff,
+                roll_throttle_ff, pitch_throttle_ff, yaw_throttle_ff);
+        }
 
-    if (settings.log_position_setpoint)
-    {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", sp_X,
-            sp_Y, sp_Z, sp_Xdot, sp_Ydot, sp_Zdot, sp_Xdot_ff, sp_Ydot_ff, sp_Zdot_ff,
-            sp_Xddot, sp_Yddot, sp_Zddot);
+        if (settings.log_attitude_rate_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_roll_dot,
+                sp_pitch_dot, sp_yaw_dot);
+        }
+
+        if (settings.log_attitude_rate_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_roll_dot_ff,
+                sp_pitch_dot_ff, sp_yaw_dot_ff);
+        }
+
+        if (settings.log_attitude_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_roll, sp_pitch, sp_yaw);
+        }
+
+        if (settings.log_attitude_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_roll_ff, sp_pitch_ff, sp_yaw_ff);
+        }
+
+        if (settings.log_acceleration_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_Xddot,
+                sp_Yddot, sp_Zddot);
+        }
+
+        if (settings.log_acceleration_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_Xddot_ff,
+                sp_Yddot_ff, sp_Zddot_ff);
+        }
+
+        if (settings.log_velocity_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_Xdot,
+                sp_Ydot, sp_Zdot);
+        }
+
+        if (settings.log_velocity_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_Xdot_ff,
+                sp_Ydot_ff, sp_Zdot_ff);
+        }
+
+        if (settings.log_position_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_X,
+                sp_Y, sp_Z);
+        }
+
+        if (settings.log_position_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_X_ff,
+                sp_Y_ff, sp_Z_ff);
+        }
     }
+    
 
     if (settings.log_control_u)
     {
@@ -481,8 +582,8 @@ void log_entry_t::construct_new_entry(void)
     mocap_qy 		= state_estimate.quat_mocap[2];
     mocap_qz 		= state_estimate.quat_mocap[3];
     mocap_roll 	    = state_estimate.tb_mocap[0];
-    mocap_pitch 	= state_estimate.tb_mocap[0];
-    mocap_yaw 	    = state_estimate.tb_mocap[0];
+    mocap_pitch 	= state_estimate.tb_mocap[1];
+    mocap_yaw 	    = state_estimate.tb_mocap[2];
 
     gps_lon 		= gps_data.lla.lon;
     gps_lat 		= gps_data.lla.lat;
@@ -509,9 +610,15 @@ void log_entry_t::construct_new_entry(void)
     X_throttle 	    = setpoint.POS_throttle.x.value.get();//setpoint.X_throttle;
     Y_throttle 	    = setpoint.POS_throttle.y.value.get();//setpoint.Y_throttle;
     Z_throttle      = setpoint.POS_throttle.z.value.get();//setpoint.Z_throttle;
+    X_throttle_ff   = setpoint.POS_throttle.x.FF.get();//setpoint.X_throttle FF;
+    Y_throttle_ff   = setpoint.POS_throttle.y.FF.get();//setpoint.Y_throttle FF;
+    Z_throttle_ff   = setpoint.POS_throttle.z.FF.get();//setpoint.Z_throttle FF;
     roll_throttle   = setpoint.ATT_throttle.x.value.get();//setpoint.roll_throttle;
     pitch_throttle  = setpoint.ATT_throttle.y.value.get();//setpoint.pitch_throttle;
     yaw_throttle 	= setpoint.ATT_throttle.z.value.get();//setpoint.yaw_throttle;
+    roll_throttle_ff = setpoint.ATT_throttle.x.FF.get();//setpoint.roll_throttle;
+    pitch_throttle_ff = setpoint.ATT_throttle.y.FF.get();//setpoint.pitch_throttle;
+    yaw_throttle_ff = setpoint.ATT_throttle.z.FF.get();//setpoint.yaw_throttle;
 
     sp_roll_dot 	= setpoint.ATT_dot.x.value.get();
     sp_pitch_dot 	= setpoint.ATT_dot.y.value.get();
@@ -524,10 +631,14 @@ void log_entry_t::construct_new_entry(void)
     sp_yaw 		    = setpoint.ATT.z.value.get();
     sp_roll_ff 	    = setpoint.ATT.x.FF.get();
     sp_pitch_ff 	= setpoint.ATT.y.FF.get();
+    sp_yaw_ff       = setpoint.ATT.z.FF.get();
 
     sp_X 			= setpoint.XY.x.value.get();
     sp_Y 			= setpoint.XY.y.value.get();
     sp_Z 			= setpoint.Z.value.get();
+    sp_X_ff         = setpoint.XY.x.FF.get();
+    sp_Y_ff         = setpoint.XY.y.FF.get();
+    sp_Z_ff         = setpoint.Z.FF.get();
     sp_Xdot 		= setpoint.XY_dot.x.value.get();
     sp_Ydot 		= setpoint.XY_dot.y.value.get();
     sp_Zdot 		= setpoint.Z_dot.value.get();
@@ -537,6 +648,9 @@ void log_entry_t::construct_new_entry(void)
     sp_Xddot        = setpoint.XYZ_ddot.x.value.get();
     sp_Yddot 		= setpoint.XYZ_ddot.y.value.get();
     sp_Zddot 		= setpoint.XYZ_ddot.z.value.get();
+    sp_Xddot_ff     = setpoint.XYZ_ddot.x.FF.get();
+    sp_Yddot_ff     = setpoint.XYZ_ddot.y.FF.get();
+    sp_Zddot_ff     = setpoint.XYZ_ddot.z.FF.get();
 
     u_roll 		    = fstate.get_u(VEC_ROLL);
     u_pitch 		= fstate.get_u(VEC_PITCH);

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -223,58 +223,70 @@ int feedback_servo_controller_t::mix_all_control(double(&u)[MAX_SERVO_INPUTS], d
 	double min, max;
 
 	/* 1. Throttle/Altitude Control */
-	setpoint.POS_throttle_servo.z.value.saturate(MIN_SERVO_THRUST_COMPONENT, MAX_SERVO_THRUST_COMPONENT);
-	u[VEC_Z] = setpoint.Z.value.get();
-	servo_mix.add_input(u[VEC_Z], VEC_Z, mot);
-
-
-	/* 2. Roll (X-rotation) Control */
-	u[VEC_ROLL] = setpoint.ATT_throttle_servo.x.value.get();
-	if (settings.en_servo_ch_pool_sat)
+	if (setpoint.POS_throttle_servo.z.value.is_en())
 	{
-		servo_mix.check_saturation(VEC_ROLL, mot, &min, &max);
-		if (max > MAX_SERVO_ROLL_COMPONENT)  max = MAX_SERVO_ROLL_COMPONENT;
-		if (min < MIN_SERVO_ROLL_COMPONENT) min = MIN_SERVO_ROLL_COMPONENT;
-		rc_saturate_double(&u[VEC_ROLL], min, max);
-	}
-	else
-	{
-		rc_saturate_double(&u[VEC_ROLL], MIN_SERVO_ROLL_COMPONENT, MAX_SERVO_ROLL_COMPONENT);
+		setpoint.POS_throttle_servo.z.value.saturate(MIN_SERVO_THRUST_COMPONENT, MAX_SERVO_THRUST_COMPONENT);
+		u[VEC_Z] = setpoint.Z.value.get();
+		servo_mix.add_input(u[VEC_Z], VEC_Z, mot);
 	}	
-	servo_mix.add_input(u[VEC_ROLL], VEC_ROLL, mot);
 
-	/* 2. Pitch (Y-rotation) Control */
-	u[VEC_PITCH] = setpoint.ATT_throttle_servo.y.value.get();
-	if (settings.en_servo_ch_pool_sat)
+	if (setpoint.ATT_throttle_servo.x.value.is_en())
 	{
-		servo_mix.check_saturation(VEC_PITCH, mot, &min, &max);
-		if (max > MAX_SERVO_PITCH_COMPONENT)  max = MAX_SERVO_PITCH_COMPONENT;
-		if (min < MIN_SERVO_PITCH_COMPONENT) min = MIN_SERVO_PITCH_COMPONENT;
-		rc_saturate_double(&u[VEC_PITCH], min, max);
+		/* 2. Roll (X-rotation) Control */
+		u[VEC_ROLL] = setpoint.ATT_throttle_servo.x.value.get();
+		if (settings.en_servo_ch_pool_sat)
+		{
+			servo_mix.check_saturation(VEC_ROLL, mot, &min, &max);
+			if (max > MAX_SERVO_ROLL_COMPONENT)  max = MAX_SERVO_ROLL_COMPONENT;
+			if (min < MIN_SERVO_ROLL_COMPONENT) min = MIN_SERVO_ROLL_COMPONENT;
+			rc_saturate_double(&u[VEC_ROLL], min, max);
+		}
+		else
+		{
+			rc_saturate_double(&u[VEC_ROLL], MIN_SERVO_ROLL_COMPONENT, MAX_SERVO_ROLL_COMPONENT);
+		}
+		servo_mix.add_input(u[VEC_ROLL], VEC_ROLL, mot);
 	}
-	else
+
+	if (setpoint.ATT_throttle_servo.y.value.is_en())
 	{
-		rc_saturate_double(&u[VEC_PITCH], MIN_SERVO_PITCH_COMPONENT, MAX_SERVO_PITCH_COMPONENT);
+		/* 2. Pitch (Y-rotation) Control */
+		u[VEC_PITCH] = setpoint.ATT_throttle_servo.y.value.get();
+		if (settings.en_servo_ch_pool_sat)
+		{
+			servo_mix.check_saturation(VEC_PITCH, mot, &min, &max);
+			if (max > MAX_SERVO_PITCH_COMPONENT)  max = MAX_SERVO_PITCH_COMPONENT;
+			if (min < MIN_SERVO_PITCH_COMPONENT) min = MIN_SERVO_PITCH_COMPONENT;
+			rc_saturate_double(&u[VEC_PITCH], min, max);
+		}
+		else
+		{
+			rc_saturate_double(&u[VEC_PITCH], MIN_SERVO_PITCH_COMPONENT, MAX_SERVO_PITCH_COMPONENT);
+		}
+		servo_mix.add_input(u[VEC_PITCH], VEC_PITCH, mot);
 	}
-	servo_mix.add_input(u[VEC_PITCH], VEC_PITCH, mot);
 	
-	/* 3. Yaw (Z-rotation) Control */
-	u[VEC_YAW] = setpoint.ATT_throttle_servo.z.value.get();
-	if (settings.en_servo_ch_pool_sat)
+	if (setpoint.ATT_throttle_servo.z.value.is_en())
 	{
-		servo_mix.check_saturation(VEC_YAW, mot, &min, &max);
-		if (max > MAX_SERVO_YAW_COMPONENT)  max = MAX_SERVO_YAW_COMPONENT;
-		if (min < MIN_SERVO_YAW_COMPONENT) min = MIN_SERVO_YAW_COMPONENT;
-		rc_saturate_double(&u[VEC_YAW], min, max);
+		/* 3. Yaw (Z-rotation) Control */
+		u[VEC_YAW] = setpoint.ATT_throttle_servo.z.value.get();
+		if (settings.en_servo_ch_pool_sat)
+		{
+			servo_mix.check_saturation(VEC_YAW, mot, &min, &max);
+			if (max > MAX_SERVO_YAW_COMPONENT)  max = MAX_SERVO_YAW_COMPONENT;
+			if (min < MIN_SERVO_YAW_COMPONENT) min = MIN_SERVO_YAW_COMPONENT;
+			rc_saturate_double(&u[VEC_YAW], min, max);
+		}
+		else
+		{
+			rc_saturate_double(&u[VEC_YAW], MIN_SERVO_YAW_COMPONENT, MAX_SERVO_YAW_COMPONENT);
+		}
+		servo_mix.add_input(u[VEC_YAW], VEC_YAW, mot);
 	}
-	else
-	{
-		rc_saturate_double(&u[VEC_YAW], MIN_SERVO_YAW_COMPONENT, MAX_SERVO_YAW_COMPONENT);
-	}	
-	servo_mix.add_input(u[VEC_YAW], VEC_YAW, mot);
 
 	// for 6dof systems, add X and Y
-	if (setpoint.en_6dof_servo) {
+	if (setpoint.POS_throttle_servo.x.value.is_en())
+	{
 		// X
 		u[VEC_X] = setpoint.POS_throttle_servo.x.value.get();
 		if (settings.en_servo_ch_pool_sat)
@@ -289,7 +301,9 @@ int feedback_servo_controller_t::mix_all_control(double(&u)[MAX_SERVO_INPUTS], d
 			rc_saturate_double(&u[VEC_X], MIN_SERVO_X_COMPONENT, MAX_SERVO_X_COMPONENT);
 		}
 		servo_mix.add_input(u[VEC_X], VEC_X, mot);
-
+	}
+	if (setpoint.POS_throttle_servo.y.value.is_en())
+	{
 		// Y
 		u[VEC_Y] = setpoint.POS_throttle_servo.y.value.get();
 		if (settings.en_servo_ch_pool_sat)
@@ -302,7 +316,7 @@ int feedback_servo_controller_t::mix_all_control(double(&u)[MAX_SERVO_INPUTS], d
 		else
 		{
 			rc_saturate_double(&u[VEC_Y], MIN_SERVO_Y_COMPONENT, MAX_SERVO_Y_COMPONENT);
-		}		
+		}
 		servo_mix.add_input(u[VEC_Y], VEC_Y, mot);
 	}
 

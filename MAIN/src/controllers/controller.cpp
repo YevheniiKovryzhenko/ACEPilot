@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/31/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -730,38 +730,50 @@ int feedback_controller_t::mix_all_control(double(&u)[MAX_INPUTS], double(&mot)[
 
 	double min, max;
 
-	/* 1. Throttle/Altitude Control */
-	setpoint.POS_throttle.z.value.saturate(MIN_THRUST_COMPONENT, MAX_THRUST_COMPONENT);
-	u[VEC_Z] = setpoint.POS_throttle.z.value.get();
-	mix_add_input(u[VEC_Z], VEC_Z, mot);
+	if (setpoint.POS_throttle.z.value.is_en())
+	{
+		/* 1. Throttle/Altitude Control */
+		setpoint.POS_throttle.z.value.saturate(MIN_THRUST_COMPONENT, MAX_THRUST_COMPONENT);
+		u[VEC_Z] = setpoint.POS_throttle.z.value.get();
+		mix_add_input(u[VEC_Z], VEC_Z, mot);
+	}
 
+	if (setpoint.ATT_throttle.x.value.is_en())
+	{
+		/* 2. Roll (X) Control */
+		mix_check_saturation(VEC_ROLL, mot, &min, &max);
+		if (max > MAX_ROLL_COMPONENT)  max = MAX_ROLL_COMPONENT;
+		if (min < -MAX_ROLL_COMPONENT) min = -MAX_ROLL_COMPONENT;
+		u[VEC_ROLL] = setpoint.ATT_throttle.x.value.get();
+		rc_saturate_double(&u[VEC_ROLL], min, max);
+		mix_add_input(u[VEC_ROLL], VEC_ROLL, mot);
+	}
 
-	/* 2. Roll (X) Control */
-	mix_check_saturation(VEC_ROLL, mot, &min, &max);
-	if (max > MAX_ROLL_COMPONENT)  max = MAX_ROLL_COMPONENT;
-	if (min < -MAX_ROLL_COMPONENT) min = -MAX_ROLL_COMPONENT;
-	u[VEC_ROLL] = setpoint.ATT_throttle.x.value.get();
-	rc_saturate_double(&u[VEC_ROLL], min, max);
-	mix_add_input(u[VEC_ROLL], VEC_ROLL, mot);
-
-	/* 2. Pitch (Y) Control */
-	mix_check_saturation(VEC_PITCH, mot, &min, &max);
-	if (max > MAX_PITCH_COMPONENT)  max = MAX_PITCH_COMPONENT;
-	if (min < -MAX_PITCH_COMPONENT) min = -MAX_PITCH_COMPONENT;
-	u[VEC_PITCH] = setpoint.ATT_throttle.y.value.get();
-	rc_saturate_double(&u[VEC_PITCH], min, max);
-	mix_add_input(u[VEC_PITCH], VEC_PITCH, mot);
+	if (setpoint.ATT_throttle.y.value.is_en())
+	{
+		/* 2. Pitch (Y) Control */
+		mix_check_saturation(VEC_PITCH, mot, &min, &max);
+		if (max > MAX_PITCH_COMPONENT)  max = MAX_PITCH_COMPONENT;
+		if (min < -MAX_PITCH_COMPONENT) min = -MAX_PITCH_COMPONENT;
+		u[VEC_PITCH] = setpoint.ATT_throttle.y.value.get();
+		rc_saturate_double(&u[VEC_PITCH], min, max);
+		mix_add_input(u[VEC_PITCH], VEC_PITCH, mot);
+	}
 	
-	/* 3. Yaw (Z) Control */
-	mix_check_saturation(VEC_YAW, mot, &min, &max);
-	if (max > MAX_YAW_COMPONENT)  max = MAX_YAW_COMPONENT;
-	if (min < -MAX_YAW_COMPONENT) min = -MAX_YAW_COMPONENT;
-	u[VEC_YAW] = setpoint.ATT_throttle.z.value.get();
-	rc_saturate_double(&u[VEC_YAW], min, max);
-	mix_add_input(u[VEC_YAW], VEC_YAW, mot);
+	if (setpoint.ATT_throttle.z.value.is_en())
+	{
+		/* 3. Yaw (Z) Control */
+		mix_check_saturation(VEC_YAW, mot, &min, &max);
+		if (max > MAX_YAW_COMPONENT)  max = MAX_YAW_COMPONENT;
+		if (min < -MAX_YAW_COMPONENT) min = -MAX_YAW_COMPONENT;
+		u[VEC_YAW] = setpoint.ATT_throttle.z.value.get();
+		rc_saturate_double(&u[VEC_YAW], min, max);
+		mix_add_input(u[VEC_YAW], VEC_YAW, mot);
+	}
 
 	// for 6dof systems, add X and Y
-	if (setpoint.en_6dof) {
+	if (setpoint.POS_throttle.x.value.is_en()) 
+	{
 		// X
 		mix_check_saturation(VEC_X, mot, &min, &max);
 		if (max > MAX_X_COMPONENT)  max = MAX_X_COMPONENT;
@@ -769,7 +781,9 @@ int feedback_controller_t::mix_all_control(double(&u)[MAX_INPUTS], double(&mot)[
 		u[VEC_X] = setpoint.POS_throttle.x.value.get();
 		rc_saturate_double(&u[VEC_X], min, max);
 		mix_add_input(u[VEC_X], VEC_X, mot);
-
+	}
+	if (setpoint.POS_throttle.y.value.is_en())
+	{
 		// Y
 		mix_check_saturation(VEC_Y, mot, &min, &max);
 		if (max > MAX_Y_COMPONENT)  max = MAX_Y_COMPONENT;

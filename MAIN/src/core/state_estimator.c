@@ -55,6 +55,11 @@ static rc_filter_t mocap_dx_lpf = RC_FILTER_INITIALIZER;
 static rc_filter_t mocap_dy_lpf = RC_FILTER_INITIALIZER;
 static rc_filter_t mocap_dz_lpf = RC_FILTER_INITIALIZER;
 
+// mocap attitude rate filters
+static rc_filter_t mocap_r_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t mocap_p_lpf = RC_FILTER_INITIALIZER;
+static rc_filter_t mocap_y_lpf = RC_FILTER_INITIALIZER;
+
 // battery filter
 static rc_filter_t batt_lp = RC_FILTER_INITIALIZER;
 
@@ -126,6 +131,10 @@ static void __mocap_init(void)
 	rc_filter_first_order_lowpass(&mocap_dx_lpf, DT, 20 * DT);
 	rc_filter_first_order_lowpass(&mocap_dy_lpf, DT, 20 * DT);
 	rc_filter_first_order_lowpass(&mocap_dz_lpf, DT, 4 * DT);
+
+	rc_filter_first_order_lowpass(&mocap_dx_lpf, DT, 6.0 * DT);
+	rc_filter_first_order_lowpass(&mocap_dy_lpf, DT, 6.0 * DT);
+	rc_filter_first_order_lowpass(&mocap_dz_lpf, DT, 7.0 * DT);
 	return;
 }
 
@@ -134,6 +143,19 @@ static void __mocap_march(void)
 	state_estimate.X_dot = rc_filter_march(&mocap_dx_lpf, state_estimate.X_dot_raw);
 	state_estimate.Y_dot = rc_filter_march(&mocap_dy_lpf, state_estimate.Y_dot_raw);
 	state_estimate.Z_dot = rc_filter_march(&mocap_dz_lpf, state_estimate.Z_dot_raw);
+
+	if (settings.use_mocap_roll_rate)
+	{
+		state_estimate.roll_dot = rc_filter_march(&mocap_dx_lpf, state_estimate.roll_dot_raw);
+	}
+	if (settings.use_mocap_pitch_rate)
+	{
+		state_estimate.pitch_dot = rc_filter_march(&mocap_dy_lpf, state_estimate.pitch_dot_raw);
+	}
+	if (settings.use_mocap_pitch_rate)
+	{
+		state_estimate.yaw_dot = rc_filter_march(&mocap_dy_lpf, state_estimate.yaw_dot_raw);
+	}
 	return;
 }
 
@@ -199,7 +221,15 @@ static void __imu_march(void)
 		// normalize quaternion because we don't trust the mocap system
 		rc_quaternion_norm_array(state_estimate.quat_mocap);
 		// calculate tait bryan angles too
+		double tmp[3];
+		tmp[0] = state_estimate.tb_mocap[0];
+		tmp[1] = state_estimate.tb_mocap[1];
+		tmp[2] = state_estimate.tb_mocap[2];
+
 		rc_quaternion_to_tb_array(state_estimate.quat_mocap, state_estimate.tb_mocap);
+		state_estimate.roll_dot_raw = state_estimate.tb_mocap[0] - tmp[0];
+		state_estimate.pitch_dot_raw = state_estimate.tb_mocap[1] - tmp[1];
+		state_estimate.yaw_dot_raw = state_estimate.tb_mocap[2] - tmp[2];
 		
 		last_mocap_x = state_estimate.pos_mocap[0];
 		last_mocap_y = state_estimate.pos_mocap[1];

@@ -98,6 +98,9 @@ extern "C"
 		double roll_dot;
 		double pitch_dot;
 		double yaw_dot;
+		double roll_dot_raw;
+		double pitch_dot_raw;
+		double yaw_dot_raw;
 		double X; //Inertial
 		double Y; //Inertial
 		double Z; //Inertial

@@ -784,6 +784,9 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(use_mocap_yaw);
 	PARSE_BOOL(use_mocap_pitch);
 	PARSE_BOOL(use_mocap_roll);
+	PARSE_BOOL(use_mocap_yaw_rate);
+	PARSE_BOOL(use_mocap_pitch_rate);
+	PARSE_BOOL(use_mocap_roll_rate);
 	PARSE_BOOL(enable_encoders);
 	PARSE_BOOL(enable_gps);
 	PARSE_BOOL(enable_ext_mag);
@@ -892,9 +895,21 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(log_state);
 	PARSE_BOOL(log_mocap);
 	PARSE_BOOL(log_gps);
-	PARSE_BOOL(log_attitude_setpoint);
-	PARSE_BOOL(log_position_setpoint);
+
+	PARSE_BOOL(log_setpoints);
 	PARSE_BOOL(log_throttles);
+	PARSE_BOOL(log_throttles_ff);
+	PARSE_BOOL(log_attitude_rate_setpoint);
+	PARSE_BOOL(log_attitude_rate_setpoint_ff);
+	PARSE_BOOL(log_attitude_setpoint);
+	PARSE_BOOL(log_attitude_setpoint_ff);
+	PARSE_BOOL(log_acceleration_setpoint);
+	PARSE_BOOL(log_acceleration_setpoint_ff);
+	PARSE_BOOL(log_velocity_setpoint);
+	PARSE_BOOL(log_velocity_setpoint_ff);
+	PARSE_BOOL(log_position_setpoint);
+	PARSE_BOOL(log_position_setpoint_ff);
+	
 	PARSE_BOOL(log_dsm);
 	PARSE_BOOL(log_flight_mode);
 	PARSE_BOOL(log_benchmark);

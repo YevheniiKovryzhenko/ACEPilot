@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -78,6 +78,7 @@ private:
 	* @return     0 on success, -1 on failure
 	*/
 	int set_reset_sources(void);
+	int set_reset_sources_all_defs(void); //all defs to reset to when armed
 
 	/**
 	* @brief      Set setpoints to input values from the radio.
@@ -93,11 +94,6 @@ private:
 	void update_XY_pos(void);
 	void update_rpy_servo(void);
 public:
-	/** @name general */
-	///< @{
-	bool en_6dof;		///< enable 6DOF control features
-	bool en_6dof_servo;
-	///< @}
 
 	/** @name direct passthrough
 	* user inputs tranlate directly to mixing matrix
@@ -165,11 +161,12 @@ public:
 	
 
 	/**
-	* @brief      Reset setpoints to state_estimate.
+	* @brief      Reset setpoint mannager to its starting state.
+	* 
+	*	Intended to be called each time the system is armed.
 	*
 	* @return     0 on success, -1 on failure
 	*/
-
 	int reset_all(void);
 
 

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -150,9 +150,15 @@ private:
 	double X_throttle;
 	double Y_throttle;
 	double Z_throttle;
+	double X_throttle_ff;
+	double Y_throttle_ff;
+	double Z_throttle_ff;
 	double roll_throttle;
 	double pitch_throttle;
 	double yaw_throttle;
+	double roll_throttle_ff;
+	double pitch_throttle_ff;
+	double yaw_throttle_ff;
 	///@}
 
 	/** @name attitude setpoints */
@@ -168,6 +174,7 @@ private:
 	double sp_yaw;
 	double sp_roll_ff;
 	double sp_pitch_ff;
+	double sp_yaw_ff;
 	///@}
 
 	/** @name XYZ setpoints */
@@ -175,6 +182,9 @@ private:
 	double sp_X;
 	double sp_Y;
 	double sp_Z;
+	double sp_X_ff;
+	double sp_Y_ff;
+	double sp_Z_ff;
 	double sp_Xdot;
 	double sp_Ydot;
 	double sp_Zdot;
@@ -184,6 +194,9 @@ private:
 	double sp_Xddot;
 	double sp_Yddot;
 	double sp_Zddot;
+	double sp_Xddot_ff;
+	double sp_Yddot_ff;
+	double sp_Zddot_ff;
 	///@}
 
 	/** @name orthogonal control outputs */

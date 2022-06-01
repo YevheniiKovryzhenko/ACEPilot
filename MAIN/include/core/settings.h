@@ -62,6 +62,9 @@ typedef struct settings_t{
 	bool use_mocap_yaw;
 	bool use_mocap_pitch;
 	bool use_mocap_roll;
+	bool use_mocap_yaw_rate;
+	bool use_mocap_pitch_rate;
+	bool use_mocap_roll_rate;
 	bool enable_encoders;
 	bool enable_gps;
 	bool enable_ext_mag;
@@ -124,7 +127,6 @@ typedef struct settings_t{
 	bool printf_setpoint_z_dot;
 	bool printf_setpoint_att;
 	bool printf_setpoint_att_dot;
-
 	bool printf_u;
 	bool printf_motors;
 	bool printf_mode;
@@ -147,9 +149,21 @@ typedef struct settings_t{
 	bool log_state;
 	bool log_mocap;
 	bool log_gps;
-	bool log_attitude_setpoint;
-	bool log_position_setpoint;
+
+	bool log_setpoints;
 	bool log_throttles;
+	bool log_throttles_ff;
+	bool log_attitude_rate_setpoint;
+	bool log_attitude_rate_setpoint_ff;
+	bool log_attitude_setpoint;
+	bool log_attitude_setpoint_ff;
+	bool log_acceleration_setpoint;
+	bool log_acceleration_setpoint_ff;
+	bool log_velocity_setpoint;
+	bool log_velocity_setpoint_ff;
+	bool log_position_setpoint;
+	bool log_position_setpoint_ff;
+	
 	bool log_dsm;
 	bool log_flight_mode;
 	bool log_benchmark;
