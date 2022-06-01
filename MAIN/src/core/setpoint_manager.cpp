@@ -68,6 +68,22 @@
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
 
+
+/**
+* float apply_deadzone(float in, float zone)
+*
+* Applies a dead zone to an input stick in. in is supposed to range from -1 to 1
+* the dead zone is centered around 0. zone specifies the distance from 0 the
+* zone extends.
+**/
+static double __deadzone(double in, double zone)
+{
+	if (zone <= 0.0) return in;
+	if (fabs(in) <= zone) return 0.0;
+	if (in > 0.0)	return ((in - zone) / (1.0 - zone));
+	else		return ((in + zone) / (1.0 - zone));
+}
+
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
  */
@@ -339,26 +355,29 @@ void setpoint_t::update_yaw(void)
 {
 	// if throttle stick is down all the way, probably landed, so
 	// keep the yaw setpoint at current yaw so it takes off straight
-	
+	double tmp_yaw = user_input.yaw.get();
+
+	/*	
 	double  vel_mag = sqrt(\
 		state_estimate.X_dot * state_estimate.X_dot\
 		+ state_estimate.Y_dot * state_estimate.Y_dot\
 		+ state_estimate.Z_dot * state_estimate.Z_dot);
-	if(user_input.throttle.get() < 0.05 && vel_mag < 0.1){
+
+	if(user_input.throttle.get() < 0.05 && fabs(tmp_yaw) < 0.05){
 		ATT.z.value.set(state_estimate.continuous_yaw);
 		return;
 	}
+	*/
 	// otherwise, scale yaw by max yaw rate in rad/s
 	// and move yaw setpoint
-	ATT.z.value.increment(user_input.yaw.get_pt() * MAX_YAW_RATE * DT);
+	ATT.z.value.increment(__deadzone(tmp_yaw, 0.05) * MAX_YAW_RATE * DT);
 	return;
 }
 
 void setpoint_t::update_rp(void)
 {
-	ATT.x.set(&user_input.roll.get_pt());
-	ATT.y.set(&user_input.pitch.get_pt());
-	
+	ATT.x.value.set(__deadzone(user_input.roll.get(), 0.05) * MAX_ROLL_SETPOINT);
+	ATT.y.value.set(__deadzone(user_input.pitch.get(), 0.05) * MAX_PITCH_SETPOINT);
 	return;
 }
 
@@ -372,18 +391,27 @@ void setpoint_t::update_th(void)
 
 void setpoint_t::update_rpy_rate(void)
 {
-	ATT_dot.x.value.set(&user_input.roll.get_pt(), MAX_ROLL_RATE);
-	ATT_dot.y.value.set(&user_input.pitch.get_pt(), MAX_PITCH_RATE);
-	ATT_dot.z.value.set(&user_input.yaw.get_pt(), MAX_YAW_RATE);
+	ATT_dot.x.value.set(__deadzone(user_input.roll.get(), 0.05) * MAX_ROLL_RATE);
+	ATT_dot.y.value.set(__deadzone(user_input.pitch.get(), 0.05) * MAX_PITCH_RATE);
 
+	
+	double tmp_yaw = user_input.yaw.get();
+	/*
+	if (user_input.throttle.get() < 0.05 && fabs(tmp_yaw) < 0.05) {
+		ATT_dot.z.value.set(state_estimate.yaw_dot);
+		return;
+	}
+	*/
+
+	ATT_dot.z.value.set(__deadzone(tmp_yaw, 0.05) * MAX_YAW_RATE);
 	return;
 }
 
 void setpoint_t::update_rpy_servo(void)
 {
-	ATT_servo.x.value.set(&user_input.roll.get_pt());
-	ATT_servo.y.value.set(&user_input.pitch.get_pt());
-	ATT_servo.z.value.set(&user_input.yaw.get_pt());
+	ATT_servo.x.value.set(__deadzone(user_input.roll.get(), 0.05));
+	ATT_servo.y.value.set(__deadzone(user_input.pitch.get(), 0.05));
+	ATT_servo.z.value.set(__deadzone(user_input.yaw.get(), 0.05));
 	return;
 }
 
@@ -553,7 +581,6 @@ int setpoint_t::set_reset_sources(void)
 {
 	// reset is configured to set values to zero by def.
 	// change the def source if non always zero:
-
 	ATT_dot.x.value.set_def(&state_estimate.roll_dot);
 	ATT_dot.y.value.set_def(&state_estimate.pitch_dot);
 	ATT_dot.z.value.set_def(&state_estimate.yaw_dot);

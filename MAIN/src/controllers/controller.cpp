@@ -199,6 +199,7 @@ int feedback_controller_t::rpy_rate_march(void)
 	err_roll_dot = setpoint.ATT_dot.x.value.get() - state_estimate.roll_dot;
 	err_pitch_dot = setpoint.ATT_dot.y.value.get() - state_estimate.pitch_dot;
 	err_yaw_dot = setpoint.ATT_dot.z.value.get() - state_estimate.yaw_dot;
+	//printf("yaw_dot = %f\t yaw_dot_sp =%f\t err_yaw_dot = %f\n", state_estimate.yaw_dot, setpoint.ATT_dot.z.value.get(), err_yaw_dot);
 
 	//use smooth transition if control blending is enabled:
 	//if (setpoint.en_rpy_rate_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
@@ -619,7 +620,7 @@ char feedback_controller_t::update_gains(void)
 	switch (received_gain_set.GainCH)
 	{
 	case 0:
-		break;
+		return 0;
 	case 1: //roll
 		roll.set_tune_gains(received_gain_set);
 		break;

@@ -13,12 +13,12 @@
 
 	"enable_magnetometer": false,
 	"enable_mocap": true,
-	"use_mocap_yaw": true,
-	"use_mocap_pitch": false,
 	"use_mocap_roll": false,
-	"use_mocap_yaw_rate": true,
-	"use_mocap_pitch_rate": false,
+	"use_mocap_pitch": false,
+	"use_mocap_yaw": true,
 	"use_mocap_roll_rate": false,
+	"use_mocap_pitch_rate": false,
+	"use_mocap_yaw_rate": false,
 	"enable_encoders": false,
 	"enable_gps": false,
 	"enable_ext_mag": false,
@@ -105,7 +105,7 @@
 	"log_velocity_setpoint": true,
 	"log_velocity_setpoint_ff": true,
 	"log_position_setpoint": true,
-	"log_position_setpoint_ff": false,
+	"log_position_setpoint_ff": true,
 
 	"log_dsm": true,
 	"log_flight_mode": true,
@@ -147,7 +147,7 @@
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 0.04071911,
-		"kd": 0.00274238,
+		"kd": 0.00269968,
 		"crossover_freq_rad_per_sec": 75.1037
 	},
 	"roll_rate_controller_i": {
@@ -163,7 +163,7 @@
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 0.07858785,
-		"kd": 0.00274238,
+		"kd": 0.00268590,
 		"crossover_freq_rad_per_sec": 75.1037
 	},
 	"pitch_rate_controller_i": {
@@ -179,13 +179,13 @@
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 0.06058100,
-		"kd": 0.02719915,
+		"kd": 0.00282158,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"yaw_rate_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.00286307,
+		"ki": 0.02719915,
 		"imax": 0.10
 	},
 	"yaw_rate_controller_FF": 0.35122410,
@@ -194,46 +194,46 @@
 	"roll_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 7.7594,
-		"kd": 0.010788,
+		"kp": 0.19317802,
+		"kd": 0.00196960,
 		"crossover_freq_rad_per_sec": 68.8797
 	},
 	"roll_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.13071,
+		"ki": 0.05519347,
 		"imax": 0.10
 	},
-	"roll_controller_FF": 1.0,
+	"roll_controller_FF": 0.34,
 
 
 	"pitch_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 8.2884,
-		"kd": 0.014564,
+		"kp": 0.24074487,
+		"kd": 0.00196960,
 		"crossover_freq_rad_per_sec": 68.8797
 	},
 	"pitch_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.13071,
+		"ki": 0.05724118,
 		"imax": 0.10
 	},
-	"pitch_controller_FF": 1.0,
+	"pitch_controller_FF": 0.36,
 
 
 	"yaw_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 5.3112,
-		"kd": 0.10166,
+		"kp": 4.05502684,
+		"kd": 0.02994965,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"yaw_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.0,
+		"ki": 0.12448150,
 		"imax": 0.10
 	},
 	"yaw_controller_FF": 0.0,
@@ -259,7 +259,7 @@
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
 		"kp": 1.04131387,
-		"kd": 0.25502408,
+		"kd": 0.19958395,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"altitude_controller_i": {

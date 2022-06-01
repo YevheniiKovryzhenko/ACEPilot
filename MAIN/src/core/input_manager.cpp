@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/30/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  *
  * Functions to start and stop the input manager thread which is the translation
  * beween control inputs from DSM to the user_input struct which is read by the
@@ -90,10 +90,10 @@ user_input_t user_input{}; // extern variable in input_manager.hpp
 **/
 static double __deadzone(double in, double zone)
 {
-	if(zone<=0.0) return in;
-	if(fabs(in)<=zone) return 0.0;
-	if(in>0.0)	return ((in-zone)/(1.0-zone));
-	else		return ((in+zone)/(1.0-zone));
+	if (zone <= 0.0) return in;
+	if (fabs(in) <= zone) return 0.0;
+	if (in > 0.0)	return ((in - zone) / (1.0 - zone));
+	else		return ((in + zone) / (1.0 - zone));
 }
 
 static bool in_arming_position()

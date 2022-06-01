@@ -132,9 +132,9 @@ static void __mocap_init(void)
 	rc_filter_first_order_lowpass(&mocap_dy_lpf, DT, 20 * DT);
 	rc_filter_first_order_lowpass(&mocap_dz_lpf, DT, 4 * DT);
 
-	rc_filter_first_order_lowpass(&mocap_dx_lpf, DT, 6.0 * DT);
-	rc_filter_first_order_lowpass(&mocap_dy_lpf, DT, 6.0 * DT);
-	rc_filter_first_order_lowpass(&mocap_dz_lpf, DT, 7.0 * DT);
+	rc_filter_first_order_lowpass(&mocap_r_lpf, DT, 6.0 * DT);
+	rc_filter_first_order_lowpass(&mocap_p_lpf, DT, 6.0 * DT);
+	rc_filter_first_order_lowpass(&mocap_y_lpf, DT, 10.0 * DT);
 	return;
 }
 
@@ -146,15 +146,15 @@ static void __mocap_march(void)
 
 	if (settings.use_mocap_roll_rate)
 	{
-		state_estimate.roll_dot = rc_filter_march(&mocap_dx_lpf, state_estimate.roll_dot_raw);
+		state_estimate.roll_dot = rc_filter_march(&mocap_r_lpf, state_estimate.roll_dot_raw);
 	}
 	if (settings.use_mocap_pitch_rate)
 	{
-		state_estimate.pitch_dot = rc_filter_march(&mocap_dy_lpf, state_estimate.pitch_dot_raw);
+		state_estimate.pitch_dot = rc_filter_march(&mocap_p_lpf, state_estimate.pitch_dot_raw);
 	}
 	if (settings.use_mocap_pitch_rate)
 	{
-		state_estimate.yaw_dot = rc_filter_march(&mocap_dy_lpf, state_estimate.yaw_dot_raw);
+		state_estimate.yaw_dot = rc_filter_march(&mocap_y_lpf, state_estimate.yaw_dot_raw);
 	}
 	return;
 }
@@ -227,9 +227,15 @@ static void __imu_march(void)
 		tmp[2] = state_estimate.tb_mocap[2];
 
 		rc_quaternion_to_tb_array(state_estimate.quat_mocap, state_estimate.tb_mocap);
-		state_estimate.roll_dot_raw = state_estimate.tb_mocap[0] - tmp[0];
-		state_estimate.pitch_dot_raw = state_estimate.tb_mocap[1] - tmp[1];
-		state_estimate.yaw_dot_raw = state_estimate.tb_mocap[2] - tmp[2];
+		state_estimate.tb_mocap[1] = -state_estimate.tb_mocap[1];
+		state_estimate.tb_mocap[2] = -state_estimate.tb_mocap[2];
+
+		// we need to estimate velocity from mocap position
+		last_mocap_dt = finddt_s(benchmark_timers.tNAV); //get time elapsed since last itter.
+
+		state_estimate.roll_dot_raw = (state_estimate.tb_mocap[0] - tmp[0]) / last_mocap_dt;
+		state_estimate.pitch_dot_raw = (state_estimate.tb_mocap[1] - tmp[1]) / last_mocap_dt;
+		state_estimate.yaw_dot_raw = (state_estimate.tb_mocap[2] - tmp[2]) / last_mocap_dt;
 		
 		last_mocap_x = state_estimate.pos_mocap[0];
 		last_mocap_y = state_estimate.pos_mocap[1];
@@ -239,8 +245,7 @@ static void __imu_march(void)
 		state_estimate.pos_mocap[1]=-(double)GS_RX.y;
 		state_estimate.pos_mocap[2]=-(double)GS_RX.z;
 		
-		// we need to estimate velocity from mocap position
-		last_mocap_dt = finddt_s(benchmark_timers.tNAV); //get time elapsed since last itter.
+		
 		if (last_mocap_dt <= 0) //undefined division by zero, or if time is negative assume velocity did not change
 		{
 			printf("WARNING in __imu_march: undefined time step of %d\n", last_mocap_dt);
@@ -257,13 +262,13 @@ static void __imu_march(void)
 
 		// yaw is more annoying since we have to detect spins
         // also make sign negative since NED coordinates has Z point down
-        diff_mocap = state_estimate.tb_mocap[2] + (num_yaw_spins_mocap * TWO_PI) - last_yaw_mocap;
+        diff_mocap = -state_estimate.tb_mocap[2] + (num_yaw_spins_mocap * TWO_PI) - last_yaw_mocap;
         // detect the crossover point at +-PI and update num yaw spins
         if (diff_mocap < -M_PI) num_yaw_spins_mocap++;
         else if (diff_mocap > M_PI) num_yaw_spins_mocap--;
 
         // finally the new value can be written
-        state_estimate.mocap_continuous_yaw = state_estimate.tb_mocap[2] + (num_yaw_spins_mocap * TWO_PI);
+        state_estimate.mocap_continuous_yaw = -state_estimate.tb_mocap[2] + (num_yaw_spins_mocap * TWO_PI);
         last_yaw_mocap = state_estimate.mocap_continuous_yaw;
 	}
 
@@ -498,10 +503,10 @@ static void __feedback_select(void)
 			state_estimate.roll 	= state_estimate.tb_mocap[0];
 		}
 		if (settings.use_mocap_pitch) {
-			state_estimate.pitch 	= -state_estimate.tb_mocap[1];
+			state_estimate.pitch 	= state_estimate.tb_mocap[1];
 		}
 		if (settings.use_mocap_yaw) {
-			state_estimate.yaw 		= -state_estimate.tb_mocap[2];
+			state_estimate.yaw 		= state_estimate.tb_mocap[2];
             state_estimate.continuous_yaw = -state_estimate.mocap_continuous_yaw;
 		}
 	}
