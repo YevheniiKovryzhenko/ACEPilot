@@ -262,38 +262,60 @@ typedef enum flight_mode_t{
 	ALT_HOLD_FFFFxx,
 
 	/**
-	* Control sticks translate to velocity setpoints in horizontal
-	* translation X and Y. Yaw and Altitude are still position setpoints
-	* like alt_hold
+	* Like ALT_HOLD_FFFAxx. Enabled horisonal velocity controllers.
+	* Roll and pitch sticks are converted into velocity setpoints.
+	* No horisontal position control.
 	*/
-	POSITION_CONTROL_SSS,
+	POS_CTRL_FFFAAx,
+
 	/**
-	* Control sticks translate to velocity setpoints in horizontal
-	* translation X and Y. Yaw and Altitude are still position setpoints
-	* like ALT_HOLD_SS, no XY velocity control
+	* Like ALT_HOLD_FFFFxx. Enabled horisonal velocity controllers.
+	* Roll and pitch sticks are converted into velocity setpoints.
+	* No horisontal position control.
 	*/
-	POSITION_CONTROL_FSS,
+	POS_CTRL_FFFFAx,
+
 	/**
-	* Control sticks translate to velocity setpoints in horizontal
-	* translation X and Y. Yaw and Altitude are still position setpoints
-	* like ALT_HOLD_FS, no XY velocity control
+	* Like ALT_HOLD_FFFAxx. Enabled horisonal velocity and 
+	* position controllers.
+	* Roll and pitch sticks are converted into position setpoints.
 	*/
-	POSITION_CONTROL_FFS,
+	POS_CTRL_FFFAAA,
+
 	/**
-	* Control sticks translate to velocity setpoints in horizontal
-	* translation X and Y. Yaw and Altitude are still position setpoints
-	* like ALT_HOLD_FF with XY velocity control
+	* Like ALT_HOLD_FFFAxx. Enabled horisonal velocity and
+	* position controllers.
+	* Roll and pitch sticks are converted into position setpoints.
+	* Feedforward path enabled for traslational velocity controllers.
 	*/
-	POSITION_CONTROL_FFF,
+	POS_CTRL_FFFAFA,
+
+	/**
+	* Like ALT_HOLD_FFFAxx. Enabled horisonal velocity and
+	* position controllers.
+	* Roll and pitch sticks are converted into position setpoints.
+	* Feedforward path enabled for traslational position and velocity controllers.
+	*/
+	POS_CTRL_FFFAFF,
+
+	/**
+	* Like ALT_HOLD_FFFFxx. Enabled horisonal velocity and
+	* position controllers.
+	* Roll and pitch sticks are converted into position setpoints.
+	* Feedforward path enabled for traslational position and velocity controllers.
+	*/
+	POS_CTRL_FFFFFF,
+	
 	/**
 	* Commands 0 roll, 0 pitch, and descends at maximum user-defined speed
 	* Useful as an emergency mode if MOCAP drops out for too long
 	*/
 	EMERGENCY_LAND,
 	/**
-	* Fully autoomous position control mode. No external user input 
+	* Fully autoomous position control mode. Just like POS_CTRL_FFFAFA
+	* No external user input 
 	*/
-	AUTONOMOUS,
+	AUTO_FFFAFA,
 	/*
 	* Zeppelin mixed servo/esc control with thrust vectoring
 	*/

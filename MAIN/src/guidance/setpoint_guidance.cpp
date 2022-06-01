@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Contains all the automated trajectory guidance and related functionality.
@@ -1084,7 +1084,7 @@ int setpoint_guidance_t::march(void)
         return -1;
     }
 
-    if (user_input.get_flight_mode() != AUTONOMOUS)
+    if (user_input.get_flight_mode() != AUTO_FFFAFA)
     {
         if (en_Z) reset_Z();
         if (en_XY) reset_XY();

@@ -4,9 +4,7 @@
 
 bool mode_needs_mocap(flight_mode_t mode)
 {
-    if(mode == AUTONOMOUS ||\
-        mode == POSITION_CONTROL_SSS || mode == POSITION_CONTROL_FSS || mode == POSITION_CONTROL_FFS\
-        || mode == POSITION_CONTROL_FFF)
+    if(mode > MANUAL_FFxxxx && mode < ZEPPELIN)
     {
         return true;
     }

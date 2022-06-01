@@ -393,23 +393,29 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	else if (strcmp(tmp_str, "ALT_HOLD_FFFFxx") == 0) {
 		*mode = ALT_HOLD_FFFFxx;
 	}
-	else if (strcmp(tmp_str, "POSITION_CONTROL_SSS") == 0) {
-		*mode = POSITION_CONTROL_SSS;
+	else if (strcmp(tmp_str, "POS_CTRL_FFFAAx") == 0) {
+	*mode = POS_CTRL_FFFAAx;
 	}
-	else if (strcmp(tmp_str, "POSITION_CONTROL_FSS") == 0) {
-		*mode = POSITION_CONTROL_FSS;
+	else if (strcmp(tmp_str, "POS_CTRL_FFFFAx") == 0) {
+	*mode = POS_CTRL_FFFFAx;
 	}
-	else if (strcmp(tmp_str, "POSITION_CONTROL_FFS") == 0) {
-		*mode = POSITION_CONTROL_FFS;
+	else if (strcmp(tmp_str, "POS_CTRL_FFFAAA") == 0) {
+		*mode = POS_CTRL_FFFAAA;
 	}
-	else if (strcmp(tmp_str, "POSITION_CONTROL_FFF") == 0) {
-		*mode = POSITION_CONTROL_FFF;
+	else if (strcmp(tmp_str, "POS_CTRL_FFFAFA") == 0) {
+	*mode = POS_CTRL_FFFAFA;
+	}
+	else if (strcmp(tmp_str, "POS_CTRL_FFFAFF") == 0) {
+	*mode = POS_CTRL_FFFAFF;
+	}
+	else if (strcmp(tmp_str, "POS_CTRL_FFFFFF") == 0) {
+	*mode = POS_CTRL_FFFFFF;
 	}
 	else if (strcmp(tmp_str, "EMERGENCY_LAND") == 0) {
 		*mode = EMERGENCY_LAND;
 	}
-	else if(strcmp(tmp_str, "AUTONOMOUS")==0){
-		*mode = AUTONOMOUS;
+	else if(strcmp(tmp_str, "AUTO_FFFAFA")==0){
+		*mode = AUTO_FFFAFA;
 	}
 	else if (strcmp(tmp_str, "ZEPPELIN") == 0) {
 		*mode = ZEPPELIN;

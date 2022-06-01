@@ -475,6 +475,23 @@ void setpoint_t::update_Z_dot(void)
 
 
 //----Manual/Radio/Direct control----//
+void setpoint_t::update_XY_vel(void)
+{
+	double tmp_roll_stick = __deadzone(user_input.roll.get(), 0.05);
+	double tmp_pitch_stick = __deadzone(user_input.pitch.get(), 0.05);
+	double tmp_yaw = state_estimate.continuous_yaw;
+	
+	XY.x.value.set((-tmp_pitch_stick * cos(tmp_yaw)\
+		- tmp_roll_stick * sin(tmp_yaw))\
+		* MAX_XY_VELOCITY);
+
+	XY.y.value.set((tmp_roll_stick * cos(tmp_yaw)\
+		- tmp_pitch_stick * sin(tmp_yaw))\
+		* MAX_XY_VELOCITY);
+
+	return;
+}
+
 void setpoint_t::update_XY_pos(void)
 {
 	double tmp_X_dot, tmp_Y_dot;
@@ -652,7 +669,7 @@ int setpoint_t::update(void)
 	// if PAUSED or UNINITIALIZED, do nothing
 	if (rc_get_state() != RUNNING) return 0;
 
-	if (user_input.get_flight_mode() != AUTONOMOUS) waypoint_state_machine.disable_update();
+	if (user_input.get_flight_mode() != AUTO_FFFAFA) waypoint_state_machine.disable_update();
 
 	// shutdown feedback on kill switch
 	if (user_input.requested_arm_mode == DISARMED)
@@ -680,7 +697,7 @@ int setpoint_t::update(void)
 	update_setpoints(); //get manual radio updates first
 
 	// Update the state machine if in autonomous operation
-	if (user_input.get_flight_mode() == AUTONOMOUS)
+	if (user_input.get_flight_mode() == AUTO_FFFAFA)
 	{
 		waypoint_state_machine.march();
 		if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
@@ -1157,65 +1174,134 @@ int setpoint_t::update_setpoints(void)
 
 		break;
 
-	case POSITION_CONTROL_SSS:
-		// configure which controllers are enabled
-		ATT_throttle.enable();
-		POS_throttle.z.enable();
-		ATT.enable();
-		Z.enable();
-		XY.enable();
-
-
-		//check validity of the velocity command, construct virtual setpoint
-		update_XY_pos();
-		update_Z();
-		update_yaw();
-		break;
-
-	case POSITION_CONTROL_FSS:
+	case POS_CTRL_FFFAAx:
 		// configure which controllers are enabled
 		ATT_throttle.enable();
 		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
-		Z.enable();
-		XY.enable();
-
-
-		//check validity of the velocity command, construct virtual setpoint
-		update_XY_pos();
-		update_Z();
-		update_yaw();
-		break;
-
-	case POSITION_CONTROL_FFS:
-		// configure which controllers are enabled
-		ATT_throttle.enable();
-		POS_throttle.z.enable();
-		ATT_dot.enable();
-		ATT.enable();
-		Z.enable();
 		Z_dot.enable();
-		XY.enable();
+		Z.enable();
+		XY_dot.enable();
+
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
 
 
 		//check validity of the velocity command, construct virtual setpoint
-		update_XY_pos();
+		update_XY_vel();
 		update_Z();
 		update_yaw();
 		break;
 
-	case POSITION_CONTROL_FFF:
+	case POS_CTRL_FFFFAx:
 		// configure which controllers are enabled
 		ATT_throttle.enable();
 		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
-		Z.enable();
 		Z_dot.enable();
+		Z.enable();
+		XY_dot.enable();
+
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
+		Z.enable_FF();
+
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_vel();
+		update_Z();
+		update_yaw();
+		break;
+
+	case POS_CTRL_FFFAAA:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
+		Z.enable();
 		XY_dot.enable();
 		XY.enable();
 
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();		
+
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+		break;
+
+	case POS_CTRL_FFFAFA:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
+		Z.enable();
+		XY_dot.enable();
+		XY.enable();
+
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
+		XY_dot.enable_FF();
+
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+		break;
+
+	case POS_CTRL_FFFFFF:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
+		Z.enable();
+		XY_dot.enable();
+		XY.enable();
+
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
+		Z.enable_FF();
+		XY_dot.enable_FF();
+		XY.enable_FF();
+		
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+		break;
+
+	case POS_CTRL_FFFAFF:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
+		Z.enable();
+		XY_dot.enable();
+		XY.enable();
+
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
+		XY_dot.enable_FF();
+		XY.enable_FF();
 
 		//check validity of the velocity command, construct virtual setpoint
 		update_XY_pos();
@@ -1239,16 +1325,21 @@ int setpoint_t::update_setpoints(void)
 		update_yaw();
 		break;
 
-	case AUTONOMOUS:
+	case AUTO_FFFAFA:
 		// configure which controllers are enabled
 		ATT_throttle.enable();
 		POS_throttle.z.enable();
 		ATT_dot.enable();
 		ATT.enable();
-		Z.enable();
 		Z_dot.enable();
+		Z.enable();
 		XY_dot.enable();
 		XY.enable();
+
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
+		XY_dot.enable_FF();
 
 
 		waypoint_state_machine.enable_update();

@@ -44,8 +44,8 @@
 
 	"num_dsm_modes": 3,
 	"flight_mode_1": "ACRO_Fxxxxx",
-	"flight_mode_2": "ALT_HOLD_FxFAxx",
-	"flight_mode_3": "ALT_HOLD_FFFAxx",
+	"flight_mode_2": "ALT_HOLD_FFFAxx",
+	"flight_mode_3": "POS_CTRL_FFFAFx",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,

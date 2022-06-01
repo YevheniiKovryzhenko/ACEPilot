@@ -92,6 +92,7 @@ private:
 	void update_Z(void);
 	void update_Z_dot(void);
 	void update_XY_pos(void);
+	void update_XY_vel(void);
 	void update_rpy_servo(void);
 public:
 

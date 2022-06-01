@@ -552,23 +552,29 @@ int print_flight_mode(flight_mode_t mode){
 	case ALT_HOLD_FFFFxx:
 		printf("%sALT_HOLD_FFFFxx       %s", KBLU, KNRM);
 		return 0;
-	case POSITION_CONTROL_SSS:
-		printf("%sPOSITION_CONTROL_SSS  %s", KBLU, KNRM);
+	case POS_CTRL_FFFAAx:
+		printf("%sPOS_CTRL_FFFAAx       %s", KBLU, KNRM);
 		return 0;
-	case POSITION_CONTROL_FSS:
-		printf("%sPOSITION_CONTROL_FSS  %s", KBLU, KNRM);
+	case POS_CTRL_FFFFAx:
+		printf("%sPOS_CTRL_FFFFAx       %s", KBLU, KNRM);
 		return 0;
-	case POSITION_CONTROL_FFS:
-		printf("%sPOSITION_CONTROL_FFS  %s", KBLU, KNRM);
+	case POS_CTRL_FFFAAA:
+		printf("%sPOS_CTRL_FFFAAA       %s", KBLU, KNRM);
 		return 0;
-	case POSITION_CONTROL_FFF:
-		printf("%sPOSITION_CONTROL_FFF  %s", KBLU, KNRM);
+	case POS_CTRL_FFFAFA:
+		printf("%sPOS_CTRL_FFFAFA       %s", KBLU, KNRM);
+		return 0;
+	case POS_CTRL_FFFAFF:
+		printf("%sPOS_CTRL_FFFAFF       %s", KBLU, KNRM);
+		return 0;
+	case POS_CTRL_FFFFFF:
+		printf("%sPOS_CTRL_FFFFFF       %s", KBLU, KNRM);
 		return 0;
 	case EMERGENCY_LAND:
 		printf("%sEMERGENCY_LAND        %s", KBLU, KNRM);
 		return 0;
-	case AUTONOMOUS:
-		printf("%sAUTONOMOUS            %s", KBLU, KNRM);
+	case AUTO_FFFAFA:
+		printf("%sAUTO_FFFAFA           %s", KBLU, KNRM);
 		return 0;
 	case ZEPPELIN:
 		printf("%sZEPPELIN              %s", KBLU, KNRM);

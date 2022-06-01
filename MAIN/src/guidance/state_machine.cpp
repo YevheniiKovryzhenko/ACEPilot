@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  06/01/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -212,7 +212,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
             switch (input)
             {
                 case ENTER_PARKED:
-                    if (flight_mode == AUTONOMOUS)
+                    if (flight_mode == AUTO_FFFAFA)
                     {
                         setpoint.ATT.z.reset();
                     }
