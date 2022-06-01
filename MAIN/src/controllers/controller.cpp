@@ -390,8 +390,23 @@ int feedback_controller_t::xy_rate_march(void)
 		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.X_dot);
 	}
 
-	rc_saturate_double(setpoint.XYZ_ddot.x.value.get_pt(), -MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
-	rc_saturate_double(setpoint.XYZ_ddot.y.value.get_pt(), -MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
+	setpoint.XYZ_ddot.x.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
+	setpoint.XYZ_ddot.y.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
+
+	if (!setpoint.XY.is_en())
+	{
+		// Acceleration error -> Lean Angles
+		setpoint.ATT.x.value.set(\
+			(-sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
+				+ cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
+		setpoint.ATT.y.set(\
+			- (cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
+				+ sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
+
+		setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
+		setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
+	}
+	
 	
 	last_en_XYdot_ctrl = true;
 	return 0;

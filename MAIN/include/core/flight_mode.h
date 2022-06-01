@@ -269,6 +269,13 @@ typedef enum flight_mode_t{
 	POS_CTRL_FFFAAx,
 
 	/**
+	* Like ALT_HOLD_FFFAxx. Enabled horisonal velocity controllers.
+	* Roll and pitch sticks are converted into velocity setpoints.
+	* No horisontal position control. Feed forward path enabled for velocity.
+	*/
+	POS_CTRL_FFFAFx,
+
+	/**
 	* Like ALT_HOLD_FFFFxx. Enabled horisonal velocity controllers.
 	* Roll and pitch sticks are converted into velocity setpoints.
 	* No horisontal position control.
@@ -311,6 +318,7 @@ typedef enum flight_mode_t{
 	* Useful as an emergency mode if MOCAP drops out for too long
 	*/
 	EMERGENCY_LAND,
+	
 	/**
 	* Fully autoomous position control mode. Just like POS_CTRL_FFFAFA
 	* No external user input 

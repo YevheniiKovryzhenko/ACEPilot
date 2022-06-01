@@ -481,13 +481,13 @@ void setpoint_t::update_XY_vel(void)
 	double tmp_pitch_stick = __deadzone(user_input.pitch.get(), 0.05);
 	double tmp_yaw = state_estimate.continuous_yaw;
 	
-	XY.x.value.set((-tmp_pitch_stick * cos(tmp_yaw)\
+	XY_dot.x.value.set((-tmp_pitch_stick * cos(tmp_yaw)\
 		- tmp_roll_stick * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY);
+		* settings.max_XY_velocity);
 
-	XY.y.value.set((tmp_roll_stick * cos(tmp_yaw)\
+	XY_dot.y.value.set((tmp_roll_stick * cos(tmp_yaw)\
 		- tmp_pitch_stick * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY);
+		* settings.max_XY_velocity);
 
 	return;
 }
@@ -1187,6 +1187,28 @@ int setpoint_t::update_setpoints(void)
 		ATT_dot.enable_FF();
 		ATT.enable_FF();
 		Z_dot.enable_FF();
+
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_vel();
+		update_Z();
+		update_yaw();
+		break;
+
+	case POS_CTRL_FFFAFx:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
+		Z.enable();
+		XY_dot.enable();
+
+		ATT_dot.enable_FF();
+		ATT.enable_FF();
+		Z_dot.enable_FF();
+		XY_dot.enable_FF();
 
 
 		//check validity of the velocity command, construct virtual setpoint

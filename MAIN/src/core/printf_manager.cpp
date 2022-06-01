@@ -555,6 +555,9 @@ int print_flight_mode(flight_mode_t mode){
 	case POS_CTRL_FFFAAx:
 		printf("%sPOS_CTRL_FFFAAx       %s", KBLU, KNRM);
 		return 0;
+	case POS_CTRL_FFFAFx:
+		printf("%sPOS_CTRL_FFFAFx       %s", KBLU, KNRM);
+		return 0;
 	case POS_CTRL_FFFFAx:
 		printf("%sPOS_CTRL_FFFFAx       %s", KBLU, KNRM);
 		return 0;
