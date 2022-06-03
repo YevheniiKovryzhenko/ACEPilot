@@ -130,7 +130,7 @@ static void __mocap_init(void)
 {
 	rc_filter_first_order_lowpass(&mocap_dx_lpf, DT, 20 * DT);
 	rc_filter_first_order_lowpass(&mocap_dy_lpf, DT, 20 * DT);
-	rc_filter_first_order_lowpass(&mocap_dz_lpf, DT, 8 * DT);
+	rc_filter_first_order_lowpass(&mocap_dz_lpf, DT, 10 * DT);
 
 	rc_filter_first_order_lowpass(&mocap_r_lpf, DT, 6.0 * DT);
 	rc_filter_first_order_lowpass(&mocap_p_lpf, DT, 6.0 * DT);

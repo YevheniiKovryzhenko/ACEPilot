@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  06/03/2022 (MM/DD/YYYY)
  *
  * Object that governs all the logic related to communications.
  */
@@ -380,6 +380,9 @@ char comms_manager_t::mocap_update(void)
 		return -2;
 	}
 	
+	if (settings.telem_warnings_en) if (GS_RX.trackingValid == 0) printf("WARNING: mocap lost visual\n");
+
+
 	if (mocap_en_TX && finddt_s(TX_time) > 1.0 / MOCAP_THREAD_TX_HZ)
 	{
 		if (unlikely(mocap_transmit_line.write() < 0))

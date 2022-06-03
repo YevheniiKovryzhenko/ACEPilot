@@ -90,6 +90,10 @@ static int __print_header()
 	{
 		printf("  arm   |");
 	}
+	if (settings.printf_tracking)
+	{
+		printf("%s Sats | Tracking |", __next_colour(), gps_data.sat, GS_RX.trackingValid);
+	}
 	if(settings.printf_altitude)
 	{
 		printf("%s alt(m) |altdot|", __next_colour());
@@ -290,7 +294,7 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 
 		if (settings.printf_tracking)
 		{
-			printf("%s %i | %i |", __next_colour(), gps_data.sat, GS_RX.trackingValid);
+			printf("%s  %3i   |    %i     |", __next_colour(), gps_data.sat, GS_RX.trackingValid);
 		}
 		if (settings.printf_altitude)
 		{
@@ -551,6 +555,9 @@ int print_flight_mode(flight_mode_t mode){
 		return 0;
 	case ALT_HOLD_FFFFxx:
 		printf("%sALT_HOLD_FFFFxx       %s", KBLU, KNRM);
+		return 0;
+	case POS_CTRL_AAAAAA:
+		printf("%sPOS_CTRL_AAAAAA       %s", KBLU, KNRM);
 		return 0;
 	case POS_CTRL_FFFAAx:
 		printf("%sPOS_CTRL_FFFAAx       %s", KBLU, KNRM);

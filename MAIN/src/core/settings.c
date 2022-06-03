@@ -393,6 +393,9 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	else if (strcmp(tmp_str, "ALT_HOLD_FFFFxx") == 0) {
 		*mode = ALT_HOLD_FFFFxx;
 	}
+	else if (strcmp(tmp_str, "POS_CTRL_AAAAAA") == 0) {
+	*mode = POS_CTRL_AAAAAA;
+	}
 	else if (strcmp(tmp_str, "POS_CTRL_FFFAAx") == 0) {
 	*mode = POS_CTRL_FFFAAx;
 	}

@@ -106,7 +106,6 @@
 	"log_velocity_setpoint_ff": true,
 	"log_position_setpoint": true,
 	"log_position_setpoint_ff": true,
-
 	"log_dsm": true,
 	"log_flight_mode": true,
 	"log_benchmark": true,
@@ -242,9 +241,9 @@
 	"altitude_rate_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 0.37019458,
-		"kd": 0.00850622,
-		"crossover_freq_rad_per_sec": 95.56020004
+		"kp": 0.17065822,
+		"kd": 0.00331950,
+		"crossover_freq_rad_per_sec": 105.93359994
 	},
 	"altitude_rate_controller_i": {
 		"CT_or_DT": "CT",
@@ -252,7 +251,7 @@
 		"ki": 0.05228230,
 		"imax": 3.00
 	},
-	"altitude_rate_controller_FF": 0.00069385,
+	"altitude_rate_controller_FF": 0.01680495,
 
 
 	"altitude_controller_pd": {

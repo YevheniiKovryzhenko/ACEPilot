@@ -1174,6 +1174,23 @@ int setpoint_t::update_setpoints(void)
 
 		break;
 
+	case POS_CTRL_AAAAAA:
+		// configure which controllers are enabled
+		ATT_throttle.enable();
+		POS_throttle.z.enable();
+		ATT_dot.enable();
+		ATT.enable();
+		Z_dot.enable();
+		Z.enable();
+		XY_dot.enable();
+		XY.enable();
+
+		//check validity of the velocity command, construct virtual setpoint
+		update_XY_pos();
+		update_Z();
+		update_yaw();
+		break;
+
 	case POS_CTRL_FFFAAx:
 		// configure which controllers are enabled
 		ATT_throttle.enable();

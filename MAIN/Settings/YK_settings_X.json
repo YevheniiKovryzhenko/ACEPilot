@@ -13,14 +13,17 @@
 
 	"enable_magnetometer": false,
 	"enable_mocap": true,
-	"use_mocap_yaw": true,
-	"use_mocap_pitch": false,
 	"use_mocap_roll": false,
+	"use_mocap_pitch": false,
+	"use_mocap_yaw": true,
+	"use_mocap_roll_rate": false,
+	"use_mocap_pitch_rate": false,
+	"use_mocap_yaw_rate": false,
 	"enable_encoders": false,
 	"enable_gps": false,
 	"enable_ext_mag": false,
 
-	"arm_time_s": 3.0,
+	"arm_time_s": 2.0,
 
 	"enable_servos": false,
 	"en_servo_ch_pool_sat": false,
@@ -40,9 +43,9 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "MANUAL_F",
-	"flight_mode_2": "POSITION_CONTROL_FFF",
-	"flight_mode_3": "AUTONOMOUS",
+	"flight_mode_1": "MANUAL_AAxxxx",
+	"flight_mode_2": "ALT_HOLD_AAAAxx",
+	"flight_mode_3": "POS_CTRL_AAAAAA",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -65,10 +68,17 @@
 	"printf_rpy": true,
 	"printf_sticks": true,
 	"printf_setpoint": true,
+	"printf_setpoint_xy": false,
+	"printf_setpoint_xy_dot": false,
+	"printf_setpoint_z": false,
+	"printf_setpoint_z_dot": true,
+	"printf_setpoint_att": false,
+	"printf_setpoint_att_dot": true,
 	"printf_u": false,
 	"printf_motors": false,
 	"printf_mode": true,
 	"printf_mocap": true,
+	"printf_gain_tunning": true,
 	"printf_tracking": false,
 	"printf_gps": false,
 	"printf_int_mag": false,
@@ -83,9 +93,19 @@
 	"log_state": true,
 	"log_mocap": true,
 	"log_gps": false,
-	"log_attitude_setpoint": true,
-	"log_position_setpoint": true,
+	"log_setpoints": true,
 	"log_throttles": true,
+	"log_throttles_ff": false,
+	"log_attitude_rate_setpoint": true,
+	"log_attitude_rate_setpoint_ff": false,
+	"log_attitude_setpoint": true,
+	"log_attitude_setpoint_ff": false,
+	"log_acceleration_setpoint": true,
+	"log_acceleration_setpoint_ff": false,
+	"log_velocity_setpoint": true,
+	"log_velocity_setpoint_ff": false,
+	"log_position_setpoint": true,
+	"log_position_setpoint_ff": false,
 	"log_dsm": true,
 	"log_flight_mode": true,
 	"log_benchmark": true,
@@ -135,6 +155,7 @@
 		"ki": 0.058091,
 		"imax": 0.10
 	},
+	"roll_rate_controller_FF": 0.0,
 
 
 	"pitch_rate_controller_pd": {
@@ -150,6 +171,7 @@
 		"ki": 0.058091,
 		"imax": 0.10
 	},
+	"pitch_rate_controller_FF": 0.0,
 
 
 	"yaw_rate_controller_pd": {
@@ -165,6 +187,7 @@
 		"ki": 0.05,
 		"imax": 0.10
 	},
+	"yaw_rate_controller_FF": 0.0,
 
 
 	"roll_controller_pd": {
@@ -180,6 +203,7 @@
 		"ki": 0.13071,
 		"imax": 0.10
 	},
+	"roll_controller_FF": 0.0,
 
 
 	"pitch_controller_pd": {
@@ -195,6 +219,7 @@
 		"ki": 0.13071,
 		"imax": 0.10
 	},
+	"pitch_controller_FF": 0.0,
 
 
 	"yaw_controller_pd": {
@@ -210,6 +235,7 @@
 		"ki": 0.0,
 		"imax": 0.10
 	},
+	"yaw_controller_FF": 0.0,
 
 
 	"altitude_rate_controller_pd": {
@@ -225,6 +251,7 @@
 		"ki": 0.05809300,
 		"imax": 3.00
 	},
+	"altitude_rate_controller_FF": 0.0,
 
 
 	"altitude_controller_pd": {
@@ -240,6 +267,7 @@
 		"ki": 0.01342824,
 		"imax": 1.00
 	},
+	"altitude_controller_FF": 0.0,
 
 
 	"horiz_vel_ctrl_pd_X": {
@@ -255,6 +283,7 @@
 		"ki": 0.02074690,
 		"imax": 1.00
 	},
+	"horiz_vel_X_controller_FF": 0.0,
 
 	"horiz_vel_ctrl_pd_Y": {
 		"CT_or_DT": "CT",
@@ -269,6 +298,7 @@
 		"ki": 0.02033200,
 		"imax": 1.00
 	},
+	"horiz_vel_Y_controller_FF": 0.0,
 
 
 	"horiz_pos_ctrl_X_pd": {
@@ -284,6 +314,7 @@
 		"ki": 0.01069185,
 		"imax": 3.0
 	},
+	"horiz_pos_X_ctrl_FF": 0.0,
 
 	"horiz_pos_ctrl_Y_pd": {
 		"CT_or_DT": "CT",
@@ -297,5 +328,6 @@
 		"TF_or_PID": "I",
 		"ki": 0.01029596,
 		"imax": 3.0
-	}
+	},
+	"horiz_pos_Y_ctrl_FF": 0.0
 }

@@ -262,6 +262,13 @@ typedef enum flight_mode_t{
 	ALT_HOLD_FFFFxx,
 
 	/**
+	* Like ALT_HOLD_AAAAxx. Enabled horisonal velocity and
+	* position controllers.
+	* Roll and pitch sticks are converted into position setpoints.
+	*/
+	POS_CTRL_AAAAAA,
+
+	/**
 	* Like ALT_HOLD_FFFAxx. Enabled horisonal velocity controllers.
 	* Roll and pitch sticks are converted into velocity setpoints.
 	* No horisontal position control.
