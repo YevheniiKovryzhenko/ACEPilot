@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  06/04/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -88,6 +88,9 @@ int feedback_controller_t::rpy_march(void)
 		yaw.scale_gains(scale_val);
 	}
 
+	setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
+	setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
+
 	double err_roll, err_pitch, err_yaw;
 	err_roll = setpoint.ATT.x.value.get() - state_estimate.roll;
 	err_pitch = setpoint.ATT.y.value.get() - state_estimate.pitch;
@@ -107,19 +110,11 @@ int feedback_controller_t::rpy_march(void)
 		roll.march(setpoint.ATT_dot.x.value.get_pt(), err_roll);
 		pitch.march(setpoint.ATT_dot.y.value.get_pt(), err_pitch);
 		yaw.march(setpoint.ATT_dot.z.value.get_pt(), err_yaw);
-	}
-
-	
+	}	
 
 	if (!setpoint.ATT_dot.is_en())
 	{		
 		setpoint.ATT_throttle.set(setpoint.ATT_dot);
-	}
-	else
-	{
-		setpoint.ATT_dot.x.value.saturate(-MAX_ROLL_RATE, MAX_ROLL_RATE);
-		setpoint.ATT_dot.y.value.saturate(-MAX_PITCH_RATE, MAX_PITCH_RATE);
-		setpoint.ATT_dot.z.value.saturate(-MAX_YAW_RATE, MAX_YAW_RATE);
 	}
 
 	last_en_rpy_ctrl = true;
@@ -194,6 +189,10 @@ int feedback_controller_t::rpy_rate_march(void)
 		pitch_dot.scale_gains(scale_val);
 		yaw_dot.scale_gains(scale_val);
 	}
+
+	setpoint.ATT_dot.x.value.saturate(-MAX_ROLL_RATE, MAX_ROLL_RATE);
+	setpoint.ATT_dot.y.value.saturate(-MAX_PITCH_RATE, MAX_PITCH_RATE);
+	setpoint.ATT_dot.z.value.saturate(-MAX_YAW_RATE, MAX_YAW_RATE);
 
 	double err_roll_dot, err_pitch_dot, err_yaw_dot;
 	err_roll_dot = setpoint.ATT_dot.x.value.get() - state_estimate.roll_dot;
@@ -290,42 +289,31 @@ int feedback_controller_t::xy_march(void)
 		y.scale_gains(scale_val);
 	}
 
+	double tmp_x_err = setpoint.XY.x.value.get() - state_estimate.X;
+	double tmp_y_err = setpoint.XY.y.value.get() - state_estimate.Y;
+	rc_saturate_double(&tmp_x_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
+	rc_saturate_double(&tmp_y_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
+
+
 	// Position error -> Velocity/Acceleration error
 	if (setpoint.XY.is_en_FF())
 	{
-		x.march(setpoint.XY_dot.x.value.get_pt(), setpoint.XY.x.value.get() - state_estimate.X, setpoint.XY.x.FF.get());
-		y.march(setpoint.XY_dot.y.value.get_pt(), setpoint.XY.y.value.get() - state_estimate.Y, setpoint.XY.y.FF.get());
+		x.march(setpoint.XY_dot.x.value.get_pt(), tmp_x_err, setpoint.XY.x.FF.get());
+		y.march(setpoint.XY_dot.y.value.get_pt(), tmp_y_err, setpoint.XY.y.FF.get());
 	}
 	else
 	{
-		x.march(setpoint.XY_dot.x.value.get_pt(), setpoint.XY.x.value.get() - state_estimate.X);
-		y.march(setpoint.XY_dot.y.value.get_pt(), setpoint.XY.y.value.get() - state_estimate.Y);
+		x.march(setpoint.XY_dot.x.value.get_pt(), tmp_x_err);
+		y.march(setpoint.XY_dot.y.value.get_pt(), tmp_y_err);
 	}
 	
-	setpoint.XY_dot.x.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
-	setpoint.XY_dot.y.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
 	
-	if (setpoint.XY_dot.is_en())
-	{
-		// Velocity error -> Acceleration error
-		xy_rate_march();
-	}
-	else
+	if (!setpoint.XY_dot.is_en())
 	{
 		setpoint.XYZ_ddot.x.value.set(setpoint.XY_dot.x.value.get());
 		setpoint.XYZ_ddot.y.value.set(setpoint.XY_dot.y.value.get());
 	}
 
-	// Acceleration error -> Lean Angles
-	setpoint.ATT.x.value.set(\
-		(-sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
-		+ cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-	setpoint.ATT.y.set(\
-		-(cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
-		+ sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-
-	setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
-	setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
 
 	last_en_XY_ctrl = true;
 	return 0;
@@ -379,34 +367,19 @@ int feedback_controller_t::xy_rate_march(void)
 	}
 
 	////////////// PID for horizontal velocity control /////////////
+	setpoint.XY_dot.x.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
+	setpoint.XY_dot.y.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
+
 	if (setpoint.XY_dot.is_en_FF())
 	{
 		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.X_dot, setpoint.XY_dot.x.FF.get());
-		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.X_dot, setpoint.XY_dot.y.FF.get());
+		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.Y_dot, setpoint.XY_dot.y.FF.get());
 	}
 	else
 	{
 		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.X_dot);
-		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.X_dot);
+		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.Y_dot);
 	}
-
-	setpoint.XYZ_ddot.x.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
-	setpoint.XYZ_ddot.y.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
-
-	if (!setpoint.XY.is_en())
-	{
-		// Acceleration error -> Lean Angles
-		setpoint.ATT.x.value.set(\
-			(-sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
-				+ cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-		setpoint.ATT.y.set(\
-			- (cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
-				+ sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-
-		setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
-		setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
-	}
-	
 	
 	last_en_XYdot_ctrl = true;
 	return 0;
@@ -422,7 +395,6 @@ int feedback_controller_t::xy_rate_reset(void)
 	y_dot.prefill_pd_input(-state_estimate.Y_dot);
 	return 0;
 }
-
 
 
 
@@ -483,29 +455,23 @@ int feedback_controller_t::z_march(void)
 		z.scale_gains(settings.v_nominal / state_estimate.v_batt_lp);
 	}
 
+	double tmp_z_err = setpoint.Z.value.get() - state_estimate.Z;
+	rc_saturate_double(&tmp_z_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
+
 	// Position error -> Velocity error:
 	if (setpoint.Z.FF.is_en())
 	{
-		z.march(setpoint.Z_dot.value.get_pt(), setpoint.Z.value.get() - state_estimate.Z, setpoint.Z.FF.get());
+		z.march(setpoint.Z_dot.value.get_pt(), tmp_z_err, setpoint.Z.FF.get());
 	}
 	else
 	{
-		z.march(setpoint.Z_dot.value.get_pt(), setpoint.Z.value.get() - state_estimate.Z);
+		z.march(setpoint.Z_dot.value.get_pt(), tmp_z_err);
 	}
 	
-	setpoint.Z_dot.value.saturate(-MAX_Z_VELOCITY, MAX_Z_VELOCITY);
 
-	if (setpoint.Z_dot.value.is_en())
-	{
-		z_rate_march();
-	}
-	else
+	if (!setpoint.Z_dot.value.is_en())
 	{
 		setpoint.XYZ_ddot.z.value.set(setpoint.Z.value);
-		setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
-
-		setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
-			/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
 	}	
 	
 	last_en_Z_ctrl = true;
@@ -565,6 +531,8 @@ int feedback_controller_t::z_rate_march(void)
 		z_dot.scale_gains(settings.v_nominal / state_estimate.v_batt_lp);
 	}
 
+	setpoint.Z_dot.value.saturate(-MAX_Z_VELOCITY, MAX_Z_VELOCITY);
+
 	// Vertical velocity error -> Vertical acceleration error
 	if (setpoint.Z_dot.FF.is_en())
 	{
@@ -574,9 +542,6 @@ int feedback_controller_t::z_rate_march(void)
 	{
 		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.Z_dot);
 	}
-	setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
-	setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
-		/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
 
 
 	last_en_Zdot_ctrl = true;
@@ -623,6 +588,34 @@ char feedback_controller_t::gain_tune_march(void)
 
 	return 0;
 }
+
+int feedback_controller_t::XY_accel_2_attitude(void)
+{
+	setpoint.XYZ_ddot.x.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
+	setpoint.XYZ_ddot.y.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
+
+	// Horizonal acceleration setpoint -> Lean Angles
+	setpoint.ATT.x.value.set(\
+		(-sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
+			+ cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
+	setpoint.ATT.y.set(\
+		- (cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
+			+ sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
+
+	return 0;
+}
+
+int feedback_controller_t::Z_accel_2_throttle(void)
+{
+	setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
+
+	// Vertical acceleration error -> throttle	
+	setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
+		/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
+
+	return 0;
+}
+
 
 char feedback_controller_t::update_gains(void)
 {
@@ -834,32 +827,85 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
 	if (!setpoint.XY_dot.is_en()) last_en_XYdot_ctrl = false;
 	
 	// update gains if allowed
-	if (settings.allow_remote_tuning) gain_tune_march();
+	if (settings.allow_remote_tuning)
+	{
+		if (unlikely(gain_tune_march() < 0))
+		{
+			printf("ERROR in march: failed to march gain tunning\n");
+			settings.allow_remote_tuning = false;
+			reset();
+		}
+	}
+		
 
 	// run position controller if enabled
 	if (setpoint.XY.is_en())
 	{
-		xy_march(); //marches XY velocity controller as well
+		if (unlikely(xy_march() < 0))
+		{
+			printf("ERROR in march: failed to march horizontal position control\n");
+			return -1;
+		}
 	}
-	else if (setpoint.XY_dot.is_en()) //iff only using XY velocity ctrl
+	
+	// run velocity controller if enabled
+	if (setpoint.XY_dot.is_en())
 	{
-		xy_rate_march();
+		if (unlikely(xy_rate_march() < 0))
+		{
+			printf("ERROR in march: failed to march horizontal velocity control\n");
+			return -1;
+		}
+	}
+
+	// check if we have any of the above enabled. If so, convert acceleration setpoints into attitude
+	if (setpoint.XY.is_en() || setpoint.XY_dot.is_en())
+	{
+		if (unlikely(XY_accel_2_attitude() < 0))
+		{
+			printf("ERROR in march: failed to convert acceleration into attitude setpoints\n");
+			return -1;
+		}
 	}
 	
 	// run altitude controller if enabled
 	if (setpoint.Z.value.is_en())
 	{
-		z_march(); //also marches vertical velocity controller
+		if (unlikely(z_march() < 0))
+		{
+			printf("ERROR in march: failed to march altitude control\n");
+			return -1;
+		}
 	}
-	else if (setpoint.Z_dot.value.is_en()) //iff only using vertical velocity controller
+	
+	// run vertical velocity controller if enabled
+	if (setpoint.Z_dot.value.is_en())
 	{
-		z_rate_march();
+		if (unlikely(z_rate_march() < 0))
+		{
+			printf("ERROR in march: failed to march vertical velocity control\n");
+			return -1;
+		}
+	}
+
+	// check if we have any of the above vertical controllers enabled. If so, convert acceleration setpoints into throttle
+	if (setpoint.Z.value.is_en() || setpoint.Z_dot.value.is_en())
+	{
+		if (unlikely(Z_accel_2_throttle() < 0))
+		{
+			printf("ERROR in march: failed to convert vertical acceleration into throttle setpoints\n");
+			return -1;
+		}
 	}
 
 	// run attitude controllers if enabled
 	if (setpoint.ATT.is_en())
 	{
-		rpy_march(); //marches only attitude ctrl. + transition
+		if (unlikely(rpy_march() < 0))
+		{
+			printf("ERROR in march: failed to march attitude control\n");
+			return -1;
+		}
 	}
 	/*
 	else if (setpoint.en_rpy_trans)
@@ -871,11 +917,19 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
 	// run attitude rate controllers if enabled
 	if (setpoint.ATT_dot.is_en())
 	{
-		rpy_rate_march(); //marches only attitude rates ctrl. + transition
+		if (unlikely(rpy_rate_march() < 0))
+		{
+			printf("ERROR in march: failed to march attitude rate control\n");
+			return -1;
+		}
 	}
 
 	// now use motor mixing matrix to get individual motor inputs in [0 1] range
-	mix_all_control(u, mot);
+	if (unlikely(mix_all_control(u, mot) < 0))
+	{
+		printf("ERROR in march: failed to mix all control\n");
+		return -1;
+	}
 
 
 	return 0;

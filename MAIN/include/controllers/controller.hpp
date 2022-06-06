@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  06/04/2022 (MM/DD/YYYY)
  */
 
 #ifndef CONTROLLER_HPP
@@ -92,6 +92,9 @@ private:
 	int xy_rate_init(void);
 	int xy_rate_march(void);
 	int xy_rate_reset(void);
+
+	int XY_accel_2_attitude(void);
+	int Z_accel_2_throttle(void);
 
 	int z_init(void);
 	int z_march(void);

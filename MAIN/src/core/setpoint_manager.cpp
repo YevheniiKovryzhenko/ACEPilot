@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  06/04/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -415,14 +415,11 @@ void setpoint_t::update_rpy_servo(void)
 	return;
 }
 
-//----Manual/Radio/Direct control----//
+//----Manual/Radio/Direct altitude control----//
 // only run this is need an update from radio control.
-// make sure setpoint doesn't go too far below current altitude since we
-// can't sink into the ground
+// make sure setpoint doesn't go below or above controller limits
 void setpoint_t::update_Z(void)
 {
-	
-
 	double tmp_Z_dot;
 	double tmp_throtle = user_input.throttle.get();
 
@@ -439,42 +436,71 @@ void setpoint_t::update_Z(void)
 		tmp_Z_dot = 0;
 		return;
 	}
+	double tmp_Z_sp = Z.value.get() - tmp_Z_dot * DT; //negative since Z positive is defined to be down	
 
-	Z.value.increment(-tmp_Z_dot * DT); //negative since Z positive is defined to be down
+	if (tmp_Z_sp > state_estimate.Z + XYZ_MAX_ERROR)
+	{
+		Z.value.set(state_estimate.Z + XYZ_MAX_ERROR);
+		return;
+	}
+	else if (tmp_Z_sp < state_estimate.Z - XYZ_MAX_ERROR)
+	{
+		Z.value.set(state_estimate.Z - XYZ_MAX_ERROR);
+		return;
+	}
+	else
+	{
+		Z.value.set(tmp_Z_sp);
+		return;
+	}
 	
 	return;
 }
 
-//----Manual/Radio/Direct control----//
+//----Manual/Radio/Direct control of vertical velocity ----//
 // only run this is need an update from radio control.
-// make sure setpoint doesn't go too far below current altitude since we
-// can't sink into the ground
+// make sure setpoint doesn't go below or above controller limits
 void setpoint_t::update_Z_dot(void)
 {
-
-
-	double tmp_Z_ddot;
+	double tmp_Zdot_sp;
 	double tmp_throtle = user_input.throttle.get();
 
 	if (tmp_throtle > Z_throttle_0 + 0.1)
 	{
-		tmp_Z_ddot = (tmp_throtle - Z_throttle_0 - 0.1) * MAX_Z_VELOCITY;
+		tmp_Zdot_sp = (tmp_throtle - Z_throttle_0 - 0.1) * MAX_Z_VELOCITY;
 	}
 	else if (tmp_throtle < Z_throttle_0 - 0.1)
 	{
-		tmp_Z_ddot = (tmp_throtle - Z_throttle_0 + 0.1) * MAX_Z_VELOCITY;
+		tmp_Zdot_sp = (tmp_throtle - Z_throttle_0 + 0.1) * MAX_Z_VELOCITY;
 	}
 	else
 	{
-		tmp_Z_ddot = 0;
+		tmp_Zdot_sp = 0;
 		return;
 	}
-	Z_dot.value.set(-tmp_Z_ddot);//negative since Z positive is defined to be down
+	
+	tmp_Zdot_sp = -tmp_Zdot_sp; //negative since Z positive is defined to be down	
+	
+	if (tmp_Zdot_sp > MAX_Z_VELOCITY)
+	{
+		Z_dot.value.set(MAX_Z_VELOCITY);
+		return;
+	}
+	else if (tmp_Zdot_sp < -XYZ_MAX_ERROR)
+	{
+		Z_dot.value.set(-MAX_Z_VELOCITY);
+		return;
+	}
+	else
+	{
+		Z_dot.value.set(tmp_Zdot_sp);
+		return;
+	}
 	return;
 }
 
 
-//----Manual/Radio/Direct control----//
+//----Manual/Radio/Direct control of horizontal velocity ----//
 void setpoint_t::update_XY_vel(void)
 {
 	double tmp_roll_stick = __deadzone(user_input.roll.get(), 0.05);
@@ -483,15 +509,16 @@ void setpoint_t::update_XY_vel(void)
 	
 	XY_dot.x.value.set((-tmp_pitch_stick * cos(tmp_yaw)\
 		- tmp_roll_stick * sin(tmp_yaw))\
-		* settings.max_XY_velocity);
+		* MAX_XY_VELOCITY);
 
 	XY_dot.y.value.set((tmp_roll_stick * cos(tmp_yaw)\
 		- tmp_pitch_stick * sin(tmp_yaw))\
-		* settings.max_XY_velocity);
+		* MAX_XY_VELOCITY);
 
 	return;
 }
 
+//----Manual/Radio/Direct control of horizontal position ----//
 void setpoint_t::update_XY_pos(void)
 {
 	double tmp_X_dot, tmp_Y_dot;
@@ -509,7 +536,7 @@ void setpoint_t::update_XY_pos(void)
 	else{
 		tmp_X_dot = (-user_input.pitch.get() * cos(state_estimate.continuous_yaw)\
 			- user_input.roll.get() * sin(state_estimate.continuous_yaw))\
-			* settings.max_XY_velocity;
+			* MAX_XY_VELOCITY;
 
 		//apply velocity command 
 		XY.x.value.increment(tmp_X_dot * DT);
@@ -531,7 +558,7 @@ void setpoint_t::update_XY_pos(void)
 	else{
 		tmp_Y_dot = (user_input.roll.get() * cos(state_estimate.continuous_yaw)\
 			- user_input.pitch.get() * sin(state_estimate.continuous_yaw))\
-			* settings.max_XY_velocity;
+			* MAX_XY_VELOCITY;
 
 		//apply velocity command 
 		XY.y.value.increment(tmp_Y_dot * DT); //Y is defined positive to the left 
