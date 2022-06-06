@@ -432,23 +432,6 @@ int setpoint_guidance_t::march_takeoff(void)
 
     setpoint.Z_throttle_0 = settings.hover_throttle;      //this is needed for altitude hold
     if (Z_cubic.march(*setpoint.Z.value.get_pt())) st_Z = true;
-    /*if (finddt_s(Z_time_ns) >= t_takeoff_s)
-    {
-        //printf("\nCompleted takeoff! Time: %f / %f\n", finddt_s(setpoint.takeoff_time_ns), setpoint.t_takeoff);
-        st_Z = true;        // take-off altitude has been reached - disable take-off and
-                            // let alt-hold and position hold do its job
-        return 0;
-    }
-    else
-    {
-        // use cubic function:
-        setpoint.Z =
-            cubicPol(Z_initial, takeoff_height + Z_initial, 0,
-                0, t_takeoff_s, finddt_s(Z_time_ns));
-        setpoint.Z_throttle_0 = settings.hover_throttle;      //this is needed for altitude hold 
-        return 0;
-    }
-    */
     return 0;
 }
 
