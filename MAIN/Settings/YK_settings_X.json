@@ -44,8 +44,8 @@
 
 	"num_dsm_modes": 3,
 	"flight_mode_1": "MANUAL_AAxxxx",
-	"flight_mode_2": "ALT_HOLD_AAAAxx",
-	"flight_mode_3": "POS_CTRL_AAAAAA",
+	"flight_mode_2": "POS_CTRL_AAAAAA",
+	"flight_mode_3": "AUTO_FFFAFA",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -122,11 +122,11 @@
 
 	"wp_folder": "/home/debian/rc_pilot/MAIN/trajectories/",
 	"wp_takeoff_filename": "takeoff_waypoints.cfg",
-	"wp_guided_filename": "exp_path_8_x1_yaw_MS.cfg",
+	"wp_guided_filename": "1_8_loop_yaw_polys.cfg",
 	"wp_landing_filename": "landing_waypoints.cfg",
 
 	"V_max_land": 0.3,
-	"height_takeoff": 1.4,
+	"height_takeoff": 1.1,
 	"t_takeoff": 2.0,
 	"max_XY_velocity": 5.0,
 	"max_Z_velocity": 1.5,
