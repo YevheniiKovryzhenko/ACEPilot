@@ -126,7 +126,7 @@
 	"wp_landing_filename": "landing_waypoints.cfg",
 
 	"V_max_land": 0.3,
-	"height_takeoff": 1.1,
+	"height_takeoff": 1.0,
 	"t_takeoff": 2.0,
 	"max_XY_velocity": 5.0,
 	"max_Z_velocity": 1.5,
@@ -137,7 +137,7 @@
 	"square_Y_offset": 1.5,
 	"square_X_time_s": 2.0,
 	"square_Y_time_s": 2.0,
-	"turn_radius": 1.5,
+	"turn_radius": 1.0,
 	"turn_period": 10.0,
 	"turn_time_s": 20.0,
 	"turn_dir_yaw_cw": true,
@@ -145,14 +145,14 @@
 	"roll_rate_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 0.098133,
-		"kd": 0.0033195,
-		"crossover_freq_rad_per_sec": 75.1037
+		"kp": 0.12696212,
+		"kd": 0.00852464,
+		"crossover_freq_rad_per_sec": 101.74269998
 	},
 	"roll_rate_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.058091,
+		"ki": 0.05809100,
 		"imax": 0.10
 	},
 	"roll_rate_controller_FF": 0.0,
@@ -161,14 +161,14 @@
 	"pitch_rate_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 0.098133,
-		"kd": 0.0033195,
-		"crossover_freq_rad_per_sec": 75.1037
+		"kp": 0.13514661,
+		"kd": 0.00857698,
+		"crossover_freq_rad_per_sec": 101.74269998
 	},
 	"pitch_rate_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.058091,
+		"ki": 0.05809100,
 		"imax": 0.10
 	},
 	"pitch_rate_controller_FF": 0.0,
@@ -193,9 +193,9 @@
 	"roll_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 7.7594,
-		"kd": 0.010788,
-		"crossover_freq_rad_per_sec": 68.8797
+		"kp": 11.03058457,
+		"kd": 0.01078800,
+		"crossover_freq_rad_per_sec": 80.08300020
 	},
 	"roll_controller_i": {
 		"CT_or_DT": "CT",
@@ -209,9 +209,9 @@
 	"pitch_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 8.2884,
-		"kd": 0.014564,
-		"crossover_freq_rad_per_sec": 68.8797
+		"kp": 11.06381218,
+		"kd": 0.01078800,
+		"crossover_freq_rad_per_sec": 80.08300020
 	},
 	"pitch_controller_i": {
 		"CT_or_DT": "CT",
@@ -273,14 +273,14 @@
 	"horiz_vel_ctrl_pd_X": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 3.02938937,
-		"kd": 0.09650560,
-		"crossover_freq_rad_per_sec": 62.6556
+		"kp": 2.44488081,
+		"kd": 0.00609516,
+		"crossover_freq_rad_per_sec": 72.61410027
 	},
 	"horiz_vel_ctrl_i_X": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.02074690,
+		"ki": 0.01274084,
 		"imax": 1.00
 	},
 	"horiz_vel_X_controller_FF": 0.0,
@@ -288,14 +288,14 @@
 	"horiz_vel_ctrl_pd_Y": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 3.02938937,
-		"kd": 0.09650560,
-		"crossover_freq_rad_per_sec": 62.6556
+		"kp": 2.44488081,
+		"kd": 0.00609516,
+		"crossover_freq_rad_per_sec": 72.61410027
 	},
 	"horiz_vel_ctrl_i_Y": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.02033200,
+		"ki": 0.01274084,
 		"imax": 1.00
 	},
 	"horiz_vel_Y_controller_FF": 0.0,
@@ -304,7 +304,7 @@
 	"horiz_pos_ctrl_X_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 2.64110820,
+		"kp": 2.52161788,
 		"kd": 0.10206474,
 		"crossover_freq_rad_per_sec": 62.83
 	},
@@ -319,14 +319,14 @@
 	"horiz_pos_ctrl_Y_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 2.69973275,
-		"kd": 0.10072156,
+		"kp": 2.52161788,
+		"kd": 0.10206474,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"horiz_pos_ctrl_Y_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.01029596,
+		"ki": 0.01069185,
 		"imax": 3.0
 	},
 	"horiz_pos_Y_ctrl_FF": 0.0
