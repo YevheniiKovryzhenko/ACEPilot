@@ -346,6 +346,7 @@ int feedback_state_t::march(void)
 		
 	}
 
+	printf("Marching control\n");
 	if (settings.enable_servos)
 	{
 		for (int i = 0; i < settings.num_servos; i++)
@@ -362,7 +363,7 @@ int feedback_state_t::march(void)
 			sstate.march_with_centering(i, tmp_s[i]);
 		}
 	}
-
+	printf("Control marched\n");
 	/***************************************************************************
 	* Final cleanup, timing, and indexing
 	***************************************************************************/

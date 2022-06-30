@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  06/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Contains all the automated trajectory guidance and related functionality.
@@ -1052,6 +1052,8 @@ int setpoint_guidance_t::init(void)
         printf("\nERROR in init: failed to intialize path guidance");
         return -1;
     }
+
+    reset();
 
     initialized = true;
 

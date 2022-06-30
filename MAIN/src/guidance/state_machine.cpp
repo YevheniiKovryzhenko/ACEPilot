@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  06/30/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -46,6 +46,7 @@
 #include "input_manager.hpp"
 #include "state_estimator.h"
 #include "comms_tmp_data_packet.h"
+#include "benchmark.h"
 
 #include "state_machine.hpp"
 
@@ -67,6 +68,7 @@ static const char* sm_alph_strings[] = {
 
 state_machine_t waypoint_state_machine{};
 
+
 static void* __state_machine_func(__attribute__((unused)) void* ptr)
 {
     while (rc_get_state() != EXITING)
@@ -80,7 +82,56 @@ static void* __state_machine_func(__attribute__((unused)) void* ptr)
     return NULL;
 }
 
+static void* __state_machine_load_func(__attribute__((unused)) void* ptr)
+{
+    while (rc_get_state() != EXITING)
+    {
+        if (waypoint_state_machine.update_load_thread() < 0)
+        {
+            printf("ERROR in __state_machine_func: failed to update thread\n");
+            return NULL;
+        }
+    }
+    return NULL;
+}
+
+
+/**
+* @brief      State Machine thread update loop.
+*
+* @return     0 on success, -1 on failure
+*/
 int state_machine_t::update_thread(void)
+{
+    if (en_update)
+    {
+        if (waypoint_state_machine.march() < 0)
+        {
+            printf("ERROR in update_thread: failed to march state machine\n");
+            return -1;
+        }
+        if (setpoint_guidance.march() < 0)
+        {
+            printf("Error in update_thread: failed to update setpoint_guidance\n");
+            return -1;
+        }     
+        en_update = false;
+        printf("Updated thread for state machine\n");
+        if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
+    }
+    else
+    {
+        rc_usleep(1000000 / STATE_MACHINE_HZ);
+    }    
+    return 0;
+}
+
+/**
+* @brief      State Machine loading thread update loop.
+*
+* @return     0 on success, -1 on failure
+*/
+int state_machine_t::update_load_thread(void)
 {
     if (load_file_fl)
     {
@@ -150,9 +201,22 @@ int state_machine_t::init(void)
     en_update                   = false;
     load_file_fl = false;
 
+
+    if (thread_load.init(STATE_MACHINE_LOAD_PRI, FIFO) < 0)
+    {
+        printf("ERROR in init: failed to initialize the loading thread\n");
+        return -1;
+    }
+
     if (thread.init(STATE_MACHINE_PRI,FIFO) < 0)
     {
         printf("ERROR in init: failed to initialize the thread\n");
+        return -1;
+    }
+
+    if (thread_load.start(__state_machine_load_func) < 0)
+    {
+        printf("ERROR in init: failed to start the loading thread\n");
         return -1;
     }
 
@@ -164,16 +228,22 @@ int state_machine_t::init(void)
     return 1;
 }
 
-int state_machine_t::enable_update(void)
+
+/**
+* @brief      Sends a request to State Machine thread to update setpoints
+*
+* @return     0 on success, -1 on failure
+*/
+int state_machine_t::request_update(void)
 {
-    if (!en_update)
-    {
+    //if (!en_update)
+    //{
         en_update       = true;
-        changedState    = true;
-    }
+    //    changedState    = true;
+    //}
     return 0;
 }
-
+/*
 int state_machine_t::disable_update(void)
 {
     if (en_update)
@@ -183,7 +253,11 @@ int state_machine_t::disable_update(void)
     }
     return 0;
 }
+*/
 
+/**
+* @brief      returns if State Machine update is enabled
+*/
 bool state_machine_t::is_en(void)
 {
     return en_update;
@@ -191,10 +265,7 @@ bool state_machine_t::is_en(void)
 
 int state_machine_t::march(void)
 {
-    if (en_update)
-    {
-        transition(user_input.get_flight_mode(), (sm_alphabet)GS_RX.sm_event);
-    }
+    transition((sm_alphabet)GS_RX.sm_event);
     return 0;
 }
 
@@ -202,7 +273,7 @@ int state_machine_t::march(void)
 /**
  * @brief Parse the input and transition to new state if applicable
  */
-void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
+void state_machine_t::transition(sm_alphabet input)
 {
 
     // Unique things that should be done for each state
@@ -212,10 +283,7 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
             switch (input)
             {
                 case ENTER_PARKED:
-                    if (flight_mode == AUTO_FFFAFA)
-                    {
-                        setpoint.ATT.z.reset();
-                    }
+                    setpoint.ATT.z.reset();
                     if (setpoint_guidance.is_XY_en()) setpoint_guidance.reset_XY();
                     if (setpoint_guidance.is_Z_en()) setpoint_guidance.reset_Z();
                     break;
@@ -564,8 +632,35 @@ void state_machine_t::transition(flight_mode_t flight_mode, sm_alphabet input)
 }
 
 
+/**
+* @brief      State Machine reset function.
+*
+* @return     0 on success, -1 on failure
+*/
+int state_machine_t::reset(void)
+{
+    current_state = PARKED;
+    changedState = false;
+    en_update = false;
+    path.cleanup();
+
+    return 0;
+}
+
+
+/**
+* @brief      State Machine clean exit.
+*
+* @return     0 on success, -1 on failure
+*/
 int state_machine_t::clean_up(void)
 {
+    if (thread_load.is_started() && thread_load.stop(STATE_MACHINE_LOAD_TOUT) < 0)
+    {
+        printf("ERROR in clean_up: failed to stop the loading thread\n");
+        return -1;
+    }
+
     if (thread.is_started() && thread.stop(STATE_MACHINE_TOUT) < 0)
     {
         printf("ERROR in clean_up: failed to stop the thread\n");

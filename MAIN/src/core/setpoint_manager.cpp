@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/04/2022 (MM/DD/YYYY)
+ * Last Edit:  06/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -670,6 +670,9 @@ int setpoint_t::reset_all(void)
 	Z_dot.reset_all();
 	XY.reset_all();
 	Z.reset_all();
+
+	setpoint_guidance.reset();
+	waypoint_state_machine.reset();
 	
 	return 0;
 }
@@ -696,7 +699,7 @@ int setpoint_t::update(void)
 	// if PAUSED or UNINITIALIZED, do nothing
 	if (rc_get_state() != RUNNING) return 0;
 
-	if (user_input.get_flight_mode() != AUTO_FFFAFA) waypoint_state_machine.disable_update();
+	//if (user_input.get_flight_mode() != AUTO_FFFAFA) waypoint_state_machine.disable_update();
 
 	// shutdown feedback on kill switch
 	if (user_input.requested_arm_mode == DISARMED)
@@ -724,13 +727,14 @@ int setpoint_t::update(void)
 	update_setpoints(); //get manual radio updates first
 
 	// Update the state machine if in autonomous operation
+	/*	
 	if (user_input.get_flight_mode() == AUTO_FFFAFA)
 	{
 		waypoint_state_machine.march();
 		if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
 	}
 	setpoint_guidance.march();
-
+	*/
 	return 0;
 }
 
@@ -1407,8 +1411,8 @@ int setpoint_t::update_setpoints(void)
 		Z_dot.enable_FF();
 		XY_dot.enable_FF();
 
-
-		waypoint_state_machine.enable_update();
+		printf("Requesting update from setpoint manager\n");
+		waypoint_state_machine.request_update();
 
 		break;
 

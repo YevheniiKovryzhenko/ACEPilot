@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  06/30/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -85,11 +85,12 @@
         bool load_file_fl;
         
         thread_gen_t thread;
+        thread_gen_t thread_load;
 
         /**
         * @brief Parse the input and transition to new state if applicable
         */
-        void transition(flight_mode_t flight_mode, sm_alphabet input);
+        void transition(sm_alphabet input);
 
         /**
         * @brief Concatennates 'folder' and 'file' strings and stores them in 'dest' string
@@ -110,11 +111,15 @@
          */
         int request_load_file(void);
 
-    public:
         /**
         * @brief return waypoint filename used
         */
         char* get_waypoint_filename(void);
+
+        
+
+    public:
+        
 
         /**
          * @brief      Initializes everyhting. Called once.
@@ -124,18 +129,20 @@
         int init(void);
 
         /**
-         * @brief      Enables State Machine Autonomous Updates
+         * @brief      Sends a request to State Machine thread to update setpoints
          *
          * @return     0 on success, -1 on failure
          */
-        int enable_update(void);
+        int request_update(void);
 
         /**
          * @brief      Disables State Machine Autonomous Updates
          *
          * @return     0 on success, -1 on failure
          */
-        int disable_update(void);
+        //int disable_update(void);
+
+        
 
         /**
          * @brief      returns if State Machine update is enabled
@@ -154,12 +161,26 @@
          *
          * @return     0 on success, -1 on failure
          */
-        int update_thread(void);        
+        int update_thread(void);
+
+        /**
+         * @brief      State Machine loading thread update loop.
+         *
+         * @return     0 on success, -1 on failure
+         */
+        int update_load_thread(void);
 
         /**
          * @brief      returns current state of state machine
          */
-        sm_states get_current_state(void);       
+        sm_states get_current_state(void);     
+
+        /**
+         * @brief      State Machine reset function.
+         *
+         * @return     0 on success, -1 on failure
+         */
+        int reset(void);
 
         /**
          * @brief      State Machine clean exit.

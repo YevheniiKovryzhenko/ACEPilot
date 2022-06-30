@@ -145,6 +145,8 @@ static void __imu_isr(void)
     if (settings.log_benchmark) benchmark_timers.tGUI = rc_nanos_since_boot();
 
     //Control
+    printf("Starting to march control\n");
+
     fstate.march();
     if (settings.log_benchmark) benchmark_timers.tCTR = rc_nanos_since_boot();
 
