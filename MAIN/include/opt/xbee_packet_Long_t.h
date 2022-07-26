@@ -26,6 +26,7 @@ extern "C"
         float GainN1_pd;
         float GainD1_pd; //< D0 is always  1
         float GainFF;
+        float GainK;
     }__attribute__((packed)) xbee_packet_t;
 
 #ifdef __cplusplus

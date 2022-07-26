@@ -184,12 +184,15 @@ typedef struct settings_t{
 	rc_filter_t roll_rate_controller_pd;
 	rc_filter_t roll_rate_controller_i;
 	double roll_rate_controller_FF;
+	double roll_rate_controller_K;
 	rc_filter_t pitch_rate_controller_pd;
 	rc_filter_t pitch_rate_controller_i;
 	double pitch_rate_controller_FF;
+	double pitch_rate_controller_K;
 	rc_filter_t yaw_rate_controller_pd;
 	rc_filter_t yaw_rate_controller_i;
 	double yaw_rate_controller_FF;
+	double yaw_rate_controller_K;
 
 	rc_filter_t roll_controller_pd;
 	rc_filter_t pitch_controller_pd;
@@ -200,20 +203,27 @@ typedef struct settings_t{
 	double roll_controller_FF;
 	double pitch_controller_FF;
 	double yaw_controller_FF;
+	double roll_controller_K;
+	double pitch_controller_K;
+	double yaw_controller_K;
 
 	rc_filter_t altitude_rate_controller_pd;
 	rc_filter_t altitude_rate_controller_i;
 	double altitude_rate_controller_FF;
+	double altitude_rate_controller_K;
 	rc_filter_t altitude_controller_pd;
 	rc_filter_t altitude_controller_i;
 	double altitude_controller_FF;
+	double altitude_controller_K;
 
 	rc_filter_t horiz_vel_ctrl_pd_X;
 	rc_filter_t horiz_vel_ctrl_i_X;
 	double horiz_vel_X_controller_FF;
+	double horiz_vel_X_controller_K;
 	rc_filter_t horiz_vel_ctrl_pd_Y;
 	rc_filter_t horiz_vel_ctrl_i_Y;
 	double horiz_vel_Y_controller_FF;
+	double horiz_vel_Y_controller_K;
 
 	rc_filter_t horiz_pos_ctrl_X_pd;
 	rc_filter_t horiz_pos_ctrl_Y_pd;
@@ -221,6 +231,8 @@ typedef struct settings_t{
 	rc_filter_t horiz_pos_ctrl_Y_i;
 	double horiz_pos_X_ctrl_FF;
 	double horiz_pos_Y_ctrl_FF;
+	double horiz_pos_X_ctrl_K;
+	double horiz_pos_Y_ctrl_K;
 
 	///@}
 

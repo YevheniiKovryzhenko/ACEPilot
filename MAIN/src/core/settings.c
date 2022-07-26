@@ -974,12 +974,15 @@ int settings_load_from_file(char* path)
 	PARSE_CONTROLLER(roll_rate_controller_pd);
 	PARSE_CONTROLLER(roll_rate_controller_i);
 	PARSE_DOUBLE_MIN_MAX(roll_rate_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(roll_rate_controller_K, 0.0, 1000.0);
 	PARSE_CONTROLLER(pitch_rate_controller_pd);
 	PARSE_CONTROLLER(pitch_rate_controller_i);
 	PARSE_DOUBLE_MIN_MAX(pitch_rate_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(pitch_rate_controller_K, 0.0, 1000.0);
 	PARSE_CONTROLLER(yaw_rate_controller_pd);
 	PARSE_CONTROLLER(yaw_rate_controller_i);
 	PARSE_DOUBLE_MIN_MAX(yaw_rate_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(yaw_rate_controller_K, 0.0, 1000.0);
 
 	PARSE_CONTROLLER(roll_controller_pd);
 	PARSE_CONTROLLER(pitch_controller_pd);
@@ -990,20 +993,27 @@ int settings_load_from_file(char* path)
 	PARSE_DOUBLE_MIN_MAX(roll_controller_FF, 0.0, 1000.0);
 	PARSE_DOUBLE_MIN_MAX(pitch_controller_FF, 0.0, 1000.0);
 	PARSE_DOUBLE_MIN_MAX(yaw_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(roll_controller_K, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(pitch_controller_K, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(yaw_controller_K, 0.0, 1000.0);
 
 	PARSE_CONTROLLER(altitude_rate_controller_pd);
 	PARSE_CONTROLLER(altitude_rate_controller_i);
 	PARSE_DOUBLE_MIN_MAX(altitude_rate_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(altitude_rate_controller_K, 0.0, 1000.0);
 	PARSE_CONTROLLER(altitude_controller_pd);
 	PARSE_CONTROLLER(altitude_controller_i);
 	PARSE_DOUBLE_MIN_MAX(altitude_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(altitude_controller_K, 0.0, 1000.0);
 
 	PARSE_CONTROLLER(horiz_vel_ctrl_pd_X);
 	PARSE_CONTROLLER(horiz_vel_ctrl_i_X);
 	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_K, 0.0, 1000.0);
 	PARSE_CONTROLLER(horiz_vel_ctrl_pd_Y);
 	PARSE_CONTROLLER(horiz_vel_ctrl_i_Y);
 	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_K, 0.0, 1000.0);
 
 	PARSE_CONTROLLER(horiz_pos_ctrl_X_pd);
 	PARSE_CONTROLLER(horiz_pos_ctrl_Y_pd);
@@ -1011,6 +1021,8 @@ int settings_load_from_file(char* path)
 	PARSE_CONTROLLER(horiz_pos_ctrl_Y_i);
 	PARSE_DOUBLE_MIN_MAX(horiz_pos_X_ctrl_FF, 0.0, 1000.0);
 	PARSE_DOUBLE_MIN_MAX(horiz_pos_Y_ctrl_FF, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(horiz_pos_X_ctrl_K, 0.0, 1000.0);
+	PARSE_DOUBLE_MIN_MAX(horiz_pos_Y_ctrl_K, 0.0, 1000.0);
 
 	//REMOTE TUNING
 	PARSE_BOOL(allow_remote_tuning);

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/04/2022 (MM/DD/YYYY)
+ * Last Edit:  07/26/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -49,17 +49,17 @@
 int feedback_controller_t::rpy_init(void)
 {
     // get controllers from settings
-	if (unlikely(roll.init(settings.roll_controller_pd, settings.roll_controller_i, settings.roll_controller_FF) == -1))
+	if (unlikely(roll.init(settings.roll_controller_pd, settings.roll_controller_i, settings.roll_controller_FF, settings.roll_controller_K) == -1))
 	{
 		printf("Error in rpy_init: failed to create roll controller from settings\n");
 		return -1;
 	}
-	if (unlikely(pitch.init(settings.pitch_controller_pd, settings.pitch_controller_i, settings.pitch_controller_FF) == -1))
+	if (unlikely(pitch.init(settings.pitch_controller_pd, settings.pitch_controller_i, settings.pitch_controller_FF, settings.pitch_controller_K) == -1))
 	{
 		printf("Error in rpy_init: failed to create pitch controller from settings\n");
 		return -1;
 	}
-	if (unlikely(yaw.init(settings.yaw_controller_pd, settings.yaw_controller_i, settings.yaw_controller_FF) == -1))
+	if (unlikely(yaw.init(settings.yaw_controller_pd, settings.yaw_controller_i, settings.yaw_controller_FF, settings.yaw_controller_K) == -1))
 	{
 		printf("Error in rpy_init: failed to create yaw controller from settings\n");
 		return -1;
@@ -99,6 +99,10 @@ int feedback_controller_t::rpy_march(void)
 	//if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw); //zero out ff terms?
 
 	// 1) Attitude -> Attitude Rate
+	roll.march_std(setpoint.ATT_dot.x.value.get_pt(), setpoint.ATT.x.FF.get(), state_estimate.roll);
+	pitch.march_std(setpoint.ATT_dot.y.value.get_pt(), setpoint.ATT.y.FF.get(), state_estimate.pitch);
+	yaw.march_std(setpoint.ATT_dot.z.value.get_pt(), setpoint.ATT.z.FF.get(), state_estimate.continuous_yaw);
+	/*
 	if (setpoint.ATT.is_en_FF())
 	{
 		roll.march(setpoint.ATT_dot.x.value.get_pt(), err_roll, setpoint.ATT.x.FF.get());
@@ -111,6 +115,7 @@ int feedback_controller_t::rpy_march(void)
 		pitch.march(setpoint.ATT_dot.y.value.get_pt(), err_pitch);
 		yaw.march(setpoint.ATT_dot.z.value.get_pt(), err_yaw);
 	}	
+	*/
 
 	if (!setpoint.ATT_dot.is_en())
 	{		
@@ -150,17 +155,17 @@ int feedback_controller_t::rpy_transition(double& roll_err, \
 int feedback_controller_t::rpy_rate_init(void)
 {
 	// get controllers from settings
-	if (unlikely(roll_dot.init(settings.roll_rate_controller_pd, settings.roll_rate_controller_i, settings.roll_rate_controller_FF) == -1))
+	if (unlikely(roll_dot.init(settings.roll_rate_controller_pd, settings.roll_rate_controller_i, settings.roll_rate_controller_FF, settings.roll_rate_controller_K) == -1))
 	{
 		printf("Error in rpy_rate_init: failed to create roll rate controller from settings\n");
 		return -1;
 	}
-	if (unlikely(pitch_dot.init(settings.pitch_rate_controller_pd, settings.pitch_rate_controller_i, settings.pitch_rate_controller_FF) == -1))
+	if (unlikely(pitch_dot.init(settings.pitch_rate_controller_pd, settings.pitch_rate_controller_i, settings.pitch_rate_controller_FF, settings.pitch_rate_controller_K) == -1))
 	{
 		printf("Error in rpy_rate_init: failed to create pitch rate controller from settings\n");
 		return -1;
 	}
-	if (unlikely(yaw_dot.init(settings.yaw_rate_controller_pd, settings.yaw_rate_controller_i, settings.yaw_rate_controller_FF) == -1))
+	if (unlikely(yaw_dot.init(settings.yaw_rate_controller_pd, settings.yaw_rate_controller_i, settings.yaw_rate_controller_FF, settings.yaw_rate_controller_K) == -1))
 	{
 		printf("Error in rpy_rate_init: failed to create yaw rate controller from settings\n");
 		return -1;
@@ -194,17 +199,23 @@ int feedback_controller_t::rpy_rate_march(void)
 	setpoint.ATT_dot.y.value.saturate(-MAX_PITCH_RATE, MAX_PITCH_RATE);
 	setpoint.ATT_dot.z.value.saturate(-MAX_YAW_RATE, MAX_YAW_RATE);
 
+	/*
 	double err_roll_dot, err_pitch_dot, err_yaw_dot;
 	err_roll_dot = setpoint.ATT_dot.x.value.get() - state_estimate.roll_dot;
 	err_pitch_dot = setpoint.ATT_dot.y.value.get() - state_estimate.pitch_dot;
 	err_yaw_dot = setpoint.ATT_dot.z.value.get() - state_estimate.yaw_dot;
+	*/
 	//printf("yaw_dot = %f\t yaw_dot_sp =%f\t err_yaw_dot = %f\n", state_estimate.yaw_dot, setpoint.ATT_dot.z.value.get(), err_yaw_dot);
 
 	//use smooth transition if control blending is enabled:
 	//if (setpoint.en_rpy_rate_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
 
 	// Attitude rate error -> Torque cmd.
-	if (setpoint.ATT_dot.is_en())
+	roll_dot.march_std(setpoint.ATT_throttle.x.value.get_pt(), setpoint.ATT_dot.x.value.get(), state_estimate.roll_dot);
+	pitch_dot.march_std(setpoint.ATT_throttle.y.value.get_pt(), setpoint.ATT_dot.y.FF.get(), state_estimate.pitch_dot);
+	yaw_dot.march_std(setpoint.ATT_throttle.z.value.get_pt(), setpoint.ATT_dot.z.FF.get(), state_estimate.yaw_dot);
+	/*
+	if (setpoint.ATT_dot.is_en_FF())
 	{
 		roll_dot.march(setpoint.ATT_throttle.x.value.get_pt(), err_roll_dot, setpoint.ATT_dot.x.FF.get());
 		pitch_dot.march(setpoint.ATT_throttle.y.value.get_pt(), err_pitch_dot, setpoint.ATT_dot.y.FF.get());
@@ -216,7 +227,7 @@ int feedback_controller_t::rpy_rate_march(void)
 		pitch_dot.march(setpoint.ATT_throttle.y.value.get_pt(), err_pitch_dot);
 		yaw_dot.march(setpoint.ATT_throttle.z.value.get_pt(), err_yaw_dot);
 	}
-
+	*/
 	last_en_rpy_rate_ctrl = true;
 	return 0;
 }
@@ -253,12 +264,12 @@ int feedback_controller_t::rpy_rate_transition(double& roll_dot_err,\
 int feedback_controller_t::xy_init(void)
 {
 	// get controllers from settings
-	if (unlikely(x.init(settings.horiz_pos_ctrl_X_pd, settings.horiz_pos_ctrl_X_i, settings.horiz_pos_X_ctrl_FF) == -1))
+	if (unlikely(x.init(settings.horiz_pos_ctrl_X_pd, settings.horiz_pos_ctrl_X_i, settings.horiz_pos_X_ctrl_FF, settings.horiz_pos_X_ctrl_K) == -1))
 	{
 		printf("Error in xy_init: failed to create X position controller from settings\n");
 		return -1;
 	}
-	if (unlikely(y.init(settings.horiz_pos_ctrl_Y_pd, settings.horiz_pos_ctrl_Y_i, settings.horiz_pos_Y_ctrl_FF) == -1))
+	if (unlikely(y.init(settings.horiz_pos_ctrl_Y_pd, settings.horiz_pos_ctrl_Y_i, settings.horiz_pos_Y_ctrl_FF, settings.horiz_pos_Y_ctrl_K) == -1))
 	{
 		printf("Error in xy_init: failed to create Y position controller from settings\n");
 		return -1;
@@ -334,12 +345,12 @@ int feedback_controller_t::xy_reset(void)
 int feedback_controller_t::xy_rate_init(void)
 {
 	// get controllers from settings
-	if (unlikely(x_dot.init(settings.horiz_vel_ctrl_pd_X, settings.horiz_vel_ctrl_i_X, settings.horiz_vel_X_controller_FF) == -1))
+	if (unlikely(x_dot.init(settings.horiz_vel_ctrl_pd_X, settings.horiz_vel_ctrl_i_X, settings.horiz_vel_X_controller_FF, settings.horiz_vel_X_controller_K) == -1))
 	{
 		printf("Error in xy_rate_init: failed to create X velocity controller from settings\n");
 		return -1;
 	}
-	if (unlikely(y_dot.init(settings.horiz_vel_ctrl_pd_Y, settings.horiz_vel_ctrl_i_Y, settings.horiz_vel_Y_controller_FF) == -1))
+	if (unlikely(y_dot.init(settings.horiz_vel_ctrl_pd_Y, settings.horiz_vel_ctrl_i_Y, settings.horiz_vel_Y_controller_FF, settings.horiz_vel_Y_controller_K) == -1))
 	{
 		printf("Error in xy_rate_init: failed to create Y velocity controller from settings\n");
 		return -1;
@@ -409,7 +420,7 @@ int feedback_controller_t::xy_rate_reset(void)
 int feedback_controller_t::z_init(void)
 {
 	// get controllers from settings
-	if (unlikely(z.init(settings.altitude_controller_pd, settings.altitude_controller_i, settings.altitude_controller_FF) == -1))
+	if (unlikely(z.init(settings.altitude_controller_pd, settings.altitude_controller_i, settings.altitude_controller_FF, settings.altitude_controller_K) == -1))
 	{
 		printf("Error in z_rate_init: failed to create Altitude controller from settings\n");
 		return -1;
@@ -491,7 +502,7 @@ int feedback_controller_t::z_reset(void)
 int feedback_controller_t::z_rate_init(void)
 {
 	// get controllers from settings
-	if (unlikely(z_dot.init(settings.altitude_rate_controller_pd, settings.altitude_rate_controller_i, settings.altitude_rate_controller_FF) == -1))
+	if (unlikely(z_dot.init(settings.altitude_rate_controller_pd, settings.altitude_rate_controller_i, settings.altitude_rate_controller_FF, settings.altitude_rate_controller_K) == -1))
 	{
 		printf("Error in z_rate_init: failed to create Altitude rate controller from settings\n");
 		return -1;
@@ -568,6 +579,7 @@ char feedback_controller_t::gain_tune_march(void)
 		received_gain_set.GainN1_pd = GS_RX.GainN1_pd;
 		received_gain_set.GainD1_pd = GS_RX.GainD1_pd;
 		received_gain_set.GainFF = GS_RX.GainFF;
+		received_gain_set.GainK = GS_RX.GainK;
 
 
 

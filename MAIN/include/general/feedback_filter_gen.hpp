@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  07/26/2022 (MM/DD/YYYY)
  */
 
 
@@ -40,6 +40,7 @@ typedef struct PID_vars_set_t
 	float GainN1_pd;
 	float GainD1_pd; //< D0 is always  1
 	float GainFF;
+	float GainK;
 } PID_vars_set_t;
 
 /* This is a class for a general purpouse SISO filter for the control system */
@@ -60,21 +61,21 @@ public:
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF);
+	int init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain);
 
 	/**
 	* @brief      Sets the active PD and I gains for the control system.
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF);
+	int set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain);
 
 	/**
 	* @brief      Sets the default PD and I gains for the control system.
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double gain_FF);
+	int set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double gain_FF, double gain);
 
 	/**
 	* @brief      Resets the control system to default gains, zeros out inputs/outputs, etc.
@@ -82,6 +83,18 @@ public:
 	* @return     0 on success, -1 on failure
 	*/
 	int reset(void);
+
+	/**
+	* @brief      Marches the control system forward with new error and referece inputs.
+	*
+	* Must be initialized. Error (ref_in - st_in) input path goes though PI control system.
+	* Reference path is added directly to the output of the PID control system.
+	* Damping (derivative) is applied only on negative state (-st_in).
+	* Out is the compined output of the system.
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int march_std(double* out, double ref_in, double st_in);
 
 	/**
 	* @brief      Marches the control system forward with new error and referece inputs.

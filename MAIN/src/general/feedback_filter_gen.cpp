@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/30/2022 (MM/DD/YYYY)
+ * Last Edit:  07/26/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -41,7 +41,7 @@
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_gen_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
+int feedback_filter_gen_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain)
 {
 	if (unlikely(rc_filter_duplicate(&def_gain_pd, new_gain_pd) == -1))
 	{
@@ -53,6 +53,8 @@ int feedback_filter_gen_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_fil
 		printf("Error in set_default_gain_set: failed to dublicate I controller\n");
 		return -1;
 	}
+	def_gain_pd.gain = gain;
+	def_gain_i.gain = gain;
 
 	def_gain_FF = gain_FF;
 
@@ -64,7 +66,7 @@ int feedback_filter_gen_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_fil
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_gen_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
+int feedback_filter_gen_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain)
 {
 	if (unlikely(rc_filter_duplicate(&gain_pd, new_gain_pd) == -1))
 	{
@@ -77,6 +79,9 @@ int feedback_filter_gen_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& n
 		return -1;
 	}
 
+	gain_pd.gain = gain;
+	gain_i.gain = gain;
+
 	gain_FF = new_gain_FF;
 
 	return 0;
@@ -87,14 +92,14 @@ int feedback_filter_gen_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& n
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_gen_t::init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF)
+int feedback_filter_gen_t::init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain)
 {
-	if (unlikely(set_gain_set(new_gain_pd, new_gain_i, new_gain_FF) < 0))
+	if (unlikely(set_gain_set(new_gain_pd, new_gain_i, new_gain_FF, gain) < 0))
 	{
 		printf("Error in init: failed to set controller gains\n");
 		return -1;
 	}
-	if (unlikely(set_default_gain_set(new_gain_pd, new_gain_i, new_gain_FF) < 0))
+	if (unlikely(set_default_gain_set(new_gain_pd, new_gain_i, new_gain_FF, gain) < 0))
 	{
 		printf("Error in init: failed to set default controller gains\n");
 		return -1;
@@ -113,6 +118,8 @@ int feedback_filter_gen_t::reset(void)
 	gain_pd = def_gain_pd;
 	gain_i = def_gain_i;
 	gain_FF = def_gain_FF;
+	gain_pd.gain = def_gain_pd.gain;
+	gain_i.gain = def_gain_i.gain;
 
 	if (unlikely(rc_filter_reset(&gain_pd) < 0))
 	{
@@ -127,6 +134,34 @@ int feedback_filter_gen_t::reset(void)
 
 	return 0;
 }
+
+
+/**
+* @brief      Marches the control system forward with new error and referece inputs.
+*
+* Must be initialized. Error (ref_in - st_in) input path goes though PI control system. 
+* Reference path is added directly to the output of the PID control system. 
+* Damping (derivative) is applied only on negative state (-st_in).
+* PD control system must have p gain set to zero and gain_pd.gain=gain_i.gain for this to function properly.
+* Out is the compined output of the system.
+*
+* @return     0 on success, -1 on failure
+*/
+int feedback_filter_gen_t::march_std(double* out, double ref_in, double st_in)
+{
+	if (unlikely(!initialized))
+	{
+		printf("ERROR in march: not initialized\n");
+		return -1;
+	}
+	*out = gain_pd.gain * (ref_in - st_in)\
+		+ rc_filter_march(&gain_pd, -st_in)\
+		+ rc_filter_march(&gain_i, ref_in - st_in) + gain_FF * ref_in;
+
+
+	return 0;
+}
+
 
 /**
 * @brief      Marches the control system forward with new error and referece inputs.
@@ -305,5 +340,7 @@ int feedback_filter_gen_t::set_tune_gains(PID_vars_set_t& new_input)
 	gain_pd.num.d[1] = new_input.GainN1_pd;
 	gain_pd.den.d[1] = new_input.GainD1_pd;
 	gain_FF = new_input.GainFF;
+	gain_i.gain = new_input.GainK;
+	gain_pd.gain = new_input.GainK;
 	return 0;
 }

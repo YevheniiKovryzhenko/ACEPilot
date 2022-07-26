@@ -156,6 +156,7 @@
 		"imax": 0.10
 	},
 	"roll_rate_controller_FF": 0.0,
+	"roll_rate_controller_K": 1.0,
 
 
 	"pitch_rate_controller_pd": {
@@ -172,6 +173,7 @@
 		"imax": 0.10
 	},
 	"pitch_rate_controller_FF": 0.0,
+	"pitch_rate_controller_K": 1.0,
 
 
 	"yaw_rate_controller_pd": {
@@ -188,6 +190,7 @@
 		"imax": 0.10
 	},
 	"yaw_rate_controller_FF": 0.0,
+	"yaw_rate_controller_K": 1.0,
 
 
 	"roll_controller_pd": {
@@ -204,6 +207,7 @@
 		"imax": 0.10
 	},
 	"roll_controller_FF": 0.0,
+	"roll_controller_K": 1.0,
 
 
 	"pitch_controller_pd": {
@@ -220,6 +224,7 @@
 		"imax": 0.10
 	},
 	"pitch_controller_FF": 0.0,
+	"pitch_controller_K": 1.0,
 
 
 	"yaw_controller_pd": {
@@ -236,6 +241,7 @@
 		"imax": 0.10
 	},
 	"yaw_controller_FF": 0.0,
+	"yaw_controller_K": 1.0,
 
 
 	"altitude_rate_controller_pd": {
@@ -252,6 +258,7 @@
 		"imax": 3.00
 	},
 	"altitude_rate_controller_FF": 0.0,
+	"altitude_rate_controller_K": 1.0,
 
 
 	"altitude_controller_pd": {
@@ -268,6 +275,7 @@
 		"imax": 1.00
 	},
 	"altitude_controller_FF": 0.0,
+	"altitude_controller_K": 1.0,
 
 
 	"horiz_vel_ctrl_pd_X": {
@@ -284,6 +292,7 @@
 		"imax": 1.00
 	},
 	"horiz_vel_X_controller_FF": 0.0,
+	"horiz_vel_X_controller_K": 1.0,
 
 	"horiz_vel_ctrl_pd_Y": {
 		"CT_or_DT": "CT",
@@ -299,6 +308,7 @@
 		"imax": 1.00
 	},
 	"horiz_vel_Y_controller_FF": 0.0,
+	"horiz_vel_Y_controller_K": 1.0,
 
 
 	"horiz_pos_ctrl_X_pd": {
@@ -315,6 +325,7 @@
 		"imax": 3.0
 	},
 	"horiz_pos_X_ctrl_FF": 0.0,
+	"horiz_pos_X_ctrl_K": 1.0,
 
 	"horiz_pos_ctrl_Y_pd": {
 		"CT_or_DT": "CT",
@@ -329,5 +340,6 @@
 		"ki": 0.01069185,
 		"imax": 3.0
 	},
-	"horiz_pos_Y_ctrl_FF": 0.0
+	"horiz_pos_Y_ctrl_FF": 0.0,
+	"horiz_pos_Y_ctrl_K": 1.0
 }
