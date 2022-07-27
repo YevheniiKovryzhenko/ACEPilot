@@ -382,7 +382,6 @@ char comms_manager_t::mocap_update(void)
 	
 	if (settings.telem_warnings_en) if (GS_RX.trackingValid == 0) printf("WARNING: mocap lost visual\n");
 
-
 	if (mocap_en_TX && finddt_s(TX_time) > 1.0 / MOCAP_THREAD_TX_HZ)
 	{
 		if (unlikely(mocap_transmit_line.write() < 0))
