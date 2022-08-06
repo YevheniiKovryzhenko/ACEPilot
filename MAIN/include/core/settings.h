@@ -29,6 +29,14 @@ extern "C"
 {
 #endif
 
+/** @name feedback control struct */
+///@{
+typedef struct controller_settings_t {
+	rc_filter_t pd;
+	rc_filter_t i;
+	double FF;
+	double K;
+}controller_settings_t;
 
 
 /**
@@ -181,10 +189,25 @@ typedef struct settings_t{
 
 	/** @name feedback controllers */
 	///@{
+	controller_settings_t roll_rate_ctrl;
+	controller_settings_t pitch_rate_ctrl;
+	controller_settings_t yaw_rate_ctrl;
+	controller_settings_t roll_ctrl;
+	controller_settings_t pitch_ctrl;
+	controller_settings_t yaw_ctrl;
+	controller_settings_t X_vel_ctrl;
+	controller_settings_t Y_vel_ctrl;
+	controller_settings_t Z_vel_ctrl;
+	controller_settings_t X_pos_ctrl;
+	controller_settings_t Y_pos_ctrl;
+	controller_settings_t Z_pos_ctrl;
+	/*
 	rc_filter_t roll_rate_controller_pd;
 	rc_filter_t roll_rate_controller_i;
 	double roll_rate_controller_FF;
-	double roll_rate_controller_K;
+	double roll_rate_controller_K;	
+
+	
 	rc_filter_t pitch_rate_controller_pd;
 	rc_filter_t pitch_rate_controller_i;
 	double pitch_rate_controller_FF;
@@ -233,6 +256,7 @@ typedef struct settings_t{
 	double horiz_pos_Y_ctrl_FF;
 	double horiz_pos_X_ctrl_K;
 	double horiz_pos_Y_ctrl_K;
+	*/
 
 	///@}
 

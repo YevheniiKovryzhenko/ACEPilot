@@ -126,15 +126,60 @@ if(json_object_is_type(tmp, json_type_string)==0){\
 strcpy(settings.name, json_object_get_string(tmp));
 
 // macro for reading feedback controller
+#define PARSE_CONTROLLER_GAINS(name, subname) \
+if(json_object_object_get_ex(ctrl_json, #subname, &tmp)==0){\
+	fprintf(stderr,"ERROR: can't find " #name "." #subname " in settings file\n");\
+	return -1;\
+}\
+if (json_object_is_type(tmp, json_type_object) == 0)\
+{\
+	fprintf(stderr, "ERROR: " #name "." #subname " should be an object\n");\
+	return -1;\
+}\
+if(__parse_controller_gains(tmp, &settings.name.subname)){\
+	fprintf(stderr,"ERROR: could not parse " #name "." #subname "\n");\
+	return -1;\
+}\
+
+
+#define PARSE_DOUBLE_MIN_MAX_CTRL(name,subname,min,max)\
+if(json_object_object_get_ex(ctrl_json, #subname, &tmp)==0){\
+	fprintf(stderr,"ERROR can't find " #name "." #subname " in settings file\n");\
+	return -1;\
+}\
+if(json_object_is_type(tmp, json_type_double)==0){\
+	fprintf(stderr,"ERROR " #name "." #subname " should be a double\n");\
+	return -1;\
+}\
+settings.name.subname = json_object_get_double(tmp);\
+if(settings.name.subname < min || settings.name.subname > max){\
+	fprintf(stderr,"ERROR " #name "." #subname " should be between min and max\n");\
+	return -1;\
+}\
+
 #define PARSE_CONTROLLER(name) \
-if(json_object_object_get_ex(jobj, #name, &tmp)==0){\
+if(json_object_object_get_ex(jobj, #name, &ctrl_json)==0){\
 	fprintf(stderr,"ERROR: can't find " #name " in settings file\n");\
 	return -1;\
 }\
+if (json_object_is_type(ctrl_json, json_type_object) == 0)\
+{\
+	fprintf(stderr, "ERROR: " #name " should be an object\n");\
+	return -1;\
+}\
+PARSE_DOUBLE_MIN_MAX_CTRL(name, FF, 0, 10000);\
+PARSE_DOUBLE_MIN_MAX_CTRL(name, K, 0, 10000);\
+PARSE_CONTROLLER_GAINS(name,pd);\
+PARSE_CONTROLLER_GAINS(name,i);\
+
+/*
 if(__parse_controller(tmp, &settings.name)){\
 	fprintf(stderr,"ERROR: could not parse " #name "\n");\
 	return -1;\
 }\
+*/
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -461,7 +506,6 @@ static int __parse_kill_mode(void)
 	return 0;
 }
 
-
 /**
  * @ brief     parses a json_object and sets up a new controller
  *
@@ -470,7 +514,7 @@ static int __parse_kill_mode(void)
  *
  * @return     0 on success, -1 on failure
  */
-static int __parse_controller(json_object* jobj_ctl, rc_filter_t* filter)
+static int __parse_controller_gains(json_object* jobj_ctl, rc_filter_t* filter)
 {
 	struct json_object* array = NULL;  // to hold num & den arrays
 	struct json_object* tmp = NULL;    // temp object
@@ -728,11 +772,11 @@ static int __parse_controller(json_object* jobj_ctl, rc_filter_t* filter)
 }
 
 
-
-
 int settings_load_from_file(char* path)
 {
 	struct json_object *tmp = NULL; // temp object
+	struct json_object* ctrl_json = NULL; // for parsing controllers
+	//struct json_object* subctrl_json = NULL; //for parsing controllers (sublevel)
 
 	was_load_successful = 0;
 
@@ -971,58 +1015,18 @@ int settings_load_from_file(char* path)
 	PARSE_INT(serial_baud_gps);
 
 	// FEEDBACK CONTROLLERS
-	PARSE_CONTROLLER(roll_rate_controller_pd);
-	PARSE_CONTROLLER(roll_rate_controller_i);
-	PARSE_DOUBLE_MIN_MAX(roll_rate_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(roll_rate_controller_K, 0.0, 1000.0);
-	PARSE_CONTROLLER(pitch_rate_controller_pd);
-	PARSE_CONTROLLER(pitch_rate_controller_i);
-	PARSE_DOUBLE_MIN_MAX(pitch_rate_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(pitch_rate_controller_K, 0.0, 1000.0);
-	PARSE_CONTROLLER(yaw_rate_controller_pd);
-	PARSE_CONTROLLER(yaw_rate_controller_i);
-	PARSE_DOUBLE_MIN_MAX(yaw_rate_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(yaw_rate_controller_K, 0.0, 1000.0);
-
-	PARSE_CONTROLLER(roll_controller_pd);
-	PARSE_CONTROLLER(pitch_controller_pd);
-	PARSE_CONTROLLER(yaw_controller_pd);
-	PARSE_CONTROLLER(roll_controller_i);
-	PARSE_CONTROLLER(pitch_controller_i);
-	PARSE_CONTROLLER(yaw_controller_i);
-	PARSE_DOUBLE_MIN_MAX(roll_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(pitch_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(yaw_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(roll_controller_K, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(pitch_controller_K, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(yaw_controller_K, 0.0, 1000.0);
-
-	PARSE_CONTROLLER(altitude_rate_controller_pd);
-	PARSE_CONTROLLER(altitude_rate_controller_i);
-	PARSE_DOUBLE_MIN_MAX(altitude_rate_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(altitude_rate_controller_K, 0.0, 1000.0);
-	PARSE_CONTROLLER(altitude_controller_pd);
-	PARSE_CONTROLLER(altitude_controller_i);
-	PARSE_DOUBLE_MIN_MAX(altitude_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(altitude_controller_K, 0.0, 1000.0);
-
-	PARSE_CONTROLLER(horiz_vel_ctrl_pd_X);
-	PARSE_CONTROLLER(horiz_vel_ctrl_i_X);
-	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_K, 0.0, 1000.0);
-	PARSE_CONTROLLER(horiz_vel_ctrl_pd_Y);
-	PARSE_CONTROLLER(horiz_vel_ctrl_i_Y);
-	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(horiz_vel_X_controller_K, 0.0, 1000.0);
-
-	PARSE_CONTROLLER(horiz_pos_ctrl_X_pd);
-	PARSE_CONTROLLER(horiz_pos_ctrl_Y_pd);
-	PARSE_CONTROLLER(horiz_pos_ctrl_X_i);
-	PARSE_CONTROLLER(horiz_pos_ctrl_Y_i);
-	PARSE_DOUBLE_MIN_MAX(horiz_pos_X_ctrl_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(horiz_pos_Y_ctrl_FF, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(horiz_pos_X_ctrl_K, 0.0, 1000.0);
-	PARSE_DOUBLE_MIN_MAX(horiz_pos_Y_ctrl_K, 0.0, 1000.0);
+	PARSE_CONTROLLER(roll_rate_ctrl);
+	PARSE_CONTROLLER(pitch_rate_ctrl);
+	PARSE_CONTROLLER(yaw_rate_ctrl);
+	PARSE_CONTROLLER(roll_ctrl);
+	PARSE_CONTROLLER(pitch_ctrl);
+	PARSE_CONTROLLER(yaw_ctrl);
+	PARSE_CONTROLLER(X_vel_ctrl);
+	PARSE_CONTROLLER(Y_vel_ctrl);
+	PARSE_CONTROLLER(Z_vel_ctrl);
+	PARSE_CONTROLLER(X_pos_ctrl);
+	PARSE_CONTROLLER(Y_pos_ctrl);
+	PARSE_CONTROLLER(Z_pos_ctrl);
 
 	//REMOTE TUNING
 	PARSE_BOOL(allow_remote_tuning);

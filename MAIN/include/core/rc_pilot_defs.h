@@ -95,6 +95,11 @@ typedef enum dsm_kill_mode_t {
 #define MAX_X_COMPONENT				1.0
 #define MAX_Y_COMPONENT				1.0
 #define XYZ_MAX_ERROR				0.5  ///< meters.
+
+#define XY_MAX_ERROR_NORM sqrt(2)*XYZ_MAX_ERROR
+#define MAX_XY_VELOCITY_NORM sqrt(2)*MAX_XY_VELOCITY
+#define MAX_XY_ACCELERATION_NORM sqrt(2)*MAX_XY_ACCELERATION
+
 /**
  * MAX_THRUST_COMPONENT is really "lowest power state" or idle value. Note that
  * after the thrust mapping a different value will actually be sent to the motors.

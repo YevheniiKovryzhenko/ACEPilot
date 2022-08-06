@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/26/2022 (MM/DD/YYYY)
+ * Last Edit:  08/06/2022 (MM/DD/YYYY)
  */
 
 
@@ -31,6 +31,7 @@
 #include <rc/math.h>
 #include <rc/time.h>
 #include <rc/math/filter.h>
+#include "settings.h"
 
 typedef struct PID_vars_set_t
 {
@@ -53,6 +54,7 @@ private:
 	rc_filter_t def_gain_pd = RC_FILTER_INITIALIZER; // default PD gain set
 	rc_filter_t def_gain_i = RC_FILTER_INITIALIZER; // default I gain set
 	double gain_FF = 0.0;
+	double gain_K = 1.0;
 	double def_gain_FF = 0.0;
 public:
 
@@ -61,21 +63,21 @@ public:
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain);
+	int init(controller_settings_t& new_ctrl);
 
 	/**
 	* @brief      Sets the active PD and I gains for the control system.
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain);
+	int set_gain_set(controller_settings_t& new_ctrl);
 
 	/**
 	* @brief      Sets the default PD and I gains for the control system.
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double gain_FF, double gain);
+	int set_default_gain_set(controller_settings_t& new_ctrl);
 
 	/**
 	* @brief      Resets the control system to default gains, zeros out inputs/outputs, etc.

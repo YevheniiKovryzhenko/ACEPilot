@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/26/2022 (MM/DD/YYYY)
+ * Last Edit:  08/06/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -41,22 +41,21 @@
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_gen_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain)
+int feedback_filter_gen_t::set_default_gain_set(controller_settings_t& new_ctrl)
 {
-	if (unlikely(rc_filter_duplicate(&def_gain_pd, new_gain_pd) == -1))
+	if (unlikely(rc_filter_duplicate(&def_gain_pd, new_ctrl.pd) == -1))
 	{
 		printf("Error in set_default_gain_set: failed to dublicate PD controller\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&def_gain_i, new_gain_i) == -1))
+	if (unlikely(rc_filter_duplicate(&def_gain_i, new_ctrl.i) == -1))
 	{
 		printf("Error in set_default_gain_set: failed to dublicate I controller\n");
 		return -1;
 	}
-	def_gain_pd.gain = gain;
-	def_gain_i.gain = gain;
 
-	def_gain_FF = gain_FF;
+	gain_K = new_ctrl.K;
+	def_gain_FF = new_ctrl.FF;
 
 	return 0;
 }
@@ -66,23 +65,21 @@ int feedback_filter_gen_t::set_default_gain_set(rc_filter_t& new_gain_pd, rc_fil
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_gen_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain)
+int feedback_filter_gen_t::set_gain_set(controller_settings_t& new_ctrl)
 {
-	if (unlikely(rc_filter_duplicate(&gain_pd, new_gain_pd) == -1))
+	if (unlikely(rc_filter_duplicate(&gain_pd, new_ctrl.pd) == -1))
 	{
 		printf("Error in set_gain_set: failed to dublicate PD controller\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&gain_i, new_gain_i) == -1))
+	if (unlikely(rc_filter_duplicate(&gain_i, new_ctrl.i) == -1))
 	{
 		printf("Error in set_gain_set: failed to dublicate I controller\n");
 		return -1;
 	}
 
-	gain_pd.gain = gain;
-	gain_i.gain = gain;
-
-	gain_FF = new_gain_FF;
+	gain_K = new_ctrl.K;
+	gain_FF = new_ctrl.FF;
 
 	return 0;
 }
@@ -92,14 +89,14 @@ int feedback_filter_gen_t::set_gain_set(rc_filter_t& new_gain_pd, rc_filter_t& n
 *
 * @return     0 on success, -1 on failure
 */
-int feedback_filter_gen_t::init(rc_filter_t& new_gain_pd, rc_filter_t& new_gain_i, double new_gain_FF, double gain)
+int feedback_filter_gen_t::init(controller_settings_t& new_ctrl)
 {
-	if (unlikely(set_gain_set(new_gain_pd, new_gain_i, new_gain_FF, gain) < 0))
+	if (unlikely(set_gain_set(new_ctrl) < 0))
 	{
 		printf("Error in init: failed to set controller gains\n");
 		return -1;
 	}
-	if (unlikely(set_default_gain_set(new_gain_pd, new_gain_i, new_gain_FF, gain) < 0))
+	if (unlikely(set_default_gain_set(new_ctrl) < 0))
 	{
 		printf("Error in init: failed to set default controller gains\n");
 		return -1;
@@ -154,9 +151,10 @@ int feedback_filter_gen_t::march_std(double* out, double ref_in, double st_in)
 		printf("ERROR in march: not initialized\n");
 		return -1;
 	}
-	*out = gain_pd.gain * (ref_in - st_in)\
-		+ rc_filter_march(&gain_pd, -st_in)\
-		+ rc_filter_march(&gain_i, ref_in - st_in) + gain_FF * ref_in;
+	*out = gain_K * (ref_in - st_in)\
+		+ rc_filter_march(&gain_pd, -gain_K * st_in)\
+		+ rc_filter_march(&gain_i, gain_K * (ref_in - st_in))\
+		+ gain_FF * ref_in;
 
 
 	return 0;
@@ -178,8 +176,9 @@ int feedback_filter_gen_t::march(double* out, double err_in, double ref_in)
 		printf("ERROR in march: not initialized\n");
 		return -1;
 	}
-	*out = rc_filter_march(&gain_pd, err_in)\
-		+ rc_filter_march(&gain_i, err_in) + gain_FF * ref_in;
+	*out = rc_filter_march(&gain_pd, gain_K * err_in)\
+		+ rc_filter_march(&gain_i, gain_K * err_in)\
+		+ gain_FF * ref_in;
 
 
 	return 0;
@@ -200,8 +199,8 @@ int feedback_filter_gen_t::march(double* out, double err_in)
 		printf("ERROR in march: not initialized\n");
 		return -1;
 	}
-	*out = rc_filter_march(&gain_pd, err_in)
-		+ rc_filter_march(&gain_i, err_in);
+	*out = rc_filter_march(&gain_pd, gain_K * err_in)
+		+ rc_filter_march(&gain_i, gain_K * err_in);
 
 
 	return 0;
@@ -340,7 +339,6 @@ int feedback_filter_gen_t::set_tune_gains(PID_vars_set_t& new_input)
 	gain_pd.num.d[1] = new_input.GainN1_pd;
 	gain_pd.den.d[1] = new_input.GainD1_pd;
 	gain_FF = new_input.GainFF;
-	gain_i.gain = new_input.GainK;
-	gain_pd.gain = new_input.GainK;
+	gain_K = new_input.GainK;
 	return 0;
 }

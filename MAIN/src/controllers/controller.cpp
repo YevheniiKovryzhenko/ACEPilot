@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/26/2022 (MM/DD/YYYY)
+ * Last Edit:  08/05/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -43,23 +43,29 @@
 #define unlikely(x)	__builtin_expect (!!(x), 0)
 #define likely(x)	__builtin_expect (!!(x), 1)
 
+
+/*returns sign of an argument*/
+template <typename T> int sgn(T val) {
+	return (T(0) < val) - (val < T(0));
+}
+
 /***************************************************************************
 * Roll Pitch Yaw controllers
 ***************************************************************************/
 int feedback_controller_t::rpy_init(void)
 {
     // get controllers from settings
-	if (unlikely(roll.init(settings.roll_controller_pd, settings.roll_controller_i, settings.roll_controller_FF, settings.roll_controller_K) == -1))
+	if (unlikely(roll.init(settings.roll_ctrl) == -1))
 	{
 		printf("Error in rpy_init: failed to create roll controller from settings\n");
 		return -1;
 	}
-	if (unlikely(pitch.init(settings.pitch_controller_pd, settings.pitch_controller_i, settings.pitch_controller_FF, settings.pitch_controller_K) == -1))
+	if (unlikely(pitch.init(settings.pitch_ctrl) == -1))
 	{
 		printf("Error in rpy_init: failed to create pitch controller from settings\n");
 		return -1;
 	}
-	if (unlikely(yaw.init(settings.yaw_controller_pd, settings.yaw_controller_i, settings.yaw_controller_FF, settings.yaw_controller_K) == -1))
+	if (unlikely(yaw.init(settings.yaw_ctrl) == -1))
 	{
 		printf("Error in rpy_init: failed to create yaw controller from settings\n");
 		return -1;
@@ -91,17 +97,17 @@ int feedback_controller_t::rpy_march(void)
 	setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
 	setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
 
-	double err_roll, err_pitch, err_yaw;
-	err_roll = setpoint.ATT.x.value.get() - state_estimate.roll;
-	err_pitch = setpoint.ATT.y.value.get() - state_estimate.pitch;
-	err_yaw = setpoint.ATT.z.value.get() - state_estimate.continuous_yaw;
+	//double err_roll, err_pitch, err_yaw;
+	//err_roll = setpoint.ATT.x.value.get() - state_estimate.roll;
+	//err_pitch = setpoint.ATT.y.value.get() - state_estimate.pitch;
+	//err_yaw = setpoint.ATT.z.value.get() - state_estimate.continuous_yaw;
 	//use smooth transition if control blending is enabled:
 	//if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw); //zero out ff terms?
 
 	// 1) Attitude -> Attitude Rate
-	roll.march_std(setpoint.ATT_dot.x.value.get_pt(), setpoint.ATT.x.FF.get(), state_estimate.roll);
-	pitch.march_std(setpoint.ATT_dot.y.value.get_pt(), setpoint.ATT.y.FF.get(), state_estimate.pitch);
-	yaw.march_std(setpoint.ATT_dot.z.value.get_pt(), setpoint.ATT.z.FF.get(), state_estimate.continuous_yaw);
+	roll.march_std(setpoint.ATT_dot.x.value.get_pt(), setpoint.ATT.x.value.get(), state_estimate.roll);
+	pitch.march_std(setpoint.ATT_dot.y.value.get_pt(), setpoint.ATT.y.value.get(), state_estimate.pitch);
+	yaw.march_std(setpoint.ATT_dot.z.value.get_pt(), setpoint.ATT.z.value.get(), state_estimate.continuous_yaw);
 	/*
 	if (setpoint.ATT.is_en_FF())
 	{
@@ -155,17 +161,17 @@ int feedback_controller_t::rpy_transition(double& roll_err, \
 int feedback_controller_t::rpy_rate_init(void)
 {
 	// get controllers from settings
-	if (unlikely(roll_dot.init(settings.roll_rate_controller_pd, settings.roll_rate_controller_i, settings.roll_rate_controller_FF, settings.roll_rate_controller_K) == -1))
+	if (unlikely(roll_dot.init(settings.roll_rate_ctrl) == -1))
 	{
 		printf("Error in rpy_rate_init: failed to create roll rate controller from settings\n");
 		return -1;
 	}
-	if (unlikely(pitch_dot.init(settings.pitch_rate_controller_pd, settings.pitch_rate_controller_i, settings.pitch_rate_controller_FF, settings.pitch_rate_controller_K) == -1))
+	if (unlikely(pitch_dot.init(settings.pitch_rate_ctrl) == -1))
 	{
 		printf("Error in rpy_rate_init: failed to create pitch rate controller from settings\n");
 		return -1;
 	}
-	if (unlikely(yaw_dot.init(settings.yaw_rate_controller_pd, settings.yaw_rate_controller_i, settings.yaw_rate_controller_FF, settings.yaw_rate_controller_K) == -1))
+	if (unlikely(yaw_dot.init(settings.yaw_rate_ctrl) == -1))
 	{
 		printf("Error in rpy_rate_init: failed to create yaw rate controller from settings\n");
 		return -1;
@@ -212,8 +218,8 @@ int feedback_controller_t::rpy_rate_march(void)
 
 	// Attitude rate error -> Torque cmd.
 	roll_dot.march_std(setpoint.ATT_throttle.x.value.get_pt(), setpoint.ATT_dot.x.value.get(), state_estimate.roll_dot);
-	pitch_dot.march_std(setpoint.ATT_throttle.y.value.get_pt(), setpoint.ATT_dot.y.FF.get(), state_estimate.pitch_dot);
-	yaw_dot.march_std(setpoint.ATT_throttle.z.value.get_pt(), setpoint.ATT_dot.z.FF.get(), state_estimate.yaw_dot);
+	pitch_dot.march_std(setpoint.ATT_throttle.y.value.get_pt(), setpoint.ATT_dot.y.value.get(), state_estimate.pitch_dot);
+	yaw_dot.march_std(setpoint.ATT_throttle.z.value.get_pt(), setpoint.ATT_dot.z.value.get(), state_estimate.yaw_dot);
 	/*
 	if (setpoint.ATT_dot.is_en_FF())
 	{
@@ -264,12 +270,12 @@ int feedback_controller_t::rpy_rate_transition(double& roll_dot_err,\
 int feedback_controller_t::xy_init(void)
 {
 	// get controllers from settings
-	if (unlikely(x.init(settings.horiz_pos_ctrl_X_pd, settings.horiz_pos_ctrl_X_i, settings.horiz_pos_X_ctrl_FF, settings.horiz_pos_X_ctrl_K) == -1))
+	if (unlikely(x.init(settings.X_pos_ctrl) == -1))
 	{
 		printf("Error in xy_init: failed to create X position controller from settings\n");
 		return -1;
 	}
-	if (unlikely(y.init(settings.horiz_pos_ctrl_Y_pd, settings.horiz_pos_ctrl_Y_i, settings.horiz_pos_Y_ctrl_FF, settings.horiz_pos_Y_ctrl_K) == -1))
+	if (unlikely(y.init(settings.Y_pos_ctrl) == -1))
 	{
 		printf("Error in xy_init: failed to create Y position controller from settings\n");
 		return -1;
@@ -278,6 +284,36 @@ int feedback_controller_t::xy_init(void)
 	last_en_XY_ctrl = false;
 
     return 0;
+}
+
+/* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
+inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp,\
+	double x_sp, double y_sp, double x, double y, double max_norm)
+{
+	double tmp_x_err = x_sp - x;
+	double tmp_y_err = y_sp - y;
+	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err);
+	double tmp_x_out, tmp_y_out;
+
+	if (tmp_norm >= max_norm)
+	{
+		new_x_sp = tmp_x_err / tmp_norm + x / max_norm;
+		new_y_sp = tmp_y_err / tmp_norm + y / max_norm;
+	}
+	else
+	{
+		new_x_sp = x_sp / max_norm;
+		new_y_sp = y_sp / max_norm;
+	}
+	return;
+}
+
+/* Brief: shortcut for 1D normalized bound on setpoint */
+inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_sp)
+{
+	double tmp_err = x_sp - x;
+	if (fabs(tmp_err) >= max_sp) tmp_err = 1.0 * sgn(tmp_err);
+	return (tmp_err + x) / max_sp;
 }
 
 
@@ -299,14 +335,29 @@ int feedback_controller_t::xy_march(void)
 		x.scale_gains(scale_val);
 		y.scale_gains(scale_val);
 	}
-
+	/*
 	double tmp_x_err = setpoint.XY.x.value.get() - state_estimate.X;
 	double tmp_y_err = setpoint.XY.y.value.get() - state_estimate.Y;
 	rc_saturate_double(&tmp_x_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
 	rc_saturate_double(&tmp_y_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
+	*/
+	double tmp_x_sp, tmp_y_sp, tmp_x_out, tmp_y_out;
+	double tmp_x = state_estimate.X;
+	double tmp_y = state_estimate.Y;
 
+	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp,\
+		setpoint.XY.x.value.get(), setpoint.XY.y.value.get(),\
+		tmp_x, tmp_y, XY_MAX_ERROR_NORM);
 
 	// Position error -> Velocity/Acceleration error
+	x.march_std(&tmp_x_out, tmp_y_sp, tmp_x / XY_MAX_ERROR_NORM);
+	y.march_std(&tmp_y_out, tmp_y_sp, tmp_y / XY_MAX_ERROR_NORM);
+
+	
+	setpoint.XY_dot.x.value.set(tmp_x_out * XY_MAX_ERROR_NORM); // rescale input x
+	setpoint.XY_dot.y.value.set(tmp_y_out * XY_MAX_ERROR_NORM); // rescale input y
+	
+	/*
 	if (setpoint.XY.is_en_FF())
 	{
 		x.march(setpoint.XY_dot.x.value.get_pt(), tmp_x_err, setpoint.XY.x.FF.get());
@@ -317,13 +368,14 @@ int feedback_controller_t::xy_march(void)
 		x.march(setpoint.XY_dot.x.value.get_pt(), tmp_x_err);
 		y.march(setpoint.XY_dot.y.value.get_pt(), tmp_y_err);
 	}
-	
+	*/
 	
 	if (!setpoint.XY_dot.is_en())
 	{
 		setpoint.XYZ_ddot.x.value.set(setpoint.XY_dot.x.value.get());
 		setpoint.XYZ_ddot.y.value.set(setpoint.XY_dot.y.value.get());
 	}
+	
 
 
 	last_en_XY_ctrl = true;
@@ -345,12 +397,12 @@ int feedback_controller_t::xy_reset(void)
 int feedback_controller_t::xy_rate_init(void)
 {
 	// get controllers from settings
-	if (unlikely(x_dot.init(settings.horiz_vel_ctrl_pd_X, settings.horiz_vel_ctrl_i_X, settings.horiz_vel_X_controller_FF, settings.horiz_vel_X_controller_K) == -1))
+	if (unlikely(x_dot.init(settings.X_vel_ctrl) == -1))
 	{
 		printf("Error in xy_rate_init: failed to create X velocity controller from settings\n");
 		return -1;
 	}
-	if (unlikely(y_dot.init(settings.horiz_vel_ctrl_pd_Y, settings.horiz_vel_ctrl_i_Y, settings.horiz_vel_Y_controller_FF, settings.horiz_vel_Y_controller_K) == -1))
+	if (unlikely(y_dot.init(settings.Y_vel_ctrl) == -1))
 	{
 		printf("Error in xy_rate_init: failed to create Y velocity controller from settings\n");
 		return -1;
@@ -378,6 +430,23 @@ int feedback_controller_t::xy_rate_march(void)
 	}
 
 	////////////// PID for horizontal velocity control /////////////
+	double tmp_x_sp, tmp_y_sp, tmp_x_out, tmp_y_out;
+	double tmp_x = state_estimate.X_dot;
+	double tmp_y = state_estimate.Y_dot;
+
+	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
+		setpoint.XY_dot.x.value.get(), setpoint.XY_dot.y.value.get(), \
+		tmp_x, tmp_y, MAX_XY_VELOCITY_NORM);
+
+	// Position error -> Velocity/Acceleration error
+	x_dot.march_std(&tmp_x_out, tmp_x_sp, tmp_x / MAX_XY_VELOCITY_NORM);
+	y_dot.march_std(&tmp_y_out, tmp_y_sp, tmp_y / MAX_XY_VELOCITY_NORM);
+
+	setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XY_VELOCITY_NORM);
+	setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XY_VELOCITY_NORM);
+
+
+	/*
 	setpoint.XY_dot.x.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
 	setpoint.XY_dot.y.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
 
@@ -391,6 +460,7 @@ int feedback_controller_t::xy_rate_march(void)
 		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.X_dot);
 		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.Y_dot);
 	}
+	*/
 	
 	last_en_XYdot_ctrl = true;
 	return 0;
@@ -420,7 +490,7 @@ int feedback_controller_t::xy_rate_reset(void)
 int feedback_controller_t::z_init(void)
 {
 	// get controllers from settings
-	if (unlikely(z.init(settings.altitude_controller_pd, settings.altitude_controller_i, settings.altitude_controller_FF, settings.altitude_controller_K) == -1))
+	if (unlikely(z.init(settings.Z_pos_ctrl) == -1))
 	{
 		printf("Error in z_rate_init: failed to create Altitude controller from settings\n");
 		return -1;
@@ -466,10 +536,14 @@ int feedback_controller_t::z_march(void)
 		z.scale_gains(settings.v_nominal / state_estimate.v_batt_lp);
 	}
 
-	double tmp_z_err = setpoint.Z.value.get() - state_estimate.Z;
-	rc_saturate_double(&tmp_z_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
+	//double tmp_z_err = setpoint.Z.value.get() - state_estimate.Z;
+	//rc_saturate_double(&tmp_z_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
 
 	// Position error -> Velocity error:
+	double tmp_out;
+	double tmp_z = state_estimate.Z;
+	z.march_std(&tmp_out, setpoint.Z.value.get(), tmp_z);
+	/*
 	if (setpoint.Z.FF.is_en())
 	{
 		z.march(setpoint.Z_dot.value.get_pt(), tmp_z_err, setpoint.Z.FF.get());
@@ -478,7 +552,7 @@ int feedback_controller_t::z_march(void)
 	{
 		z.march(setpoint.Z_dot.value.get_pt(), tmp_z_err);
 	}
-	
+	*/
 
 	if (!setpoint.Z_dot.value.is_en())
 	{
@@ -502,7 +576,7 @@ int feedback_controller_t::z_reset(void)
 int feedback_controller_t::z_rate_init(void)
 {
 	// get controllers from settings
-	if (unlikely(z_dot.init(settings.altitude_rate_controller_pd, settings.altitude_rate_controller_i, settings.altitude_rate_controller_FF, settings.altitude_rate_controller_K) == -1))
+	if (unlikely(z_dot.init(settings.Z_vel_ctrl) == -1))
 	{
 		printf("Error in z_rate_init: failed to create Altitude rate controller from settings\n");
 		return -1;
@@ -541,7 +615,14 @@ int feedback_controller_t::z_rate_march(void)
 		// updating the gains based on battery voltage
 		z_dot.scale_gains(settings.v_nominal / state_estimate.v_batt_lp);
 	}
+	
+	double tmp_z = state_estimate.Z_dot;
+	double tmp_out;
 
+	z_dot.march_std(&tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY), tmp_z / MAX_Z_VELOCITY);
+	setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_Z_VELOCITY);
+
+	/*
 	setpoint.Z_dot.value.saturate(-MAX_Z_VELOCITY, MAX_Z_VELOCITY);
 
 	// Vertical velocity error -> Vertical acceleration error
@@ -553,7 +634,7 @@ int feedback_controller_t::z_rate_march(void)
 	{
 		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.Z_dot);
 	}
-
+	*/
 
 	last_en_Zdot_ctrl = true;
 	return 0;
@@ -603,26 +684,50 @@ char feedback_controller_t::gain_tune_march(void)
 
 int feedback_controller_t::XY_accel_2_attitude(void)
 {
-	setpoint.XYZ_ddot.x.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
-	setpoint.XYZ_ddot.y.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
+	double tmp_x = setpoint.XYZ_ddot.x.value.get();
+	double tmp_y = setpoint.XYZ_ddot.y.value.get();
+	double tmp_norm = sqrt(tmp_x * tmp_x + tmp_y * tmp_y);
+	if (tmp_norm >= MAX_XY_ACCELERATION_NORM)
+	{
+		tmp_x = tmp_x / tmp_norm;
+		tmp_y = tmp_y / tmp_norm;
+	}
+	else
+	{
+		tmp_x = tmp_x / MAX_XY_ACCELERATION_NORM;
+		tmp_y = tmp_y / MAX_XY_ACCELERATION_NORM;
+	}
+
+	//setpoint.XYZ_ddot.x.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
+	//setpoint.XYZ_ddot.y.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
 
 	// Horizonal acceleration setpoint -> Lean Angles
+	setpoint.ATT.x.value.set(\
+		-sin(state_estimate.continuous_yaw) * tmp_x\
+			+ cos(state_estimate.continuous_yaw) * tmp_y);
+	setpoint.ATT.y.set(\
+		- cos(state_estimate.continuous_yaw) * tmp_x\
+			+ sin(state_estimate.continuous_yaw) * tmp_y);
+	/*
 	setpoint.ATT.x.value.set(\
 		(-sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
 			+ cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
 	setpoint.ATT.y.set(\
 		- (cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
 			+ sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-
+	*/
 	return 0;
 }
 
 int feedback_controller_t::Z_accel_2_throttle(void)
 {
-	setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
+	//setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
+
+	double tmp_z = setpoint.XYZ_ddot.z.value.get();
+	if (fabs(tmp_z) >= MAX_Z_ACCELERATION) tmp_z = MAX_Z_ACCELERATION * sgn(tmp_z);
 
 	// Vertical acceleration error -> throttle	
-	setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
+	setpoint.POS_throttle.z.value.set((tmp_z - setpoint.Z_throttle_0)\
 		/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
 
 	return 0;
