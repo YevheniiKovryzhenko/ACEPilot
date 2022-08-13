@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/12/2020 (MM/DD/YYYY)
  *
  * Summary :
  * Provides general framework for convenient use of threads in object-oriented programming.
@@ -77,7 +77,7 @@ public:
 	/**
 	 * @brief      Returns true if thread is started.
 	 */
-	bool is_started(void);
+	bool is_started(void) const;
 
 };
 

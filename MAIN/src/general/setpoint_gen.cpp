@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/31/2022 (MM/DD/YYYY)
+ * Last Edit:  08/12/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Subclass for simplifying setpoint_manager. Defines multiple overloads for wider compatibility.
@@ -78,7 +78,7 @@ int attachement_gen_t::update(void)
  /**
  * Generalized setpoint class.
  */
-bool setpoint_gen_t::is_en(void)
+bool setpoint_gen_t::is_en(void) const
 {
 	return en;
 }
@@ -104,7 +104,7 @@ double setpoint_gen_t::get(void)
 	}
 	return *pt_value;
 }
-double* setpoint_gen_t::get_pt(void)
+double* setpoint_gen_t::get_pt(void) const
 {
 	return pt_value;
 }
@@ -323,12 +323,12 @@ int setpoint_gen_1D_t::stop_filters(void)
 /**
 * Generalized setpoint subclass for controlling 2 degrees.
 */
-bool setpoint_gen_2D_t::is_en(void)
+bool setpoint_gen_2D_t::is_en(void) const
 {
 	bool tmp = x.value.is_en() && y.value.is_en();
 	return tmp;
 }
-bool setpoint_gen_2D_t::is_en_FF(void)
+bool setpoint_gen_2D_t::is_en_FF(void) const
 {
 	bool tmp = x.FF.is_en() && y.FF.is_en();
 	return tmp;
@@ -476,12 +476,12 @@ int setpoint_gen_2D_t::stop_filters(void)
 /**
 * Generalized setpoint subclass for controlling 3 degrees.
 */
-bool setpoint_gen_3D_t::is_en(void)
+bool setpoint_gen_3D_t::is_en(void) const
 {
 	bool tmp_1 = x.value.is_en() && x.value.is_en() && z.value.is_en();
 	return tmp_1;
 }
-bool setpoint_gen_3D_t::is_en_FF(void)
+bool setpoint_gen_3D_t::is_en_FF(void) const
 {
 	bool tmp_1 = x.FF.is_en() && x.FF.is_en() && z.FF.is_en();
 	return tmp_1;

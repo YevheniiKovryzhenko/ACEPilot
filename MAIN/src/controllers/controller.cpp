@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/05/2022 (MM/DD/YYYY)
+ * Last Edit:  08/13/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -48,6 +48,42 @@
 template <typename T> int sgn(T val) {
 	return (T(0) < val) - (val < T(0));
 }
+
+
+/* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
+inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
+	double x_sp, double y_sp, double x, double y, double max_norm)
+{
+	double tmp_x_err = x_sp - x;
+	double tmp_y_err = y_sp - y;
+	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err);
+	double tmp_x_out, tmp_y_out;
+
+	if (tmp_norm > max_norm)
+	{
+		new_x_sp = tmp_x_err / tmp_norm + x / max_norm; // (x_sp - x)/nm = x_err/nm  --> x_sp/nm = (x_err + x)/nm
+		new_y_sp = tmp_y_err / tmp_norm + y / max_norm;
+	}
+	else
+	{
+		new_x_sp = tmp_x_err / max_norm + x / max_norm;
+		new_y_sp = tmp_y_err / max_norm + y / max_norm;
+	}
+	return;
+}
+
+/* Brief: shortcut for 1D normalized bound on setpoint */
+inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
+{
+	double tmp_err = x_sp - x;
+	if (tmp_err >= max_err) tmp_err = 1.0;
+	else if (tmp_err <= -max_err) tmp_err = -1.0;
+	else tmp_err = tmp_err / max_err;
+	return tmp_err + x / max_err;
+}
+
+
+
 
 /***************************************************************************
 * Roll Pitch Yaw controllers
@@ -94,8 +130,10 @@ int feedback_controller_t::rpy_march(void)
 		yaw.scale_gains(scale_val);
 	}
 
-	setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
-	setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
+	//setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
+	//setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
+	double tmp_yaw = state_estimate.continuous_yaw;
+	
 
 	//double err_roll, err_pitch, err_yaw;
 	//err_roll = setpoint.ATT.x.value.get() - state_estimate.roll;
@@ -105,9 +143,10 @@ int feedback_controller_t::rpy_march(void)
 	//if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw); //zero out ff terms?
 
 	// 1) Attitude -> Attitude Rate
-	roll.march_std(setpoint.ATT_dot.x.value.get_pt(), setpoint.ATT.x.value.get(), state_estimate.roll);
-	pitch.march_std(setpoint.ATT_dot.y.value.get_pt(), setpoint.ATT.y.value.get(), state_estimate.pitch);
-	yaw.march_std(setpoint.ATT_dot.z.value.get_pt(), setpoint.ATT.z.value.get(), state_estimate.continuous_yaw);
+	double tmp_roll_out, tmp_pitch_out, tmp_yaw_out;
+	roll.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.x.value.get(), MAX_ROLL_SETPOINT), state_estimate.roll / MAX_ROLL_SETPOINT);
+	pitch.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.y.value.get(), MAX_PITCH_SETPOINT), state_estimate.pitch / MAX_PITCH_SETPOINT);
+	yaw.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(tmp_yaw, setpoint.ATT.z.value.get(), MAX_YAW_ERROR), tmp_yaw / MAX_YAW_ERROR);
 	/*
 	if (setpoint.ATT.is_en_FF())
 	{
@@ -123,9 +162,17 @@ int feedback_controller_t::rpy_march(void)
 	}	
 	*/
 
-	if (!setpoint.ATT_dot.is_en())
+	if (setpoint.ATT_dot.is_en())
+	{
+		setpoint.ATT_dot.x.value.set(tmp_roll_out * MAX_ROLL_SETPOINT);
+		setpoint.ATT_dot.y.value.set(tmp_pitch_out * MAX_PITCH_SETPOINT);
+		setpoint.ATT_dot.z.value.set(tmp_yaw_out * MAX_YAW_ERROR);
+	}
+	else
 	{		
-		setpoint.ATT_throttle.set(setpoint.ATT_dot);
+		setpoint.ATT_throttle.x.value.set(tmp_roll_out * MAX_ROLL_SETPOINT);
+		setpoint.ATT_throttle.y.value.set(tmp_pitch_out * MAX_PITCH_SETPOINT);
+		setpoint.ATT_throttle.z.value.set(tmp_yaw_out * MAX_YAW_ERROR);
 	}
 
 	last_en_rpy_ctrl = true;
@@ -217,9 +264,11 @@ int feedback_controller_t::rpy_rate_march(void)
 	//if (setpoint.en_rpy_rate_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
 
 	// Attitude rate error -> Torque cmd.
-	roll_dot.march_std(setpoint.ATT_throttle.x.value.get_pt(), setpoint.ATT_dot.x.value.get(), state_estimate.roll_dot);
-	pitch_dot.march_std(setpoint.ATT_throttle.y.value.get_pt(), setpoint.ATT_dot.y.value.get(), state_estimate.pitch_dot);
-	yaw_dot.march_std(setpoint.ATT_throttle.z.value.get_pt(), setpoint.ATT_dot.z.value.get(), state_estimate.yaw_dot);
+	double tmp_roll_out, tmp_pitch_out, tmp_yaw_out;
+	roll_dot.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.x.value.get(), MAX_ROLL_RATE), state_estimate.roll_dot / MAX_ROLL_RATE);
+	pitch_dot.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.y.value.get(), MAX_PITCH_RATE), state_estimate.pitch_dot / MAX_PITCH_RATE);
+	yaw_dot.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.z.value.get(), MAX_YAW_RATE), state_estimate.yaw_dot / MAX_YAW_RATE);
+	
 	/*
 	if (setpoint.ATT_dot.is_en_FF())
 	{
@@ -234,6 +283,10 @@ int feedback_controller_t::rpy_rate_march(void)
 		yaw_dot.march(setpoint.ATT_throttle.z.value.get_pt(), err_yaw_dot);
 	}
 	*/
+	setpoint.ATT_throttle.x.value.set(tmp_roll_out * MAX_ROLL_RATE);
+	setpoint.ATT_throttle.y.value.set(tmp_pitch_out * MAX_PITCH_RATE);
+	setpoint.ATT_throttle.z.value.set(tmp_yaw_out * MAX_YAW_RATE);
+
 	last_en_rpy_rate_ctrl = true;
 	return 0;
 }
@@ -286,36 +339,6 @@ int feedback_controller_t::xy_init(void)
     return 0;
 }
 
-/* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
-inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp,\
-	double x_sp, double y_sp, double x, double y, double max_norm)
-{
-	double tmp_x_err = x_sp - x;
-	double tmp_y_err = y_sp - y;
-	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err);
-	double tmp_x_out, tmp_y_out;
-
-	if (tmp_norm >= max_norm)
-	{
-		new_x_sp = tmp_x_err / tmp_norm + x / max_norm;
-		new_y_sp = tmp_y_err / tmp_norm + y / max_norm;
-	}
-	else
-	{
-		new_x_sp = x_sp / max_norm;
-		new_y_sp = y_sp / max_norm;
-	}
-	return;
-}
-
-/* Brief: shortcut for 1D normalized bound on setpoint */
-inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_sp)
-{
-	double tmp_err = x_sp - x;
-	if (fabs(tmp_err) >= max_sp) tmp_err = 1.0 * sgn(tmp_err);
-	return (tmp_err + x) / max_sp;
-}
-
 
 int feedback_controller_t::xy_march(void)
 {
@@ -350,12 +373,8 @@ int feedback_controller_t::xy_march(void)
 		tmp_x, tmp_y, XY_MAX_ERROR_NORM);
 
 	// Position error -> Velocity/Acceleration error
-	x.march_std(&tmp_x_out, tmp_y_sp, tmp_x / XY_MAX_ERROR_NORM);
-	y.march_std(&tmp_y_out, tmp_y_sp, tmp_y / XY_MAX_ERROR_NORM);
-
-	
-	setpoint.XY_dot.x.value.set(tmp_x_out * XY_MAX_ERROR_NORM); // rescale input x
-	setpoint.XY_dot.y.value.set(tmp_y_out * XY_MAX_ERROR_NORM); // rescale input y
+	x.march_std(tmp_x_out, tmp_x_sp, tmp_x / XY_MAX_ERROR_NORM);
+	y.march_std(tmp_y_out, tmp_y_sp, tmp_y / XY_MAX_ERROR_NORM);
 	
 	/*
 	if (setpoint.XY.is_en_FF())
@@ -370,10 +389,15 @@ int feedback_controller_t::xy_march(void)
 	}
 	*/
 	
-	if (!setpoint.XY_dot.is_en())
+	if (setpoint.XY_dot.is_en())
 	{
-		setpoint.XYZ_ddot.x.value.set(setpoint.XY_dot.x.value.get());
-		setpoint.XYZ_ddot.y.value.set(setpoint.XY_dot.y.value.get());
+		setpoint.XY_dot.x.value.set(tmp_x_out * XY_MAX_ERROR_NORM); // rescale input x
+		setpoint.XY_dot.y.value.set(tmp_y_out * XY_MAX_ERROR_NORM); // rescale input y
+	}
+	else
+	{
+		setpoint.XYZ_ddot.x.value.set(tmp_x_out * XY_MAX_ERROR_NORM); // rescale input x
+		setpoint.XYZ_ddot.y.value.set(tmp_y_out * XY_MAX_ERROR_NORM); // rescale input y
 	}
 	
 
@@ -439,8 +463,8 @@ int feedback_controller_t::xy_rate_march(void)
 		tmp_x, tmp_y, MAX_XY_VELOCITY_NORM);
 
 	// Position error -> Velocity/Acceleration error
-	x_dot.march_std(&tmp_x_out, tmp_x_sp, tmp_x / MAX_XY_VELOCITY_NORM);
-	y_dot.march_std(&tmp_y_out, tmp_y_sp, tmp_y / MAX_XY_VELOCITY_NORM);
+	x_dot.march_std(tmp_x_out, tmp_x_sp, tmp_x / MAX_XY_VELOCITY_NORM);
+	y_dot.march_std(tmp_y_out, tmp_y_sp, tmp_y / MAX_XY_VELOCITY_NORM);
 
 	setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XY_VELOCITY_NORM);
 	setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XY_VELOCITY_NORM);
@@ -542,7 +566,10 @@ int feedback_controller_t::z_march(void)
 	// Position error -> Velocity error:
 	double tmp_out;
 	double tmp_z = state_estimate.Z;
-	z.march_std(&tmp_out, setpoint.Z.value.get(), tmp_z);
+	//z.march_std(&tmp_out, setpoint.Z.value.get(), tmp_z);
+
+	z.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z.value.get(), XYZ_MAX_ERROR), tmp_z / XYZ_MAX_ERROR);
+
 	/*
 	if (setpoint.Z.FF.is_en())
 	{
@@ -554,9 +581,13 @@ int feedback_controller_t::z_march(void)
 	}
 	*/
 
-	if (!setpoint.Z_dot.value.is_en())
+	if (setpoint.Z_dot.value.is_en())
 	{
-		setpoint.XYZ_ddot.z.value.set(setpoint.Z.value);
+		setpoint.Z_dot.value.set(tmp_out * XYZ_MAX_ERROR);
+	}
+	else
+	{
+		setpoint.XYZ_ddot.z.value.set(tmp_out * XYZ_MAX_ERROR);
 	}	
 	
 	last_en_Z_ctrl = true;
@@ -619,7 +650,7 @@ int feedback_controller_t::z_rate_march(void)
 	double tmp_z = state_estimate.Z_dot;
 	double tmp_out;
 
-	z_dot.march_std(&tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY), tmp_z / MAX_Z_VELOCITY);
+	z_dot.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY), tmp_z / MAX_Z_VELOCITY);
 	setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_Z_VELOCITY);
 
 	/*
@@ -721,13 +752,10 @@ int feedback_controller_t::XY_accel_2_attitude(void)
 
 int feedback_controller_t::Z_accel_2_throttle(void)
 {
-	//setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
-
-	double tmp_z = setpoint.XYZ_ddot.z.value.get();
-	if (fabs(tmp_z) >= MAX_Z_ACCELERATION) tmp_z = MAX_Z_ACCELERATION * sgn(tmp_z);
+	setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
 
 	// Vertical acceleration error -> throttle	
-	setpoint.POS_throttle.z.value.set((tmp_z - setpoint.Z_throttle_0)\
+	setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
 		/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
 
 	return 0;

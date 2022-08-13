@@ -22,22 +22,21 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/12/2022 (MM/DD/YYYY)
  */
 
 
 #include "tools.h"
 
-double finddt_s(uint64_t ti)
+inline double finddt_s(uint64_t ti)
 {
-    double dt_s = (rc_nanos_since_boot() - ti) / (1e9);
-    return dt_s;
+    return (rc_nanos_since_boot() - ti) / (1e9);
 }
 
-double cubicPol(double xi, double xf, double xdoti, double xdotf, float tt_s, double dt)
+inline double cubicPol(double xi, double xf, double xdoti, double xdotf, float tt_s, double dt)
 {
-    double dX = (2 * xi - 2 * xf + tt_s * (xdotf + xdoti)) / (pow(tt_s, 3)) * pow(dt, 3) -
-        (3 * xi - 3 * xf + tt_s * (xdotf + 2 * xdoti)) / (pow(tt_s, 2)) * pow(dt, 2) +
+    return (2 * xi - 2 * xf + tt_s * (xdotf + xdoti)) / (pow(tt_s, 3)) * pow(dt, 3) -\
+        (3 * xi - 3 * xf + tt_s * (xdotf + 2 * xdoti)) / (pow(tt_s, 2)) * pow(dt, 2) +\
         xdoti * dt + xi;
     /* Cubic BVP:
     initial position and velocity is 0
@@ -45,7 +44,6 @@ double cubicPol(double xi, double xf, double xdoti, double xdotf, float tt_s, do
     tt_s is total time in seconds
     */
     // double dX = (-2*xf/(tt_s*tt_s*tt_s)) * dt*dt*dt + 3*xf/(tt_s*tt_s) * dt*dt;
-    return dX;
 }
 
 

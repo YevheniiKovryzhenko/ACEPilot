@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/30/2022 (MM/DD/YYYY)
+ * Last Edit:  08/12/2022 (MM/DD/YYYY)
  *
  * Summary :
  * General-purpose class for handling clustered signals. 
@@ -75,13 +75,13 @@ private:
 	void reset_gain(void);
 
 public:
-	bool is_en(void); // returns en flag
+	bool is_en(void) const; // returns en flag
 	int disable(void); // sets en flag to true
 	int enable(void); // sets en flag to false
 
 	/* functions for retreving value parameter */
 	double get(void); //updates internal functions if enabled; returns value;
-	double* get_pt(void); // returns pt_value
+	double* get_pt(void) const; // returns pt_value
 	
 	/* Functions for seting value parameter */
 	int set(double val); // sets value; resets pointer to point at value
@@ -158,8 +158,8 @@ public:
 	setpoint_gen_1D_t y{}; //setpoint for y/pitch
 
 
-	bool is_en(void); // return en flag for both
-	bool is_en_FF(void); // return en_FF flag for both
+	bool is_en(void) const; // return en flag for both
+	bool is_en_FF(void) const; // return en_FF flag for both
 	int disable(void); // sets en flag to true for both
 	int enable(void); // sets en flag to false for both
 	int disable_FF(void); // sets en_FF flag to true for both
@@ -194,10 +194,10 @@ public:
 	setpoint_gen_1D_t y{}; //setpoint for y/pitch
 	setpoint_gen_1D_t z{}; //setpoint for z/yaw/heading
 
-	bool is_en(void); // return en flag for all
+	bool is_en(void) const; // return en flag for all
 	int disable(void); // sets en flag to true for all
 	int enable(void); // sets en flag to false for all
-	bool is_en_FF(void); // return en_FF flag for all
+	bool is_en_FF(void) const; // return en_FF flag for all
 	int disable_FF(void); // sets en flag to true for all
 	int enable_FF(void); // sets en flag to false for all
 	int enable_all(void);

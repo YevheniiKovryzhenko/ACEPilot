@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/12/2022 (MM/DD/YYYY)
  *
  * Summary :
  * General-purpose class for applying simple filtering on a signal.
@@ -36,7 +36,7 @@
  /**
  * Setpoint filter class.
  */
-bool signal_filter_gen_t::is_init(void)
+bool signal_filter_gen_t::is_init(void) const
 {
 	return initialized;
 }
@@ -102,7 +102,7 @@ int signal_filter_gen_t::set_type(signal_filter_gen_type_t type)
 
 	return 0;
 }
-bool signal_filter_gen_t::is_en(void)
+bool signal_filter_gen_t::is_en(void) const
 {
 	return en;
 }
@@ -140,7 +140,7 @@ int signal_filter_gen_t::reset(void)
 
 	return 0;
 }
-double signal_filter_gen_t::get(void)
+double signal_filter_gen_t::get(void) const
 {
 	return output;
 }

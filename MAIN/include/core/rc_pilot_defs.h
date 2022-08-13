@@ -73,6 +73,7 @@ typedef enum dsm_kill_mode_t {
 #define MAX_YAW_RATE				1.5		// rad/s
 #define MAX_ROLL_SETPOINT			0.75	// rad
 #define MAX_PITCH_SETPOINT			0.75	// rad
+#define MAX_YAW_ERROR				0.3		// rad
 #define MAX_XY_VELOCITY				2.0     // m/s
 #define MAX_Z_VELOCITY				2.0     // m/s
 #define MAX_XY_ACCELERATION			5.0		// m/s^2

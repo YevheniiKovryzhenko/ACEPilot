@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  08/12/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -158,7 +158,7 @@ public:
 	*
 	* @return     true or false
 	*/
-	bool is_initialized(void);
+	bool is_initialized(void) const;
 	
 
 	/**

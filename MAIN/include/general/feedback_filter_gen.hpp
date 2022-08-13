@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/06/2022 (MM/DD/YYYY)
+ * Last Edit:  08/13/2022 (MM/DD/YYYY)
  */
 
 
@@ -96,7 +96,7 @@ public:
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int march_std(double* out, double ref_in, double st_in);
+	int march_std(double &out, double ref_in, double st_in);
 
 	/**
 	* @brief      Marches the control system forward with new error and referece inputs.
@@ -106,7 +106,7 @@ public:
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int march(double* out, double err_in, double ref_in);
+	int march(double &out, double err_in, double ref_in);
 
 	/**
 	* @brief      Marches the control system forward with new error inputs.

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  05/23/2022 (MM/DD/YYYY)
+ * Last Edit:  08/13/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -423,14 +423,15 @@ int main(int argc, char** argv)
             FAIL("ERROR: failed to set dmp callback function\n")
         }
 
-        // start printf_thread if running from a terminal
-        // if it was started as a background process then don't bother	
+        
+    }
+    // start printf_thread if running from a terminal
+    // if it was started as a background process then don't bother	
 
-        if (isatty(fileno(stdout))) {
-            printf("initializing printf manager\n");
-            if (printf_init() < 0) {
-                FAIL("ERROR: failed to initialize printf_manager\n")
-            }
+    if (isatty(fileno(stdout))) {
+        printf("initializing printf manager\n");
+        if (printf_init() < 0) {
+            FAIL("ERROR: failed to initialize printf_manager\n")
         }
     }
 

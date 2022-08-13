@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/12/2020 (MM/DD/YYYY)
  *
  * Summary :
  * 
@@ -77,7 +77,7 @@ int thread_gen_t::stop(float TOUT)
     return ret;
 }
 
-bool thread_gen_t::is_started(void)
+bool thread_gen_t::is_started(void) const
 {
     return started;
 }

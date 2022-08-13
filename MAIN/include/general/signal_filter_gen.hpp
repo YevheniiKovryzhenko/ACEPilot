@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/12/2022 (MM/DD/YYYY)
  *
  * Summary :
  * General-purpose class for applying simple filtering on a signal.
@@ -70,14 +70,14 @@ private:
 	double max = 1.0;
 
 public:
-	bool is_init(void);
+	bool is_init(void) const;
 	int set_type(signal_filter_gen_type_t type);
 
-	bool is_en(void);
+	bool is_en(void) const;
 	int enable(void);
 	int disable(void);
 
-	double get(void);
+	double get(void) const;
 
 	int set_dt(double in);
 	int set_tc(double in);

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/13/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -69,6 +69,7 @@
 #define likely(x)	__builtin_expect (!!(x), 1)
 
 
+
 /**
 * float apply_deadzone(float in, float zone)
 *
@@ -76,12 +77,34 @@
 * the dead zone is centered around 0. zone specifies the distance from 0 the
 * zone extends.
 **/
-static double __deadzone(double in, double zone)
+inline double __deadzone(double in, double zone)
 {
 	if (zone <= 0.0) return in;
 	if (fabs(in) <= zone) return 0.0;
 	if (in > 0.0)	return ((in - zone) / (1.0 - zone));
 	else		return ((in + zone) / (1.0 - zone));
+}
+
+/* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
+inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
+	double x_sp, double y_sp, double x, double y, double max_norm)
+{
+	double tmp_x_err = x_sp - x;
+	double tmp_y_err = y_sp - y;
+	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err);
+	double tmp_x_out, tmp_y_out;
+
+	if (tmp_norm > max_norm)
+	{
+		new_x_sp = tmp_x_err / tmp_norm + x / max_norm; // (x_sp - x)/nm = x_err/nm  --> x_sp/nm = (x_err + x)/nm
+		new_y_sp = tmp_y_err / tmp_norm + y / max_norm;
+	}
+	else
+	{
+		new_x_sp = tmp_x_err / max_norm + x / max_norm;
+		new_y_sp = tmp_y_err / max_norm + y / max_norm;
+	}
+	return;
 }
 
  /*
@@ -502,11 +525,29 @@ void setpoint_t::update_Z_dot(void)
 
 //----Manual/Radio/Direct control of horizontal velocity ----//
 void setpoint_t::update_XY_vel(void)
-{
+{	
+	double tmp_yaw = state_estimate.continuous_yaw;
+	double tmp_roll = __deadzone(user_input.roll.get(), 0.05);
+	double tmp_pitch = __deadzone(user_input.pitch.get(), 0.05);
+
+	double tmp_x_sp = (-tmp_pitch * cos(tmp_yaw)\
+		- tmp_roll * sin(tmp_yaw));
+
+	double tmp_y_sp = (tmp_roll * cos(tmp_yaw)\
+		- tmp_pitch * sin(tmp_yaw));
+
+	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp,\
+		tmp_x_sp, tmp_y_sp,\
+		state_estimate.X_dot / MAX_XY_VELOCITY_NORM, state_estimate.Y_dot / MAX_XY_VELOCITY_NORM,\
+		1.0);
+
+	XY_dot.x.value.set(tmp_x_sp * MAX_XY_VELOCITY_NORM);
+	XY_dot.y.value.set(tmp_y_sp * MAX_XY_VELOCITY_NORM);
+
+	
+	/*
 	double tmp_roll_stick = __deadzone(user_input.roll.get(), 0.05);
 	double tmp_pitch_stick = __deadzone(user_input.pitch.get(), 0.05);
-	double tmp_yaw = state_estimate.continuous_yaw;
-	
 	XY_dot.x.value.set((-tmp_pitch_stick * cos(tmp_yaw)\
 		- tmp_roll_stick * sin(tmp_yaw))\
 		* MAX_XY_VELOCITY);
@@ -515,12 +556,35 @@ void setpoint_t::update_XY_vel(void)
 		- tmp_pitch_stick * sin(tmp_yaw))\
 		* MAX_XY_VELOCITY);
 
+	*/
 	return;
 }
 
 //----Manual/Radio/Direct control of horizontal position ----//
 void setpoint_t::update_XY_pos(void)
 {
+	// X in the body frame (forward flight)
+	// Y in the body frame (lateral translation to the right wing)
+	double tmp_yaw = state_estimate.continuous_yaw;
+	double tmp_roll = __deadzone(user_input.roll.get(), 0.05);
+	double tmp_pitch = __deadzone(user_input.pitch.get(), 0.05);
+
+	double tmp_x_sp = (-tmp_pitch * cos(tmp_yaw)\
+		- tmp_roll * sin(tmp_yaw));
+
+	double tmp_y_sp = (tmp_roll * cos(tmp_yaw)\
+		- tmp_pitch * sin(tmp_yaw));
+
+	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
+		tmp_x_sp, tmp_y_sp, \
+		state_estimate.X / XY_MAX_ERROR_NORM, state_estimate.Y / XY_MAX_ERROR_NORM, \
+		1.0);
+
+	XY.x.value.set(tmp_x_sp * XY_MAX_ERROR_NORM);
+	XY.y.value.set(tmp_y_sp * XY_MAX_ERROR_NORM);
+
+
+	/*
 	double tmp_X_dot, tmp_Y_dot;
 	// X in the body frame (forward flight)
 	// make sure setpoint doesn't go too far from state in case touching something
@@ -563,7 +627,7 @@ void setpoint_t::update_XY_pos(void)
 		//apply velocity command 
 		XY.y.value.increment(tmp_Y_dot * DT); //Y is defined positive to the left 
 	}
-	
+	*/
 
 	return;
 }
@@ -611,7 +675,7 @@ int setpoint_t::init(void)
 	initialized = true;
 	return 0;
 }
-bool setpoint_t::is_initialized(void)
+bool setpoint_t::is_initialized(void) const
 {
 	return initialized;
 }
