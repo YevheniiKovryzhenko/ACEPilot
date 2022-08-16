@@ -12,7 +12,7 @@
 	"enable_v_gain_scaling": false,
 
 	"enable_magnetometer": false,
-	"enable_mocap": false,
+	"enable_mocap": true,
 	"use_mocap_roll": false,
 	"use_mocap_pitch": false,
 	"use_mocap_yaw": true,
@@ -43,11 +43,11 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "MANUAL_AAxxxx",
+	"flight_mode_1": "ACRO_Axxxxx",
 	"flight_mode_2": "POS_CTRL_AAAAAA",
 	"flight_mode_3": "AUTO_FFFAFA",
 
-	"enable_dsm": false,
+	"enable_dsm": true,
 	"dsm_thr_ch": 1,
 	"dsm_thr_pol": 1,
 	"dsm_roll_ch": 2,
