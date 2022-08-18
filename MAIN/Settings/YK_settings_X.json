@@ -43,9 +43,9 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "MANUAL_AAxxxx",
-	"flight_mode_2": "POS_CTRL_AAAAAA",
-	"flight_mode_3": "AUTO_FFFAFA",
+	"flight_mode_1": "ACRO_Axxxxx",
+	"flight_mode_2": "MANUAL_AAxxxx",
+	"flight_mode_3": "POS_CTRL_FFFAAx",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -201,7 +201,7 @@
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
 			"kp": 0.0,
-			"kd": 9.78008,
+			"kd": 0.000733506,
 			"crossover_freq_rad_per_sec": 80.08300020
 		},
 		"i": {
@@ -219,7 +219,7 @@
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
 			"kp": 0.0,
-			"kd": 9.78008,
+			"kd": 0.000733506,
 			"crossover_freq_rad_per_sec": 80.08300020
 		},
 		"i": {
@@ -237,7 +237,7 @@
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
 			"kp": 0.0,
-			"kd": 0.019140683837927,
+			"kd": 0.005742205151378,
 			"crossover_freq_rad_per_sec": 62.83
 		},
 		"i": {
@@ -246,7 +246,7 @@
 			"ki": 0.0,
 			"imax": 0.10
 		},
-		"K": 1.5934,
+		"K": 1.59336,
 		"FF": 0.0
 	},
 
@@ -264,7 +264,7 @@
 			"ki": 0.005211231544658,
 			"imax": 0.10
 		},
-		"K": 6.9152,
+		"K": 0.0997,
 		"FF": 0.0
 	},
 
@@ -282,7 +282,7 @@
 			"ki": 0.005211231544658,
 			"imax": 0.10
 		},
-		"K": 6.9152,
+		"K": 0.0997,
 		"FF": 0.0
 	},
 

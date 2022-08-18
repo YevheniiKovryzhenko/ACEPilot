@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/13/2022 (MM/DD/YYYY)
+ * Last Edit:  08/18/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -58,7 +58,12 @@ inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	double tmp_y_err = y_sp - y;
 	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err);
 	double tmp_x_out, tmp_y_out;
-
+	if (tmp_norm < 0.001) // do not consider error direction if too small 
+	{
+		new_x_sp = x / max_norm;
+		new_y_sp = y / max_norm;
+		return;
+	}
 	if (tmp_norm > max_norm)
 	{
 		new_x_sp = tmp_x_err / tmp_norm + x / max_norm; // (x_sp - x)/nm = x_err/nm  --> x_sp/nm = (x_err + x)/nm
@@ -130,8 +135,8 @@ int feedback_controller_t::rpy_march(void)
 		yaw.scale_gains(scale_val);
 	}
 
-	//setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
-	//setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
+	setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
+	setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
 	double tmp_yaw = state_estimate.continuous_yaw;
 	
 
@@ -251,7 +256,6 @@ int feedback_controller_t::rpy_rate_march(void)
 	setpoint.ATT_dot.x.value.saturate(-MAX_ROLL_RATE, MAX_ROLL_RATE);
 	setpoint.ATT_dot.y.value.saturate(-MAX_PITCH_RATE, MAX_PITCH_RATE);
 	setpoint.ATT_dot.z.value.saturate(-MAX_YAW_RATE, MAX_YAW_RATE);
-
 	/*
 	double err_roll_dot, err_pitch_dot, err_yaw_dot;
 	err_roll_dot = setpoint.ATT_dot.x.value.get() - state_estimate.roll_dot;
@@ -453,12 +457,30 @@ int feedback_controller_t::xy_rate_march(void)
 		y_dot.scale_gains(scale_val);
 	}
 
+
 	////////////// PID for horizontal velocity control /////////////
-	double tmp_x_sp, tmp_y_sp, tmp_x_out, tmp_y_out;
+	double tmp_x_sp = setpoint.XY_dot.x.value.get();
+	double tmp_y_sp = setpoint.XY_dot.y.value.get();
+
+	double norm = sqrt(tmp_x_sp * tmp_x_sp + tmp_y_sp * tmp_y_sp);
+	if (norm > MAX_XY_VELOCITY_NORM)
+	{
+		tmp_x_sp = tmp_x_sp / norm;
+		tmp_y_sp = tmp_y_sp / norm;		
+	}
+	else
+	{
+		tmp_x_sp = tmp_x_sp / MAX_XY_VELOCITY_NORM;
+		tmp_y_sp = tmp_y_sp / MAX_XY_VELOCITY_NORM;
+	}
+	setpoint.XY_dot.x.value.set(tmp_x_sp * MAX_XY_VELOCITY_NORM);
+	setpoint.XY_dot.y.value.set(tmp_y_sp * MAX_XY_VELOCITY_NORM);
+
+	double tmp_x_out, tmp_y_out;
 	double tmp_x = state_estimate.X_dot;
 	double tmp_y = state_estimate.Y_dot;
 
-	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
+	//__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
 		setpoint.XY_dot.x.value.get(), setpoint.XY_dot.y.value.get(), \
 		tmp_x, tmp_y, MAX_XY_VELOCITY_NORM);
 

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  08/18/2022 (MM/DD/YYYY)
  *
  */
 
@@ -122,20 +122,21 @@ static int __print_header()
 		}
 		if (settings.printf_setpoint_xy_dot)
 		{
-			printf("%s +sp_xd| sp_yd|", __next_colour());
+			printf("%s sp_xd| sp_yd|", __next_colour());
 		}
 		if (settings.printf_setpoint_z_dot)
 		{
 			printf("%s sp_zd|", __next_colour());
 		}
-		if (settings.printf_setpoint_att_dot)
-		{
-			printf("%s sp_r | sp_p | sp_y |", __next_colour());
-		}
 		if (settings.printf_setpoint_att)
 		{
-			printf("%s sp_rd| sp_pd| sp_yd|", __next_colour());
+			printf("%s sp_roll| sp_pitch| sp_yaw|", __next_colour());
 		}
+		if (settings.printf_setpoint_att_dot)
+		{
+			printf("%s sp_p | sp_q | sp_r |", __next_colour());
+		}
+		
 	}
 	if (settings.printf_u)
 	{
@@ -350,16 +351,17 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 				printf("%s%+6.2f|", __next_colour(),
 					setpoint.Z_dot.value.get());
 			}
+			if (settings.printf_setpoint_att)
+			{
+				printf("%s% +7.2f | %+7.2f |%+6.2f |", __next_colour(),
+					setpoint.ATT.x.value.get(), setpoint.ATT.y.value.get(), setpoint.ATT.z.value.get());
+			}
 			if (settings.printf_setpoint_att_dot)
 			{
 				printf("%s%+6.2f|%+6.2f|%+6.2f|", __next_colour(),
 					setpoint.ATT_dot.x.value.get(), setpoint.ATT_dot.y.value.get(), setpoint.ATT_dot.z.value.get());
 			}
-			if (settings.printf_setpoint_att)
-			{
-				printf("%s%+6.2f|%+6.2f|%+6.2f|", __next_colour(),
-					setpoint.ATT.x.value.get(), setpoint.ATT.y.value.get(), setpoint.ATT.z.value.get());
-			}
+			
 		}
 		if (settings.printf_u)
 		{

@@ -86,6 +86,7 @@ inline double __deadzone(double in, double zone)
 }
 
 /* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
+/*
 inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	double x_sp, double y_sp, double x, double y, double max_norm)
 {
@@ -93,7 +94,12 @@ inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	double tmp_y_err = y_sp - y;
 	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err);
 	double tmp_x_out, tmp_y_out;
-
+	if (tmp_norm < 0.001) // do not consider error direction if too small 
+	{
+		new_x_sp = x / max_norm;
+		new_y_sp = y / max_norm;
+		return;
+	}
 	if (tmp_norm > max_norm)
 	{
 		new_x_sp = tmp_x_err / tmp_norm + x / max_norm; // (x_sp - x)/nm = x_err/nm  --> x_sp/nm = (x_err + x)/nm
@@ -106,6 +112,7 @@ inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	}
 	return;
 }
+*/
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
@@ -526,43 +533,24 @@ void setpoint_t::update_Z_dot(void)
 //----Manual/Radio/Direct control of horizontal velocity ----//
 void setpoint_t::update_XY_vel(void)
 {	
-	double tmp_yaw = state_estimate.continuous_yaw;
-	double tmp_roll = __deadzone(user_input.roll.get(), 0.05);
-	double tmp_pitch = __deadzone(user_input.pitch.get(), 0.05);
-
-	double tmp_x_sp = (-tmp_pitch * cos(tmp_yaw)\
-		- tmp_roll * sin(tmp_yaw));
-
-	double tmp_y_sp = (tmp_roll * cos(tmp_yaw)\
-		- tmp_pitch * sin(tmp_yaw));
-
-	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp,\
-		tmp_x_sp, tmp_y_sp,\
-		state_estimate.X_dot / MAX_XY_VELOCITY_NORM, state_estimate.Y_dot / MAX_XY_VELOCITY_NORM,\
-		1.0);
-
-	XY_dot.x.value.set(tmp_x_sp * MAX_XY_VELOCITY_NORM);
-	XY_dot.y.value.set(tmp_y_sp * MAX_XY_VELOCITY_NORM);
-
-	
-	/*
+	double tmp_yaw = state_estimate.continuous_yaw;	
 	double tmp_roll_stick = __deadzone(user_input.roll.get(), 0.05);
 	double tmp_pitch_stick = __deadzone(user_input.pitch.get(), 0.05);
+	
 	XY_dot.x.value.set((-tmp_pitch_stick * cos(tmp_yaw)\
 		- tmp_roll_stick * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY);
+		* MAX_XY_VELOCITY_NORM);
 
 	XY_dot.y.value.set((tmp_roll_stick * cos(tmp_yaw)\
 		- tmp_pitch_stick * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY);
-
-	*/
+		* MAX_XY_VELOCITY_NORM);
 	return;
 }
 
 //----Manual/Radio/Direct control of horizontal position ----//
 void setpoint_t::update_XY_pos(void)
 {
+	/*
 	// X in the body frame (forward flight)
 	// Y in the body frame (lateral translation to the right wing)
 	double tmp_yaw = state_estimate.continuous_yaw;
@@ -582,52 +570,39 @@ void setpoint_t::update_XY_pos(void)
 
 	XY.x.value.set(tmp_x_sp * XY_MAX_ERROR_NORM);
 	XY.y.value.set(tmp_y_sp * XY_MAX_ERROR_NORM);
-
-
-	/*
-	double tmp_X_dot, tmp_Y_dot;
-	// X in the body frame (forward flight)
-	// make sure setpoint doesn't go too far from state in case touching something
-	if(XY.x.value.get() > (state_estimate.X + XYZ_MAX_ERROR)) {
-		XY.x.value.set(state_estimate.X + XYZ_MAX_ERROR);
-		tmp_X_dot = 0.0;
-	}
-	else if(XY.x.value.get() < (state_estimate.X - XYZ_MAX_ERROR)){
-		XY.x.value.set(state_estimate.X - XYZ_MAX_ERROR);
-		tmp_X_dot = 0.0;
-		return;
-	}
-	else{
-		tmp_X_dot = (-user_input.pitch.get() * cos(state_estimate.continuous_yaw)\
-			- user_input.roll.get() * sin(state_estimate.continuous_yaw))\
-			* MAX_XY_VELOCITY;
-
-		//apply velocity command 
-		XY.x.value.increment(tmp_X_dot * DT);
-	}
-	
-	// Y in the body frame (lateral translation)
-	// make sure setpoint doesn't go too far from state in case touching something
-	
-	if(XY.y.value.get() > (state_estimate.Y + XYZ_MAX_ERROR)){
-		XY.y.value.set(state_estimate.Y + XYZ_MAX_ERROR);
-		tmp_Y_dot = 0.0;
-		return;
-	}
-	else if(XY.y.value.get() < (state_estimate.Y - XYZ_MAX_ERROR)){
-		XY.y.value.set(state_estimate.Y - XYZ_MAX_ERROR);
-		tmp_Y_dot = 0.0;
-		return;
-	}
-	else{
-		tmp_Y_dot = (user_input.roll.get() * cos(state_estimate.continuous_yaw)\
-			- user_input.pitch.get() * sin(state_estimate.continuous_yaw))\
-			* MAX_XY_VELOCITY;
-
-		//apply velocity command 
-		XY.y.value.increment(tmp_Y_dot * DT); //Y is defined positive to the left 
-	}
 	*/
+
+	// get manual stick inputs
+	double tmp_roll = __deadzone(user_input.roll.get(), 0.05);
+	double tmp_pitch = __deadzone(user_input.pitch.get(), 0.05);
+	if (tmp_roll == 0.0 && tmp_pitch == 0.0) return; //return if no change requested
+	
+	// make sure setpoint doesn't go too far from state in case touching something
+	double tmp_x = XY.x.value.get() - state_estimate.X;
+	double tmp_y = XY.y.value.get() - state_estimate.X;
+	double tmp_norm = sqrt(tmp_x * tmp_x + tmp_y * tmp_y);
+	if (tmp_norm >= XY_MAX_ERROR_NORM)
+	{
+		//maintain the same dirrection of error, but bound the magnitude
+		XY.x.value.set(state_estimate.X + tmp_x / tmp_norm * XY_MAX_ERROR_NORM);
+		XY.y.value.set(state_estimate.Y + tmp_y / tmp_norm * XY_MAX_ERROR_NORM);
+		return;
+	}
+
+	//double tmp_X_dot, tmp_Y_dot;
+	double tmp_yaw = state_estimate.continuous_yaw;
+	
+	// X in the body frame (forward flight)
+	//apply as a velocity command integrated by the timestep 
+	XY.x.value.increment((-tmp_pitch * cos(tmp_yaw)\
+		- tmp_roll * sin(tmp_yaw))\
+		* MAX_XY_VELOCITY * DT);
+
+	// Y in the body frame (lateral translation)
+	//apply velocity command 
+	XY.y.value.increment((user_input.roll.get() * cos(state_estimate.continuous_yaw)\
+		- user_input.pitch.get() * sin(state_estimate.continuous_yaw))\
+		* MAX_XY_VELOCITY * DT); //Y is defined positive to the left 
 
 	return;
 }
