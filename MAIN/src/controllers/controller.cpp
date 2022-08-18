@@ -756,19 +756,19 @@ int feedback_controller_t::XY_accel_2_attitude(void)
 
 	// Horizonal acceleration setpoint -> Lean Angles
 	setpoint.ATT.x.value.set(\
-		-sin(state_estimate.continuous_yaw) * tmp_x\
-			+ cos(state_estimate.continuous_yaw) * tmp_y);
+		- sin(state_estimate.continuous_yaw) * tmp_x\
+		+ cos(state_estimate.continuous_yaw) * tmp_y);
 	setpoint.ATT.y.set(\
-		- cos(state_estimate.continuous_yaw) * tmp_x\
-			+ sin(state_estimate.continuous_yaw) * tmp_y);
-	/*
+		- (cos(state_estimate.continuous_yaw) * tmp_x\
+			+ sin(state_estimate.continuous_yaw) * tmp_y));
+	
 	setpoint.ATT.x.value.set(\
 		(-sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
 			+ cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
 	setpoint.ATT.y.set(\
 		- (cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
 			+ sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-	*/
+	
 	return 0;
 }
 
