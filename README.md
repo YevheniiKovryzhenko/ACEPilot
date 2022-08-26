@@ -49,11 +49,8 @@ To run the project just call the main execuitable with the proper arguments. To 
 	/home/debian/build_folder/MAIN/rc_pilot -h
 	
 For now, it only requires attaching a proper <SETTINGS_FILE> as:
+	
 	/home/debian/build_folder/MAIN/bin/rc_pilot -s /home/debian/build_folder/MAIN/Settings/SETTINGS_FILE.json
-
-If you have any questions, please feel free to reach out to me, Yevhenii (Jack) Kovryzhenko at:
-
-	yzk0058@auburn.edu
 
 # Notes:
 ## Magnetometer (Compass) Issues
@@ -107,3 +104,7 @@ both using "cmake" and "make".
 
 ## Documentation:
 You can look into docs/ folder for more information regarding code layout and details regarding the control system, estimation, etc.
+
+If you have any questions, please feel free to reach out to me, Yevhenii (Jack) Kovryzhenko at:
+
+	yzk0058@auburn.edu
