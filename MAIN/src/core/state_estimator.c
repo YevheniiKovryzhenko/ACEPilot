@@ -219,7 +219,7 @@ static void __imu_march(void)
 		state_estimate.quat_mocap[3] = GS_RX.qz; // Z (k)
 		
 		// normalize quaternion because we don't trust the mocap system
-		rc_quaternion_norm_array(state_estimate.quat_mocap);
+		rc_normalize_quaternion_array(state_estimate.quat_mocap);
 		// calculate tait bryan angles too
 		double tmp[3];
 		tmp[0] = state_estimate.tb_mocap[0];
@@ -273,7 +273,7 @@ static void __imu_march(void)
 	}
 
 	// normalize it just in case
-	rc_quaternion_norm_array(state_estimate.quat_imu);
+	rc_normalize_quaternion_array(state_estimate.quat_imu);
 	// generate tait bryan angles
 	rc_quaternion_to_tb_array(state_estimate.quat_imu, state_estimate.tb_imu);
 
@@ -327,7 +327,7 @@ static void __mag_march(void)
 	
 	
 	// normalize it just in case
-	rc_quaternion_norm_array(state_estimate.quat_mag);
+	rc_normalize_quaternion_array(state_estimate.quat_mag);
 	// generate tait bryan angles
 	rc_quaternion_to_tb_array(state_estimate.quat_mag, state_estimate.tb_mag);
 
