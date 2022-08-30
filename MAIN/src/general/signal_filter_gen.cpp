@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/12/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * General-purpose class for applying simple filtering on a signal.
@@ -30,13 +30,19 @@
  */
 #include "signal_filter_gen.hpp"
 
+// preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
  /**
  * Setpoint filter class.
  */
-bool signal_filter_gen_t::is_init(void) const
+bool signal_filter_gen_t::is_init(void)
 {
 	return initialized;
 }
@@ -102,7 +108,7 @@ int signal_filter_gen_t::set_type(signal_filter_gen_type_t type)
 
 	return 0;
 }
-bool signal_filter_gen_t::is_en(void) const
+bool signal_filter_gen_t::is_en(void)
 {
 	return en;
 }
@@ -140,7 +146,7 @@ int signal_filter_gen_t::reset(void)
 
 	return 0;
 }
-double signal_filter_gen_t::get(void) const
+double signal_filter_gen_t::get(void)
 {
 	return output;
 }
@@ -232,4 +238,161 @@ int signal_filter_triplet_gen_t::reset_all(void)
 	highpass.reset();
 	integrator.reset();
 	return 0;
+}
+
+
+
+/* Methods for general low-pass filter class */
+char signal_filter1D_gen_t::set(signal_filter_gen_settings_t new_settings)
+{
+	filter = RC_FILTER_INITIALIZER;
+	switch (new_settings.type)
+	{
+	case Lowpass:
+		if (unlikely(rc_filter_first_order_lowpass(&filter, new_settings.dt, new_settings.tc) == -1))
+		{
+			printf("ERROR in set: failed to create low-pass filter\n");
+			reset();
+			return -1;
+		}
+
+		break;
+	case Highpass:
+		if (unlikely(rc_filter_first_order_highpass(&filter, new_settings.dt, new_settings.tc) == -1))
+		{
+			printf("ERROR in set: failed to create high-pass filter\n");
+			reset();
+			return -1;
+		}
+		break;
+
+	case Integrator:
+		if (unlikely(rc_filter_integrator(&filter, new_settings.dt) == -1))
+		{
+			printf("ERROR in set: failed to create integrator\n");
+			reset();
+			return -1;
+		}
+
+		break;
+	case Moving_Avg:
+		if (unlikely(rc_filter_moving_average(&filter, new_settings.n_samples, new_settings.dt) == -1))
+		{
+			printf("ERROR in set: failed to create moving average filter\n");
+			reset();
+			return -1;
+		}
+
+		break;
+	default:
+		printf("ERROR in set: undefined filter option.\n");
+		reset();
+		return -1;
+	}
+	if (new_settings.en_saturation)
+	{
+		if (unlikely(rc_filter_enable_saturation(&filter, new_settings.min, new_settings.max) == -1))
+		{
+			printf("ERROR in set: failed to enable saturation\n");
+			return -1;
+		}
+	}
+	settings = new_settings;
+	return 0;
+}
+char signal_filter1D_gen_t::prefill_inputs(double new_in)
+{
+	return rc_filter_prefill_inputs(&filter, new_in);
+}
+char signal_filter1D_gen_t::prefill_outputs(double new_out)
+{
+	return rc_filter_prefill_outputs(&filter, new_out);
+}
+double signal_filter1D_gen_t::march(double new_raw)
+{
+	return rc_filter_march(&filter, new_raw);
+}
+char signal_filter1D_gen_t::enable_saturation(double new_min, double new_max)
+{
+	if (unlikely(rc_filter_enable_saturation(&filter, new_min, new_max) == -1))
+	{
+		printf("ERROR in enable_saturation: failed to enable saturation\n");
+		return -1;
+	}
+	settings.min = new_min;
+	settings.max = new_max;
+	settings.en_saturation = true;
+	return 0;
+}
+char signal_filter1D_gen_t::reset(void)
+{
+	if (unlikely(rc_filter_reset(&filter) < 0))
+	{
+		fprintf(stderr, "ERROR in reset: failed to reset filter\n");
+		return -1;
+	}
+	settings.en_saturation = false;
+	return 0;
+}
+void signal_filter1D_gen_t::cleanup(void)
+{
+	rc_filter_free(&filter);
+	return;
+}
+
+
+/* Methods for general low-pass filter triplet class */
+char signal_filter3D_gen_t::set(signal_filter_gen_settings_t new_settings[3])
+{
+	for (int i = 0; i < 3; i++)
+	{
+		if (unlikely(filter[i].set(new_settings[i]) < 0))
+		{
+			fprintf(stderr, "ERROR in set: failed to set %i-th filter\n", i);
+			return -1;
+		}
+	}
+	return 0;
+}
+char signal_filter3D_gen_t::prefill_inputs(double new_in[3])
+{
+	char tmp = 0;
+	for (int i = 0; i < 3; i++) tmp += filter[i].prefill_inputs(new_in[i]);
+	return tmp;
+}
+char signal_filter3D_gen_t::prefill_outputs(double new_out[3])
+{
+	char tmp = 0;
+	for (int i = 0; i < 3; i++) tmp += filter[i].prefill_outputs(new_out[i]);
+	return tmp;
+}
+void signal_filter3D_gen_t::march(double(&out)[3], double new_raw[3])
+{
+	for (int i = 0; i < 3; i++)
+	{
+		out[i] = filter[i].march(new_raw[i]);
+	}
+	return;
+}
+
+char signal_filter3D_gen_t::reset(void)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		if (unlikely(filter[i].reset() < 0))
+		{
+			fprintf(stderr, "ERROR in reset: failed to reset %i-th filter\n", i);
+			return -1;
+		}
+	}
+	return 0;
+}
+
+void signal_filter3D_gen_t::cleanup(void)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		filter[i].cleanup();
+	}
+	return;
 }

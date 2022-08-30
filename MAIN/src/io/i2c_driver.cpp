@@ -21,13 +21,20 @@
  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * Last Edit:  08/26/2022 (MM/DD/YYYY)
  */
 
 #include "i2c_driver.hpp"
 
  // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
 int i2c::open(int new_driver_bus_id)
 {

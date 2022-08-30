@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/28/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Functions to read the waypoint file and handle the path
@@ -59,8 +59,13 @@
 #include "path.hpp"
 
  // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
 path_t path{};
 
@@ -336,9 +341,9 @@ int path_t::start_waypoint_counter_NH(setpoint_t &init_setpoint)
         waypoints_init.roll = init_setpoint.ATT.x.value.get();
         waypoints_init.pitch = init_setpoint.ATT.y.value.get();
         /*
-        if (fabs(init_setpoint.yaw - state_estimate.continuous_yaw) >= M_PI / 18.0)
+        if (fabs(init_setpoint.yaw - state_estimate.get_continuous_heading()) >= M_PI / 18.0)
         {
-            init_setpoint.yaw = state_estimate.continuous_yaw;
+            init_setpoint.yaw = state_estimate.get_continuous_heading();
             printf("\nWARNING: High yaw error, overwriting setpoint");
         }
         */
@@ -383,9 +388,9 @@ int path_t::start_waypoint_counter(setpoint_t& init_setpoint)
         waypoints_init.roll = init_setpoint.ATT.x.value.get();;
         waypoints_init.pitch = init_setpoint.ATT.y.value.get();;
         /*
-        if (fabs(init_setpoint.yaw - state_estimate.continuous_yaw) >= M_PI / 18.0)
+        if (fabs(init_setpoint.yaw - state_estimate.get_continuous_heading()) >= M_PI / 18.0)
         {
-            init_setpoint.yaw = state_estimate.continuous_yaw;
+            init_setpoint.yaw = state_estimate.get_continuous_heading();
             printf("\nWARNING: High yaw error, overwriting setpoint");
         }
         */

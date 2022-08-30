@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  08/13/2022 (MM/DD/YYYY)
+ * Last Edit:  08/26/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -122,22 +122,11 @@ void on_pause_press()
 
 static void __imu_isr(void)
 {
-    // record time of imu interupt
-    state_estimate.imu_time_ns = rc_nanos_since_boot();
-
     //update comms:
-    comms_manager.update();    
-
-    //Read encoders
-    if (settings.enable_encoders) {
-        for (int i = 1; i < 5; i++)
-        {
-            state_estimate.rev[i - 1] = rc_encoder_read(i);
-        }
-    }
+    comms_manager.update(); 
 
     //Navigation
-    state_estimator_march();
+    state_estimate.march();
     benchmark_timers.tNAV = rc_nanos_since_boot(); //using this for velocity estimation
 
     //Guidance
@@ -166,15 +155,8 @@ static void __imu_isr(void)
     
 
     //Currently, this only reads from the BMP pressure sensor
-    state_estimator_jobs_after_feedback();
-    if (settings.log_benchmark) benchmark_timers.tIMU_END = rc_nanos_since_boot();
-
-    //Print warning if too slow
-    if (settings.delay_warnings_en)
-    {   //check the update frequency
-        if (1 / finddt_s(state_estimate.imu_time_ns) < 90)
-            printf("WARNING, Low update frequency of __imu_isr %f (Hz)\n", 1 / finddt_s(state_estimate.imu_time_ns));
-    }
+    state_estimate.march_jobs_after_feedback();
+    if (settings.log_benchmark) benchmark_timers.tIMU_END = rc_nanos_since_boot();    
 }
 
 
@@ -368,7 +350,7 @@ int main(int argc, char** argv)
 
         // set up state estimator
         printf("initializing state_estimator\n");
-        if (state_estimator_init() < 0) {
+        if (state_estimate.init() < 0) {
             FAIL("ERROR: failed to init state_estimator\n")
         }
     }
@@ -456,6 +438,7 @@ int main(int argc, char** argv)
     waypoint_state_machine.clean_up();
     if (sstate.is_initialized()) sstate.cleanup();
     comms_manager.cleanup();
+    if (state_estimate.is_initialized()) state_estimate.cleanup();
 
 
     if (RUNNING_ON_BBB)

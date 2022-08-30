@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -33,17 +33,17 @@
 #define LOG_MANAGER_H
 #include <stdbool.h>
 #include "thread_gen.hpp"
+#include "state_estimator.hpp"
 
 #define MAX_LOG_FILES	500
 
 /**
-	* Struct containing all possible values that could be writen to the log. For
-	* each log entry you wish to create, fill in an instance of this and pass to
-	* add_log_entry(void). You do not need to populate all parts of the struct.
-	* Currently feedback.c populates all values and log_manager.c only writes the
-	* values enabled in the settings file.
-	*/
-//typedef struct log_entry_t {
+* Struct containing all possible values that could be writen to the log. For
+* each log entry you wish to create, fill in an instance of this and pass to
+* add_log_entry(void). You do not need to populate all parts of the struct.
+* Currently feedback.c populates all values and log_manager.c only writes the
+* values enabled in the settings file.
+*/
 class log_entry_t {
 private:
 	bool initialized;
@@ -61,62 +61,34 @@ private:
 	///@{
 	uint64_t loop_index; // timing
 	uint64_t last_step_ns;
-	uint64_t imu_time_ns;
-	uint64_t bmp_time_ns;
+	//uint64_t imu_time_ns;
 	uint64_t log_time_ns;
 
 	///@}
 
+	/* State estimator */
+	state_estimator_log_entry_t state_estimator_entry{};
+
 	/** @name sensors */
 	///@{
-	double	v_batt;
-	double	alt_bmp_raw;
-	double	bmp_temp;
-	double	gyro_roll;
-	double	gyro_pitch;
-	double	gyro_yaw;
-	double	accel_X;
-	double	accel_Y;
-	double	accel_Z;
-	double 	mag_X;
-	double 	mag_Y;
-	double 	mag_Z;
+	battery_log_entry_t battery{};
+	barometer_log_entry_t bmp{};
+	IMU_9DOF_log_entry_t imu{};
 	///@}
 
-	/** @name state estimate */
+	/** @name Encoders */
 	///@{
-	double	roll;
-	double	pitch;
-	double	yaw;
-	double  yaw_cont;
-	double 	rollDot;
-	double 	pitchDot;
-	double 	yawDot;
-	double	X;
-	double	Y;
-	double	Z;
-	double	Xdot;
-	double	Ydot;
-	double	Zdot;
-	double	Xdot_raw;
-	double	Ydot_raw;
-	double	Zdot_raw;
-	double	Zddot;
+	/*
+	int64_t rev1;
+	int64_t rev2;
+	int64_t rev3;
+	int64_t rev4;
+	*/
+	///@}
 
 	/*** @name mocap data */
 	///@{
-	uint32_t mocap_time;
-	uint64_t mocap_timestamp_ns;
-	float mocap_x;
-	float mocap_y;
-	float mocap_z;
-	float mocap_qw;
-	float mocap_qx;
-	float mocap_qy;
-	float mocap_qz;
-	float mocap_roll;
-	float mocap_pitch;
-	float mocap_yaw;
+	mocap_log_entry_t mocap{};
 	///@}
 
 	/*** @name gps data */
@@ -144,6 +116,9 @@ private:
 	uint64_t gps_time_received_ns;
 	///@}
 
+	/* Filters */
+	EKF_log_entry_t EKF{};
+	EKF2_log_entry_t EKF2{};
 
 	/** @name throttles */
 	///@{
@@ -234,14 +209,6 @@ private:
 	/** @name imu_isr() Benchmarking Timers */
 	///@{
 	uint64_t tIMU_END, tSM, tCOMMS, tMOCAP, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP;
-	///@}
-
-	/** @name Encoders */
-	///@{
-	int64_t rev1;
-	int64_t rev2;
-	int64_t rev3;
-	int64_t rev4;
 	///@}
 
 	/**

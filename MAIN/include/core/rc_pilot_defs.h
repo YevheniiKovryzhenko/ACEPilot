@@ -161,5 +161,16 @@ typedef enum dsm_kill_mode_t {
 
 
 #define TWO_PI (M_PI*2.0)
+
+// preposessor macros
+#ifndef unlikely
+#define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
+#define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
+
+
 //#define DEBUG
 #endif // RC_PILOT_DEFS_H

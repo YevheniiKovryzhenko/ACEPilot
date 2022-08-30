@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  *
  * Functions to start and stop the input manager thread which is the translation
  * beween control inputs from DSM to the user_input struct which is read by the
@@ -45,7 +45,7 @@
 #include "settings.h"
 #include "rc_pilot_defs.h"
 #include "flight_mode.h"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "rc_pilot_defs.h"
 #include "thread_defs.h"
 #include "feedback.hpp"
@@ -53,8 +53,13 @@
 #include "input_manager.hpp"
 
  // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
 double stick_t::get(void)
 {
@@ -147,8 +152,8 @@ static bool attempt_arming()
 		if (rc_get_state() == EXITING) return false;
 	}
 	// wait for level
-	while (fabs(state_estimate.roll) > ARM_TIP_THRESHOLD ||
-		   fabs(state_estimate.pitch) > ARM_TIP_THRESHOLD) 
+	while (fabs(state_estimate.get_roll()) > ARM_TIP_THRESHOLD ||
+		   fabs(state_estimate.get_pitch()) > ARM_TIP_THRESHOLD) 
 	{
 		rc_usleep(100000);
 		if (rc_get_state() == EXITING) return false;
@@ -182,8 +187,8 @@ static bool attempt_arming()
 
 	// final check of kill switch and level before arming
 	if (user_input.get_arm_switch() == DISARMED ||
-		fabs(state_estimate.roll) > ARM_TIP_THRESHOLD ||
-		fabs(state_estimate.pitch) > ARM_TIP_THRESHOLD) {
+		fabs(state_estimate.get_roll()) > ARM_TIP_THRESHOLD ||
+		fabs(state_estimate.get_pitch()) > ARM_TIP_THRESHOLD) {
 		return false;
 	}
 	return true;
@@ -253,7 +258,7 @@ int user_input_t::new_dsm_data_callback(void)
 		break;
 
 	default:
-		fprintf(stderr, "ERROR in input manager, unhandled settings.dsm_kill_mode\n");
+		fprintf(stderr, "ERROR in input new_dsm_data_callback, unhandled settings.dsm_kill_mode\n");
 		return 0;
 	}
 
@@ -284,7 +289,7 @@ int user_input_t::new_dsm_data_callback(void)
 		else flight_mode = settings.flight_mode_2;
 		break;
 	default:
-		fprintf(stderr, "ERROR, in input_manager, num_dsm_modes must be 1,2 or 3\n");
+		fprintf(stderr, "ERROR, in new_dsm_data_callback, num_dsm_modes must be 1,2 or 3\n");
 		fprintf(stderr, "selecting flight mode 1\n");
 		flight_mode = settings.flight_mode_1;
 		break;
@@ -296,10 +301,13 @@ int user_input_t::new_dsm_data_callback(void)
 	if (mode_needs_mocap(flight_mode) &&
 		settings.enable_mocap_dropout_emergency_land)
 	{
+		fprintf(stderr, "ERROR in new_dsm_data_callback: enable_mocap_dropout_emergency_land is old, must update first\n");
+		/*
+
 		//Compute time since last MOCAP packet was received (in milliseconds)
 		// Each value here must be cast to a double before diving. 
 		// Although I expect this to implicitly cast, the testing shows that OPEN_LOOP_DESCENT "randomly" triggers at inappropriate times
-		double ms_since_mocap = ((double)rc_nanos_since_boot() - (double)state_estimate.mocap_timestamp_ns) / 1e6;
+		//double ms_since_mocap = ((double)rc_nanos_since_boot() - (double)state_estimate.mocap_timestamp_ns) / 1e6;
 
 		//If MOCAP has been out for too long, then enable emergency landing
 		if (!is_emergency_land_active() &&
@@ -319,7 +327,7 @@ int user_input_t::new_dsm_data_callback(void)
 		{
 			flight_mode = EMERGENCY_LAND;
 		}
-
+		*/
 	}
 	else
 	{

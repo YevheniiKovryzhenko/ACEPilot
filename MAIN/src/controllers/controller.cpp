@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/18/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -34,14 +34,19 @@
 #include "settings.h"
 #include "input_manager.hpp"
 #include "setpoint_manager.hpp"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 
 #include "controller.hpp"
 #include "comms_tmp_data_packet.h"
 
- // preposessor macros
+// preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
 
 /*returns sign of an argument*/
@@ -129,7 +134,7 @@ int feedback_controller_t::rpy_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		double scale_val = settings.v_nominal / state_estimate.v_batt_lp;
+		double scale_val = settings.v_nominal / state_estimate.get_v_batt();
 		roll.scale_gains(scale_val);
 		pitch.scale_gains(scale_val);
 		yaw.scale_gains(scale_val);
@@ -137,20 +142,20 @@ int feedback_controller_t::rpy_march(void)
 
 	setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
 	setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
-	double tmp_yaw = state_estimate.continuous_yaw;
+	double tmp_yaw = state_estimate.get_continuous_heading();
 	
 
 	//double err_roll, err_pitch, err_yaw;
-	//err_roll = setpoint.ATT.x.value.get() - state_estimate.roll;
-	//err_pitch = setpoint.ATT.y.value.get() - state_estimate.pitch;
-	//err_yaw = setpoint.ATT.z.value.get() - state_estimate.continuous_yaw;
+	//err_roll = setpoint.ATT.x.value.get() - state_estimate.get_roll();
+	//err_pitch = setpoint.ATT.y.value.get() - state_estimate.get_pitch();
+	//err_yaw = setpoint.ATT.z.value.get() - state_estimate.get_continuous_heading();
 	//use smooth transition if control blending is enabled:
 	//if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw); //zero out ff terms?
 
 	// 1) Attitude -> Attitude Rate
 	double tmp_roll_out, tmp_pitch_out, tmp_yaw_out;
-	roll.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.x.value.get(), MAX_ROLL_SETPOINT), state_estimate.roll / MAX_ROLL_SETPOINT);
-	pitch.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.y.value.get(), MAX_PITCH_SETPOINT), state_estimate.pitch / MAX_PITCH_SETPOINT);
+	roll.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.x.value.get(), MAX_ROLL_SETPOINT), state_estimate.get_roll() / MAX_ROLL_SETPOINT);
+	pitch.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.y.value.get(), MAX_PITCH_SETPOINT), state_estimate.get_pitch() / MAX_PITCH_SETPOINT);
 	yaw.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(tmp_yaw, setpoint.ATT.z.value.get(), MAX_YAW_ERROR), tmp_yaw / MAX_YAW_ERROR);
 	/*
 	if (setpoint.ATT.is_en_FF())
@@ -191,8 +196,8 @@ int feedback_controller_t::rpy_reset(void)
 	yaw.reset();	
 
     // prefill filters with current error (only those with D terms)
-	roll.prefill_pd_input(-state_estimate.roll);
-	pitch.prefill_pd_input(-state_estimate.pitch);
+	roll.prefill_pd_input(-state_estimate.get_roll());
+	pitch.prefill_pd_input(-state_estimate.get_pitch());
     return 0;
 }
 
@@ -247,7 +252,7 @@ int feedback_controller_t::rpy_rate_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		double scale_val = settings.v_nominal / state_estimate.v_batt_lp;
+		double scale_val = settings.v_nominal / state_estimate.get_v_batt();
 		roll_dot.scale_gains(scale_val);
 		pitch_dot.scale_gains(scale_val);
 		yaw_dot.scale_gains(scale_val);
@@ -258,20 +263,20 @@ int feedback_controller_t::rpy_rate_march(void)
 	setpoint.ATT_dot.z.value.saturate(-MAX_YAW_RATE, MAX_YAW_RATE);
 	/*
 	double err_roll_dot, err_pitch_dot, err_yaw_dot;
-	err_roll_dot = setpoint.ATT_dot.x.value.get() - state_estimate.roll_dot;
-	err_pitch_dot = setpoint.ATT_dot.y.value.get() - state_estimate.pitch_dot;
-	err_yaw_dot = setpoint.ATT_dot.z.value.get() - state_estimate.yaw_dot;
+	err_roll_dot = setpoint.ATT_dot.x.value.get() - state_estimate.get_roll_dot();
+	err_pitch_dot = setpoint.ATT_dot.y.value.get() - state_estimate.get_pitch_dot();
+	err_yaw_dot = setpoint.ATT_dot.z.value.get() - state_estimate.get_yaw_dot();
 	*/
-	//printf("yaw_dot = %f\t yaw_dot_sp =%f\t err_yaw_dot = %f\n", state_estimate.yaw_dot, setpoint.ATT_dot.z.value.get(), err_yaw_dot);
+	//printf("yaw_dot = %f\t yaw_dot_sp =%f\t err_yaw_dot = %f\n", state_estimate.get_yaw_dot(), setpoint.ATT_dot.z.value.get(), err_yaw_dot);
 
 	//use smooth transition if control blending is enabled:
 	//if (setpoint.en_rpy_rate_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
 
 	// Attitude rate error -> Torque cmd.
 	double tmp_roll_out, tmp_pitch_out, tmp_yaw_out;
-	roll_dot.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.x.value.get(), MAX_ROLL_RATE), state_estimate.roll_dot / MAX_ROLL_RATE);
-	pitch_dot.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.y.value.get(), MAX_PITCH_RATE), state_estimate.pitch_dot / MAX_PITCH_RATE);
-	yaw_dot.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.z.value.get(), MAX_YAW_RATE), state_estimate.yaw_dot / MAX_YAW_RATE);
+	roll_dot.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.x.value.get(), MAX_ROLL_RATE), state_estimate.get_roll_dot() / MAX_ROLL_RATE);
+	pitch_dot.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.y.value.get(), MAX_PITCH_RATE), state_estimate.get_pitch_dot() / MAX_PITCH_RATE);
+	yaw_dot.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.z.value.get(), MAX_YAW_RATE), state_estimate.get_yaw_dot() / MAX_YAW_RATE);
 	
 	/*
 	if (setpoint.ATT_dot.is_en_FF())
@@ -302,9 +307,9 @@ int feedback_controller_t::rpy_rate_reset(void)
 	yaw_dot.reset();
 
 	// prefill filters with current error (only those with D terms)
-	roll_dot.prefill_pd_input(-state_estimate.roll_dot);
-	pitch_dot.prefill_pd_input(-state_estimate.pitch_dot);
-	yaw_dot.prefill_pd_input(-state_estimate.yaw_dot);
+	roll_dot.prefill_pd_input(-state_estimate.get_roll_dot());
+	pitch_dot.prefill_pd_input(-state_estimate.get_pitch_dot());
+	yaw_dot.prefill_pd_input(-state_estimate.get_yaw_dot());
 	return 0;
 }
 
@@ -358,19 +363,19 @@ int feedback_controller_t::xy_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		double scale_val = settings.v_nominal / state_estimate.v_batt_lp;
+		double scale_val = settings.v_nominal / state_estimate.get_v_batt();
 		x.scale_gains(scale_val);
 		y.scale_gains(scale_val);
 	}
 	/*
-	double tmp_x_err = setpoint.XY.x.value.get() - state_estimate.X;
-	double tmp_y_err = setpoint.XY.y.value.get() - state_estimate.Y;
+	double tmp_x_err = setpoint.XY.x.value.get() - state_estimate.get_X();
+	double tmp_y_err = setpoint.XY.y.value.get() - state_estimate.get_Y();
 	rc_saturate_double(&tmp_x_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
 	rc_saturate_double(&tmp_y_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
 	*/
 	double tmp_x_sp, tmp_y_sp, tmp_x_out, tmp_y_out;
-	double tmp_x = state_estimate.X;
-	double tmp_y = state_estimate.Y;
+	double tmp_x = state_estimate.get_X();
+	double tmp_y = state_estimate.get_Y();
 
 	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp,\
 		setpoint.XY.x.value.get(), setpoint.XY.y.value.get(),\
@@ -452,7 +457,7 @@ int feedback_controller_t::xy_rate_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		double scale_val = settings.v_nominal / state_estimate.v_batt_lp;
+		double scale_val = settings.v_nominal / state_estimate.get_v_batt();
 		x_dot.scale_gains(scale_val);
 		y_dot.scale_gains(scale_val);
 	}
@@ -477,8 +482,8 @@ int feedback_controller_t::xy_rate_march(void)
 	setpoint.XY_dot.y.value.set(tmp_y_sp * MAX_XY_VELOCITY_NORM);
 
 	double tmp_x_out, tmp_y_out;
-	double tmp_x = state_estimate.X_dot;
-	double tmp_y = state_estimate.Y_dot;
+	double tmp_x = state_estimate.get_X_vel();
+	double tmp_y = state_estimate.get_Y_vel();
 
 	//__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
 		setpoint.XY_dot.x.value.get(), setpoint.XY_dot.y.value.get(), \
@@ -498,13 +503,13 @@ int feedback_controller_t::xy_rate_march(void)
 
 	if (setpoint.XY_dot.is_en_FF())
 	{
-		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.X_dot, setpoint.XY_dot.x.FF.get());
-		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.Y_dot, setpoint.XY_dot.y.FF.get());
+		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.get_X_vel(), setpoint.XY_dot.x.FF.get());
+		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.get_Y_vel(), setpoint.XY_dot.y.FF.get());
 	}
 	else
 	{
-		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.X_dot);
-		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.Y_dot);
+		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.get_X_vel());
+		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.get_Y_vel());
 	}
 	*/
 	
@@ -518,8 +523,8 @@ int feedback_controller_t::xy_rate_reset(void)
 	y_dot.reset();
 
 	// prefill filters with current error (only those with D terms)
-	x_dot.prefill_pd_input(-state_estimate.X_dot);
-	y_dot.prefill_pd_input(-state_estimate.Y_dot);
+	x_dot.prefill_pd_input(-state_estimate.get_X_vel());
+	y_dot.prefill_pd_input(-state_estimate.get_Y_vel());
 	return 0;
 }
 
@@ -569,7 +574,7 @@ int feedback_controller_t::z_march(void)
 			}
 		}
 		
-		setpoint.Z.value.set(state_estimate.Z); // set altitude setpoint to current altitude
+		setpoint.Z.value.set(state_estimate.get_Z()); // set altitude setpoint to current altitude
 
 		z_reset();   // reset the filter (works well so far, not need to prefill outputs)
 
@@ -579,15 +584,15 @@ int feedback_controller_t::z_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		z.scale_gains(settings.v_nominal / state_estimate.v_batt_lp);
+		z.scale_gains(settings.v_nominal / state_estimate.get_v_batt());
 	}
 
-	//double tmp_z_err = setpoint.Z.value.get() - state_estimate.Z;
+	//double tmp_z_err = setpoint.Z.value.get() - state_estimate.get_Z();
 	//rc_saturate_double(&tmp_z_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
 
 	// Position error -> Velocity error:
 	double tmp_out;
-	double tmp_z = state_estimate.Z;
+	double tmp_z = state_estimate.get_Z();
 	//z.march_std(&tmp_out, setpoint.Z.value.get(), tmp_z);
 
 	z.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z.value.get(), XYZ_MAX_ERROR), tmp_z / XYZ_MAX_ERROR);
@@ -666,10 +671,10 @@ int feedback_controller_t::z_rate_march(void)
 	if (settings.enable_v_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		z_dot.scale_gains(settings.v_nominal / state_estimate.v_batt_lp);
+		z_dot.scale_gains(settings.v_nominal / state_estimate.get_v_batt());
 	}
 	
-	double tmp_z = state_estimate.Z_dot;
+	double tmp_z = state_estimate.get_Z_vel();
 	double tmp_out;
 
 	z_dot.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY), tmp_z / MAX_Z_VELOCITY);
@@ -681,11 +686,11 @@ int feedback_controller_t::z_rate_march(void)
 	// Vertical velocity error -> Vertical acceleration error
 	if (setpoint.Z_dot.FF.is_en())
 	{
-		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.Z_dot, setpoint.Z_dot.FF.get());
+		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.get_Z_vel(), setpoint.Z_dot.FF.get());
 	}
 	else
 	{
-		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.Z_dot);
+		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.get_Z_vel());
 	}
 	*/
 
@@ -698,7 +703,7 @@ int feedback_controller_t::z_rate_reset(void)
 	z_dot.reset();
 
 	// prefill filters with current error (only those with D terms)
-	z_dot.prefill_pd_input(-state_estimate.Z_dot);
+	z_dot.prefill_pd_input(-state_estimate.get_Z_vel());
 	return 0;
 }
 
@@ -739,6 +744,7 @@ int feedback_controller_t::XY_accel_2_attitude(void)
 {
 	double tmp_x = setpoint.XYZ_ddot.x.value.get();
 	double tmp_y = setpoint.XYZ_ddot.y.value.get();
+	double tmp_yaw = state_estimate.get_continuous_heading();
 	double tmp_norm = sqrt(tmp_x * tmp_x + tmp_y * tmp_y);
 	if (tmp_norm >= MAX_XY_ACCELERATION_NORM)
 	{
@@ -756,18 +762,18 @@ int feedback_controller_t::XY_accel_2_attitude(void)
 
 	// Horizonal acceleration setpoint -> Lean Angles
 	setpoint.ATT.x.value.set(\
-		- sin(state_estimate.continuous_yaw) * tmp_x\
-		+ cos(state_estimate.continuous_yaw) * tmp_y);
+		- sin(tmp_yaw) * tmp_x\
+		+ cos(tmp_yaw) * tmp_y);
 	setpoint.ATT.y.set(\
-		- (cos(state_estimate.continuous_yaw) * tmp_x\
-			+ sin(state_estimate.continuous_yaw) * tmp_y));
+		- (cos(tmp_yaw) * tmp_x\
+			+ sin(tmp_yaw) * tmp_y));
 	
 	setpoint.ATT.x.value.set(\
-		(-sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
-			+ cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
+		(-sin(tmp_yaw) * setpoint.XYZ_ddot.x.value.get()\
+			+ cos(tmp_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
 	setpoint.ATT.y.set(\
-		- (cos(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.x.value.get()\
-			+ sin(state_estimate.continuous_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
+		- (cos(tmp_yaw) * setpoint.XYZ_ddot.x.value.get()\
+			+ sin(tmp_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
 	
 	return 0;
 }
@@ -778,7 +784,7 @@ int feedback_controller_t::Z_accel_2_throttle(void)
 
 	// Vertical acceleration error -> throttle	
 	setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
-		/ (cos(state_estimate.roll) * cos(state_estimate.pitch)));
+		/ (cos(state_estimate.get_roll()) * cos(state_estimate.get_pitch())));
 
 	return 0;
 }

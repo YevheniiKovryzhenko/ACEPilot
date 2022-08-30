@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/13/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -54,7 +54,7 @@
 #include "rc_pilot_defs.h"
 #include "input_manager.hpp"
 #include "settings.h"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "flight_mode.h"
 //#include "xbee_receive.h"
 #include "setpoint_guidance.hpp"
@@ -65,8 +65,13 @@
 #include "setpoint_manager.hpp"
 #include "benchmark.h"
 // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
 
 
@@ -389,12 +394,12 @@ void setpoint_t::update_yaw(void)
 
 	/*	
 	double  vel_mag = sqrt(\
-		state_estimate.X_dot * state_estimate.X_dot\
-		+ state_estimate.Y_dot * state_estimate.Y_dot\
-		+ state_estimate.Z_dot * state_estimate.Z_dot);
+		state_estimate.get_X_vel() * state_estimate.get_X_vel()\
+		+ state_estimate.get_Y_vel() * state_estimate.get_Y_vel()\
+		+ state_estimate.get_Z_vel() * state_estimate.get_Z_vel());
 
 	if(user_input.throttle.get() < 0.05 && fabs(tmp_yaw) < 0.05){
-		ATT.z.value.set(state_estimate.continuous_yaw);
+		ATT.z.value.set(state_estimate.get_continuous_heading());
 		return;
 	}
 	*/
@@ -414,7 +419,7 @@ void setpoint_t::update_rp(void)
 void setpoint_t::update_th(void)
 {
 	POS_throttle.z.value.set(-user_input.throttle.get() / \
-		(cos(state_estimate.roll) * cos(state_estimate.pitch)));
+		(cos(state_estimate.get_roll()) * cos(state_estimate.get_pitch())));
 
 	return;
 }
@@ -428,7 +433,7 @@ void setpoint_t::update_rpy_rate(void)
 	double tmp_yaw = user_input.yaw.get();
 	/*
 	if (user_input.throttle.get() < 0.05 && fabs(tmp_yaw) < 0.05) {
-		ATT_dot.z.value.set(state_estimate.yaw_dot);
+		ATT_dot.z.value.set(state_estimate.get_yaw_dot());
 		return;
 	}
 	*/
@@ -468,14 +473,14 @@ void setpoint_t::update_Z(void)
 	}
 	double tmp_Z_sp = Z.value.get() - tmp_Z_dot * DT; //negative since Z positive is defined to be down	
 
-	if (tmp_Z_sp > state_estimate.Z + XYZ_MAX_ERROR)
+	if (tmp_Z_sp > state_estimate.get_Z() + XYZ_MAX_ERROR)
 	{
-		Z.value.set(state_estimate.Z + XYZ_MAX_ERROR);
+		Z.value.set(state_estimate.get_Z() + XYZ_MAX_ERROR);
 		return;
 	}
-	else if (tmp_Z_sp < state_estimate.Z - XYZ_MAX_ERROR)
+	else if (tmp_Z_sp < state_estimate.get_Z() - XYZ_MAX_ERROR)
 	{
-		Z.value.set(state_estimate.Z - XYZ_MAX_ERROR);
+		Z.value.set(state_estimate.get_Z() - XYZ_MAX_ERROR);
 		return;
 	}
 	else
@@ -533,7 +538,7 @@ void setpoint_t::update_Z_dot(void)
 //----Manual/Radio/Direct control of horizontal velocity ----//
 void setpoint_t::update_XY_vel(void)
 {	
-	double tmp_yaw = state_estimate.continuous_yaw;	
+	double tmp_yaw = state_estimate.get_continuous_heading();	
 	double tmp_roll_stick = __deadzone(user_input.roll.get(), 0.05);
 	double tmp_pitch_stick = __deadzone(user_input.pitch.get(), 0.05);
 	
@@ -553,7 +558,7 @@ void setpoint_t::update_XY_pos(void)
 	/*
 	// X in the body frame (forward flight)
 	// Y in the body frame (lateral translation to the right wing)
-	double tmp_yaw = state_estimate.continuous_yaw;
+	double tmp_yaw = state_estimate.get_continuous_heading();
 	double tmp_roll = __deadzone(user_input.roll.get(), 0.05);
 	double tmp_pitch = __deadzone(user_input.pitch.get(), 0.05);
 
@@ -565,7 +570,7 @@ void setpoint_t::update_XY_pos(void)
 
 	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
 		tmp_x_sp, tmp_y_sp, \
-		state_estimate.X / XY_MAX_ERROR_NORM, state_estimate.Y / XY_MAX_ERROR_NORM, \
+		state_estimate.get_X() / XY_MAX_ERROR_NORM, state_estimate.get_Y() / XY_MAX_ERROR_NORM, \
 		1.0);
 
 	XY.x.value.set(tmp_x_sp * XY_MAX_ERROR_NORM);
@@ -578,19 +583,19 @@ void setpoint_t::update_XY_pos(void)
 	if (tmp_roll == 0.0 && tmp_pitch == 0.0) return; //return if no change requested
 	
 	// make sure setpoint doesn't go too far from state in case touching something
-	double tmp_x = XY.x.value.get() - state_estimate.X;
-	double tmp_y = XY.y.value.get() - state_estimate.X;
+	double tmp_x = XY.x.value.get() - state_estimate.get_X();
+	double tmp_y = XY.y.value.get() - state_estimate.get_X();
 	double tmp_norm = sqrt(tmp_x * tmp_x + tmp_y * tmp_y);
 	if (tmp_norm >= XY_MAX_ERROR_NORM)
 	{
 		//maintain the same dirrection of error, but bound the magnitude
-		XY.x.value.set(state_estimate.X + tmp_x / tmp_norm * XY_MAX_ERROR_NORM);
-		XY.y.value.set(state_estimate.Y + tmp_y / tmp_norm * XY_MAX_ERROR_NORM);
+		XY.x.value.set(state_estimate.get_X() + tmp_x / tmp_norm * XY_MAX_ERROR_NORM);
+		XY.y.value.set(state_estimate.get_Y() + tmp_y / tmp_norm * XY_MAX_ERROR_NORM);
 		return;
 	}
 
 	//double tmp_X_dot, tmp_Y_dot;
-	double tmp_yaw = state_estimate.continuous_yaw;
+	double tmp_yaw = state_estimate.get_continuous_heading();
 	
 	// X in the body frame (forward flight)
 	//apply as a velocity command integrated by the timestep 
@@ -600,8 +605,8 @@ void setpoint_t::update_XY_pos(void)
 
 	// Y in the body frame (lateral translation)
 	//apply velocity command 
-	XY.y.value.increment((user_input.roll.get() * cos(state_estimate.continuous_yaw)\
-		- user_input.pitch.get() * sin(state_estimate.continuous_yaw))\
+	XY.y.value.increment((user_input.roll.get() * cos(tmp_yaw)\
+		- user_input.pitch.get() * sin(tmp_yaw))\
 		* MAX_XY_VELOCITY * DT); //Y is defined positive to the left 
 
 	return;
@@ -664,21 +669,9 @@ int setpoint_t::set_reset_sources(void)
 {
 	// reset is configured to set values to zero by def.
 	// change the def source if non always zero:
-	ATT_dot.x.value.set_def(&state_estimate.roll_dot);
-	ATT_dot.y.value.set_def(&state_estimate.pitch_dot);
-	ATT_dot.z.value.set_def(&state_estimate.yaw_dot);
+	
 
-	ATT.x.value.set_def(&state_estimate.roll);
-	ATT.y.value.set_def(&state_estimate.pitch);
-	ATT.z.value.set_def(&state_estimate.continuous_yaw);
-
-	XY_dot.x.value.set_def(&state_estimate.X_dot);
-	XY_dot.y.value.set_def(&state_estimate.Y_dot);
-	Z_dot.value.set_def(&state_estimate.Z_dot);
-
-	XY.x.value.set_def(&state_estimate.X);
-	XY.y.value.set_def(&state_estimate.Y);
-	Z.value.set_def(&state_estimate.Z);
+	
 	return 0;
 }
 
@@ -704,11 +697,26 @@ int setpoint_t::reset_all(void)
 	set_reset_sources_all_defs();
 
 	ATT_dot.reset_all();
+	ATT_dot.x.set(state_estimate.get_roll_dot());
+	ATT_dot.y.set(state_estimate.get_pitch_dot());
+	ATT_dot.z.set(state_estimate.get_yaw_dot());
+	
 	ATT.reset_all();
+	ATT.x.set(state_estimate.get_roll());
+	ATT.y.set(state_estimate.get_pitch());
+	ATT.z.set(state_estimate.get_continuous_heading());
+
 	XY_dot.reset_all();
 	Z_dot.reset_all();
+	XY_dot.x.set(state_estimate.get_X_vel());
+	XY_dot.y.set(state_estimate.get_Y_vel());
+	Z_dot.set(state_estimate.get_Z_vel());
+
 	XY.reset_all();
 	Z.reset_all();
+	XY.x.set(state_estimate.get_X());
+	XY.y.set(state_estimate.get_Y());
+	Z.set(state_estimate.get_Z());
 
 	setpoint_guidance.reset();
 	waypoint_state_machine.reset();

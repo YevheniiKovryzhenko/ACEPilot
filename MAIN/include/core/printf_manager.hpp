@@ -27,7 +27,7 @@
  *	Functions to start and stop the printf mnaager which is a
  *  separate thread printing data to the console for debugging.
  * 
- * Last Edit:  05/30/2022 (MM/DD/YYYY)
+ * Last Edit:  08/26/2022 (MM/DD/YYYY)
  *
  */
 
@@ -37,30 +37,30 @@
 
 
 /**
-	* @brief      Start the printf_manager thread which should be the only thing
-	*             printing to the screen besides error messages from other threads.
-	*
-	* @return     0 on success, -1 on failure
-	*/
+* @brief      Start the printf_manager thread which should be the only thing
+*             printing to the screen besides error messages from other threads.
+*
+* @return     0 on success, -1 on failure
+*/
 int printf_init(void);
 
 
 /**
-	* @brief      Waits for the printf manager thread to exit.
-	*
-	* @return     0 on clean exit, -1 on exit time out/force close
-	*/
+* @brief      Waits for the printf manager thread to exit.
+*
+* @return     0 on clean exit, -1 on exit time out/force close
+*/
 int printf_cleanup(void);
 
 
 /**
-	* @brief      Only used by printf_manager right now, but could be useful
-	* elsewhere.
-	*
-	* @param[in]  mode  The mode
-	*
-	* @return     0 on success or -1 on error
-	*/
+* @brief      Only used by printf_manager right now, but could be useful
+* elsewhere.
+*
+* @param[in]  mode  The mode
+*
+* @return     0 on success or -1 on error
+*/
 int print_flight_mode(flight_mode_t mode);
 
 

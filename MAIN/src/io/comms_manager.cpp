@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/03/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  *
  * Object that governs all the logic related to communications.
  */
@@ -34,7 +34,7 @@
 #include "benchmark.h"
 #include "gps.h"
 #include "telem_packet_t.h"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "setpoint_manager.hpp"
 #include "input_manager.hpp"
 #include "state_machine.hpp"
@@ -42,8 +42,13 @@
 #include "thread_defs.h"
 
 // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
@@ -321,21 +326,21 @@ char comms_manager_t::mocap_save_data_sp(void)
  */
 char comms_manager_t::mocap_save_data_st(void)
 {
-	GS_TX.x = state_estimate.X;
-	GS_TX.y = state_estimate.Y;
-	GS_TX.z = state_estimate.Z;
+	GS_TX.x = state_estimate.get_X();
+	GS_TX.y = state_estimate.get_Y();
+	GS_TX.z = state_estimate.get_Z();
 	
-	GS_TX.x_dot = state_estimate.X_dot;
-	GS_TX.y_dot = state_estimate.Y_dot;
-	GS_TX.z_dot = state_estimate.Z_dot;
+	GS_TX.x_dot = state_estimate.get_X_vel();
+	GS_TX.y_dot = state_estimate.get_Y_vel();
+	GS_TX.z_dot = state_estimate.get_Z_vel();
 
-	GS_TX.roll = state_estimate.roll;
-	GS_TX.pitch = state_estimate.pitch;
-	GS_TX.yaw = state_estimate.continuous_yaw;
+	GS_TX.roll = state_estimate.get_roll();
+	GS_TX.pitch = state_estimate.get_pitch();
+	GS_TX.yaw = state_estimate.get_continuous_heading();
 
-	GS_TX.roll_dot = state_estimate.roll_dot;
-	GS_TX.pitch_dot = state_estimate.pitch_dot;
-	GS_TX.yaw_dot = state_estimate.yaw_dot;
+	GS_TX.roll_dot = state_estimate.get_roll_dot();
+	GS_TX.pitch_dot = state_estimate.get_pitch_dot();
+	GS_TX.yaw_dot = state_estimate.get_yaw_dot();
 	return 0;
 }
 

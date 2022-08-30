@@ -11,7 +11,7 @@
 	"v_nominal": 16.5,
 	"enable_v_gain_scaling": false,
 
-	"enable_magnetometer": false,
+	"enable_magnetometer": true,
 	"enable_mocap": true,
 	"use_mocap_roll": false,
 	"use_mocap_pitch": false,
@@ -86,7 +86,7 @@
 	"printf_rev": false,
 	"printf_counter": false,
 
-	"enable_logging": false,
+	"enable_logging": true,
 	"log_every_n_entry": 1,
 	"log_only_while_armed": true,
 	"log_sensors": true,

@@ -7,13 +7,15 @@ file(GLOB ALL_MAIN
 "include/io/*.h" "include/io/*.hpp"
 "include/opt/*.h" "include/opt/*.hpp"
 "include/guidance/*.h" "include/guidance/*.hpp"
+"src/navigation/*.h" "src/navigation/*.hpp"
 "src/core/*.c" "src/core/*.cpp"
 "src/general/*.c" "src/general/*.cpp"
 "src/controllers/*.c" "src/controllers/*.cpp"
 "src/mod/*.c" "src/mod/*.cpp"
 "src/io/*.c" "src/io/*.cpp"
 "src/opt/*.c" "src/opt/*.cpp"
-"src/guidance/*.c" "src/guidance/*.cpp")
+"src/guidance/*.c" "src/guidance/*.cpp"
+"src/navigation/*.c" "src/navigation/*.cpp")
 
 add_executable(rc_pilot ${ALL_MAIN}) #this tells the compiler what to compile (ALL_MAIN files) 
 # and calls them executables.
@@ -43,6 +45,8 @@ target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/opt")
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/guidance")
 target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/guidance")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/navigation")
+target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/navigation")
 # note, we can do all the above lines by droping a separate CMakeLists.txt into each of the subfolder
 # and adding respective header and source file along with the path to the Cmake file tree, but this
 # allows reducing everyhting to a one general CMakeLists.txt and keeping everything important for the 

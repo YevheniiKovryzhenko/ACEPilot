@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -47,7 +47,7 @@
 #include "settings.h"
 #include "setpoint_manager.hpp"
 #include "feedback.hpp"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "signal.h"
 #include "tools.h"
 #include "gps.h"
@@ -56,12 +56,13 @@
 
 #include "log_manager.hpp"
 // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
-#define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !unlikely
 
-// threard
-//static pthread_t log_manager_thread;
-//static int thread_initialized = 0;
+#ifndef likely
+#define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
@@ -119,29 +120,23 @@ int log_entry_t::write_header(void)
     }
 
 	// always print loop index
-    fprintf(log_fd, "loop_index,last_step_ns,imu_time_ns,bmp_time_ns,log_time_ns");
-	
-
-	if (settings.log_sensors)
+    fprintf(log_fd, "loop_index,last_step_ns,log_time_ns");
+    
+    /* state estimator */
+    if (settings.log_state) state_estimator_entry.print_header(log_fd);
+    
+    if (settings.log_sensors)
     {
-        fprintf(log_fd,
-            ",v_batt,alt_bmp_raw,bmp_temp,gyro_roll,gyro_pitch,gyro_yaw,accel_X,accel_Y,accel_Z,mag_X, "
-            "mag_Y, mag_Z");
+        battery.print_header(log_fd, "batt_");
+        bmp.print_header(log_fd, "bmp_");
+        imu.print_header(log_fd, "imu_");
     }
 
-	if (settings.log_state)
+    if (settings.log_mocap)
     {
-        fprintf(log_fd, ",roll,pitch,yaw,cont_yaw,rollDot,pitchDot,yawDot,X,Y,Z,Xdot,Ydot,Zdot,Xdot_raw,Ydot_raw,Zdot_raw,Zddot");
+        mocap.print_header(log_fd, "mocap_");
     }
-	
-	if (settings.log_mocap)
-    {
-        fprintf(log_fd,
-            ",mocap_time,mocap_timestamp_ns,mocap_x,mocap_y,mocap_z,mocap_qw,mocap_qx,mocap_qy,mocap_qz,"
-            "mocap_roll,mocap_pitch,"
-            "mocap_yaw");
-    }
-	
+
 	if (settings.log_gps)
     {
         fprintf(log_fd,
@@ -149,6 +144,9 @@ int log_entry_t::write_header(void)
             "headingNc,gps_cog,gps_gpsVsi,gps_hdop,gps_vdop,gps_year,gps_month,gps_day,gps_hour,"
             "gps_minute,gps_second,gps_time_received_ns");
     }
+
+    EKF.print_header(log_fd, "EKF_");
+    EKF2.print_header(log_fd, "EKF2_");
 
     if (settings.log_setpoints)
     {
@@ -260,28 +258,21 @@ int log_entry_t::write_log_entry(void)
     }
 
 	// always print loop index
-    fprintf(log_fd, "%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64, 
-            loop_index, last_step_ns, imu_time_ns, imu_time_ns, log_time_ns);
-							
-	if (settings.log_sensors)
+    fprintf(log_fd, "%" PRIu64 ",%" PRIu64 ",%" PRIu64, 
+            loop_index, last_step_ns, log_time_ns);
+	
+    if (settings.log_state) state_estimator_entry.print_entry(log_fd);
+    
+    if (settings.log_sensors)
     {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", v_batt,
-            alt_bmp_raw, bmp_temp, gyro_roll, gyro_pitch, gyro_yaw, accel_X, accel_Y, accel_Z,
-            mag_X, mag_Y, mag_Z);
+        battery.print_entry(log_fd);
+        bmp.print_entry(log_fd);
+        imu.print_entry(log_fd);
     }
-
-	if (settings.log_state)
-    {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", roll, pitch, yaw,
-            yaw_cont, rollDot, pitchDot, yawDot, X, Y, Z, Xdot, Ydot, Zdot, Xdot_raw, Ydot_raw, Zdot_raw, Zddot);
-    }
-
+    
     if (settings.log_mocap)
     {
-        fprintf(log_fd, ",%" PRIu32 ",%" PRIu64, mocap_time, mocap_timestamp_ns);
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", mocap_x, mocap_y,
-            mocap_z, mocap_qw, mocap_qx, mocap_qy, mocap_qz, mocap_roll, mocap_pitch,
-            mocap_yaw);
+        mocap.print_entry(log_fd);
     }
 
     if (settings.log_gps)
@@ -293,6 +284,9 @@ int log_entry_t::write_log_entry(void)
             gps_year, gps_month, gps_day, gps_hour, gps_minute, gps_second);
         fprintf(log_fd, ",%" PRIu64, gps_time_received_ns);
     }
+
+    EKF.print_entry(log_fd);
+    EKF2.print_entry(log_fd);
 
     if (settings.log_setpoints)
     {
@@ -412,6 +406,7 @@ int log_entry_t::write_log_entry(void)
         fprintf(log_fd, ",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64,
             tIMU_END, tSM, tCOMMS, tMOCAP, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP);
     }
+    /*
     if (settings.log_encoders) {
         fprintf(log_fd, ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64, \
             rev1, \
@@ -419,7 +414,8 @@ int log_entry_t::write_log_entry(void)
             rev3, \
             rev4);
     }
-	
+	*/
+
 	fprintf(log_fd, "\n");
 	return 0;
 }
@@ -536,54 +532,25 @@ void log_entry_t::construct_new_entry(void)
 {
 	loop_index 	    = fstate.get_loop_index();
     last_step_ns 	= fstate.get_last_step_ns();
-    imu_time_ns 	= state_estimate.imu_time_ns;
-    bmp_time_ns 	= state_estimate.bmp_time_ns;
     log_time_ns     = rc_nanos_since_boot();
 
-    v_batt 		    = state_estimate.v_batt_lp;
-    alt_bmp_raw 	= state_estimate.alt_bmp_raw;
-    bmp_temp 		= state_estimate.bmp_temp;
-    gyro_roll 	    = state_estimate.gyro[0];
-    gyro_pitch 	    = state_estimate.gyro[1];
-    gyro_yaw 		= state_estimate.gyro[2];
-    accel_X 		= state_estimate.accel[0];
-    accel_Y 		= state_estimate.accel[1];
-    accel_Z 		= state_estimate.accel[2];
-    mag_X 		    = state_estimate.mag[0];
-    mag_Y 		    = state_estimate.mag[1];
-    mag_Z 		    = state_estimate.mag[2];
+    if (settings.log_sensors)
+    {
+        battery.update(&state_estimate.batt);
+        bmp.update(&state_estimate.bmp);
+        imu.update(&state_estimate.imu);
+    }
 
-    roll 			= state_estimate.roll;
-    pitch 		    = state_estimate.pitch;
-    yaw 			= state_estimate.yaw;
-	yaw_cont 		= state_estimate.continuous_yaw;
-    rollDot 		= state_estimate.roll_dot;
-    pitchDot 		= state_estimate.pitch_dot;
-    yawDot 		    = state_estimate.yaw_dot;
+    if (settings.log_state) state_estimator_entry.update(&state_estimate);
+    
+    if (settings.log_mocap) mocap.update(&state_estimate.mocap);
 
-    X 			    = state_estimate.X;
-    Y 			    = state_estimate.Y;
-    Z 			    = state_estimate.Z;
-    Xdot 			= state_estimate.X_dot;
-    Ydot 			= state_estimate.Y_dot;
-    Zdot 			= state_estimate.Z_dot;
-    Xdot_raw        = state_estimate.X_dot_raw;
-    Ydot_raw        = state_estimate.Y_dot_raw;
-    Zdot_raw        = state_estimate.Z_dot_raw;
-    Zddot 		    = state_estimate.Z_ddot;
-
-    mocap_time 	    = state_estimate.mocap_time;
-    mocap_timestamp_ns = state_estimate.mocap_timestamp_ns;
-    mocap_x 		= state_estimate.pos_mocap[0];
-    mocap_y 		= state_estimate.pos_mocap[1];
-    mocap_z 		= state_estimate.pos_mocap[2];
-    mocap_qw 		= state_estimate.quat_mocap[0];
-    mocap_qx 		= state_estimate.quat_mocap[1];
-    mocap_qy 		= state_estimate.quat_mocap[2];
-    mocap_qz 		= state_estimate.quat_mocap[3];
-    mocap_roll 	    = state_estimate.tb_mocap[0];
-    mocap_pitch 	= state_estimate.tb_mocap[1];
-    mocap_yaw 	    = state_estimate.tb_mocap[2];
+    /*
+    rev1 = state_estimate.rev[0];
+    rev2 = state_estimate.rev[1];
+    rev3 = state_estimate.rev[2];
+    rev4 = state_estimate.rev[3];
+    */
 
     gps_lon 		= gps_data.lla.lon;
     gps_lat 		= gps_data.lla.lat;
@@ -606,6 +573,11 @@ void log_entry_t::construct_new_entry(void)
     gps_minute 	    = gps_data.minute;
     gps_second 	    = gps_data.second;
     gps_time_received_ns = gps_data.gps_data_received_ns;
+
+    /* Filters */
+    EKF.update(&state_estimate.EKF);
+    EKF2.update(&state_estimate.EKF2);
+
 
     X_throttle 	    = setpoint.POS_throttle.x.value.get();//setpoint.X_throttle;
     Y_throttle 	    = setpoint.POS_throttle.y.value.get();//setpoint.Y_throttle;
@@ -683,12 +655,6 @@ void log_entry_t::construct_new_entry(void)
     tCTR 			= benchmark_timers.tCTR;
     tLOG 			= benchmark_timers.tLOG;
     tNTP 			= benchmark_timers.tNTP;
-
-    rev1            = state_estimate.rev[0];
-    rev2            = state_estimate.rev[1];
-    rev3            = state_estimate.rev[2];
-    rev4            = state_estimate.rev[3];
-
 	return;
 }
 

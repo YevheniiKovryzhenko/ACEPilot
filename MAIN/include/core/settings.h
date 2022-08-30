@@ -23,6 +23,7 @@
 #include "thrust_map.h"
 //#include "mix_servos.hpp"
 #include "servo_mix_defs.h"
+#include "coordinate_frames_gen.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -37,6 +38,70 @@ typedef struct controller_settings_t {
 	double FF;
 	double K;
 }controller_settings_t;
+
+/**
+* Defines supported filter types.
+*/
+typedef enum signal_filter_gen_type_t {
+	Lowpass = 0,
+	Highpass = 1,
+	Integrator = 2,
+	Moving_Avg = 3
+}signal_filter_gen_type_t;
+
+/* Filter settings structure */
+typedef struct signal_filter_gen_settings_t
+{
+	signal_filter_gen_type_t type;// = Lowpass;
+	double dt;// = DT; //time step of a discrete filter in seconds
+	double tc;// = 10.0 * DT; // time constant: Seconds it takes to decay by 63.4% of a steady - state input
+	int n_samples;// = 20; //number of samples for moving average filter
+	bool en_saturation;// = false;
+	double min;// = -1.0;
+	double max;// = 1.0;
+}signal_filter_gen_settings_t;
+
+
+/* Sensor settings structures */
+
+/* Voltage sensor */
+typedef struct voltage_sensor_settings_t
+{
+	signal_filter_gen_settings_t filter; //filter settings
+	bool en_warnings;// = false;
+	double nominal;// = 5.0;
+	double min_critical;// = 3.0;
+}voltage_sensor_settings_t;
+
+/* Gyroscope */
+typedef struct gyro_settings_t
+{
+	coordinate_frame_t frame_type;// = ENU; //physical placemet of the sensor
+	signal_filter_gen_settings_t filter[3]; //filter settings
+}gyro_settings_t;
+
+typedef struct gyro_settings_t accel_settings_t; //same as gyro for now
+
+typedef struct compass_settings_t
+{
+	coordinate_frame_t frame_type;// = ENU; //physical placemet of the sensor		
+}compass_settings_t;
+
+typedef struct mocap_settings_t
+{
+	coordinate_frame_t frame_type;// = NWU;
+	signal_filter_gen_settings_t att_filter[3]; //filter settings for attitude
+	signal_filter_gen_settings_t vel_filter[3]; //filter settings for velocity		
+}mocap_settings_t;
+
+typedef struct IMU_9DOF_settings_t
+{
+	coordinate_frame_t frame_type;// = ENU;
+	gyro_settings_t gyro;
+	accel_settings_t accel;
+	bool en_compass;// = false;
+	compass_settings_t compass;
+}IMU_9DOF_settings_t;
 
 
 /**

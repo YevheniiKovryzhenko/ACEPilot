@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/26/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -48,7 +48,7 @@
 #include <rc/servo.h>
 #include <rc/time.h>
 
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "rc_pilot_defs.h"
 #include "setpoint_manager.hpp"
 #include "settings.h"
@@ -63,8 +63,13 @@
 #include "feedback.hpp"
 
  // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
@@ -291,7 +296,7 @@ int feedback_state_t::march(void)
 	}
 
 	// check for a tipover
-	if (unlikely(fabs(state_estimate.roll) > TIP_ANGLE || fabs(state_estimate.pitch) > TIP_ANGLE)) 
+	if (unlikely(fabs(state_estimate.get_roll()) > TIP_ANGLE || fabs(state_estimate.get_pitch()) > TIP_ANGLE)) 
 	{
 		disarm();
 		printf("\n TIPOVER DETECTED \n");

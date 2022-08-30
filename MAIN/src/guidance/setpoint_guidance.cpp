@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Contains all the automated trajectory guidance and related functionality.
@@ -40,15 +40,20 @@
 #include "settings.h"
 #include "tools.h"
 #include "input_manager.hpp"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "state_machine.hpp"
 #include "path.hpp"
 
 #include "setpoint_guidance.hpp"
 
-// preposessor macros
+ // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
 setpoint_guidance_t setpoint_guidance{};
 
@@ -309,7 +314,7 @@ int setpoint_guidance_t::march_land(void)
     }
 
     //-----Landing Detection----//
-    if (setpoint.Z.value.get() < (state_estimate.Z - XYZ_MAX_ERROR))
+    if (setpoint.Z.value.get() < (state_estimate.get_Z() - XYZ_MAX_ERROR))
     {
         printf("\n WARNING: Flying too far up! Exceeding XYZ_MAX_ERROR, can't keep up \n");
         reset_Z();                              //terminante any Z guidance
@@ -318,7 +323,7 @@ int setpoint_guidance_t::march_land(void)
         return -2;                              //failed to land (velocity can be too high)
     }
 
-    if (setpoint.Z.value.get() > (state_estimate.Z + XYZ_MAX_ERROR))
+    if (setpoint.Z.value.get() > (state_estimate.get_Z() + XYZ_MAX_ERROR))
     {
         st_Z = true;                            // landed - let the Z guidance algorithm finish on it's own
         land_finished = true;                   //flag landing as finished to prevent restart
@@ -350,7 +355,7 @@ void setpoint_guidance_t::start_land(void) //intended to allow running at each i
     {
         en_Z        = true; // allow Z guidance
         en_land     = true; // start landing
-        setpoint.Z.value.set(state_estimate.Z); //zero out the altitude error
+        setpoint.Z.value.set(state_estimate.get_Z()); //zero out the altitude error
         printf("\nStarting landing algorithm....");
     }//otherwise do nothing
     
@@ -467,7 +472,7 @@ void setpoint_guidance_t::start_takeoff(void) //intended to allow running at eac
     {
         en_Z        = true; // allow Z guidance
         en_takeoff  = true; // start takeoff
-        setpoint.Z.value.set(state_estimate.Z); //zero out the error
+        setpoint.Z.value.set(state_estimate.get_Z()); //zero out the error
 
         Z_cubic.set(Z_initial, Z_initial - takeoff_height, 0,
             0, t_takeoff_s);
@@ -834,8 +839,8 @@ void setpoint_guidance_t::start_square(void) //intended to allow running at each
     {
         en_XY = true; // allow XY guidance
         en_square = true; // start square guidance
-        setpoint.XY.x.value.set(state_estimate.X); //zero out the error
-        setpoint.XY.y.value.set(state_estimate.Y); //zero out the error
+        setpoint.XY.x.value.set(state_estimate.get_X()); //zero out the error
+        setpoint.XY.y.value.set(state_estimate.get_Y()); //zero out the error
 
         printf("\nStarting square trajectory algorithm....");
     }//otherwise do nothing
@@ -995,9 +1000,9 @@ void setpoint_guidance_t::start_circ(void) //intended to allow running at each i
     {
         en_XY = true; // allow XY guidance
         en_circ = true; // start circ guidance
-        setpoint.XY.x.value.set(state_estimate.X); //zero out the error
-        setpoint.XY.y.value.set(state_estimate.Y); //zero out the error
-        setpoint.ATT.z.value.set(state_estimate.continuous_yaw); //zero out the error
+        setpoint.XY.x.value.set(state_estimate.get_X()); //zero out the error
+        setpoint.XY.y.value.set(state_estimate.get_Y()); //zero out the error
+        setpoint.ATT.z.value.set(state_estimate.get_continuous_heading()); //zero out the error
 
         circ_guide.set(turn_period, turn_radius, turn_time_s, turn_dir, \
             X_initial, Y_initial, Yaw_initial);

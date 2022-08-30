@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/12/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  */
 
 #ifndef TOOLS_H
@@ -43,6 +43,24 @@ extern "C" {
 	* @return		time in seconds
 	*/
 	double finddt_s(uint64_t ti);
+
+	/**
+	* @brief		kinamatics equations for computing
+	*				euler angle rates from body rates and 
+	*				attitude
+	*
+	* @return		assumes and modifies att_rates[3]
+	*/
+	void omega_att2att_rates(double* att_rates, double att[3], double omega[3]);
+
+	/**
+	* @brief		kinamatics equations for computing
+	*				body rates from attitude rates and
+	*				attitude
+	*
+	* @return		assumes and modifies omega[3]
+	*/
+	void att_rates_att2omega(double* omega, double att[3], double att_rates[3]);
 
 	/**
 	* @brief		uses a cubic pol. to connect two points in space using initial and final

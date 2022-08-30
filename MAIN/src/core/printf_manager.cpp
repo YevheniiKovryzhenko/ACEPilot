@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/18/2022 (MM/DD/YYYY)
+ * Last Edit:  08/26/2022 (MM/DD/YYYY)
  *
  */
 
@@ -41,7 +41,7 @@
 #include "input_manager.hpp"
 #include "setpoint_manager.hpp"
 #include "feedback.hpp"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "thread_defs.h"
 #include "settings.h"
 #include "comms_tmp_data_packet.h"
@@ -166,6 +166,7 @@ static int __print_header()
 			printf("  M%d |", i + 1);
 		}
 	}
+	/*
 	if (settings.printf_int_mag)
 	{
 		printf("%s mag_x | mag_y | mag_z |mag_nrm|", __next_colour());
@@ -173,13 +174,16 @@ static int __print_header()
  	if(settings.printf_rev){
  		printf("%s rev1 | rev2 | rev3 | rev4 ", __next_colour());
  	}
+	*/
 	printf(KNRM);
 	if(settings.printf_mode){
 		printf("   MODE ");
 	}
+	/*
 	if(settings.printf_counter){
 		printf(" counter ");
 	}
+	*/
 	printf("\n");
 	fflush(stdout);
 	return 0;
@@ -299,18 +303,18 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 		}
 		if (settings.printf_altitude)
 		{
-			printf("%s%+5.2f |%+5.2f |", __next_colour(), state_estimate.alt_bmp,
-				state_estimate.alt_bmp_vel);
+			printf("%s%+7.2f |%+5.2f |", __next_colour(), state_estimate.get_alt(),
+				state_estimate.get_alt_vel());
 		}
 		if (settings.printf_battery)
 		{
-			printf("%s%7.2f|", __next_colour(), state_estimate.v_batt_lp);
+			printf("%s%7.2f|", __next_colour(), state_estimate.get_v_batt());
 		}
 		if (settings.printf_rpy)
 		{
 			printf(KCYN);
-			printf("%s%+5.2f|%+5.2f|%+5.2f|%+7.2f|", __next_colour(), state_estimate.roll,
-				state_estimate.pitch, state_estimate.yaw, state_estimate.continuous_yaw);
+			printf("%s%+5.2f|%+5.2f|%+5.2f|%+7.2f|", __next_colour(), state_estimate.get_roll(),
+				state_estimate.get_pitch(), state_estimate.get_yaw(), state_estimate.get_continuous_heading());
 		}
 		if(settings.printf_sticks){
 			if (user_input.get_arm_switch() == ARMED)
@@ -370,9 +374,15 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 		}
 		if (settings.printf_mocap)
 		{
+			double tmp_pos[3], tmp_quat[4], tmp_vel[3];
+			state_estimate.mocap.get_pos(tmp_pos);
+			state_estimate.mocap.get_vel(tmp_vel);
+			state_estimate.mocap.get_quat(tmp_quat);
+
+
 			printf("%s%+6.2f|%+6.2f|%+6.2f|%+9.2f|%+9.2f|%+9.2f|%+7.2f|%+7.2f|%+7.2f|%+7.2f|  %3X  |", __next_colour(),
-				state_estimate.pos_mocap[0], state_estimate.pos_mocap[1], state_estimate.pos_mocap[2], state_estimate.X_dot, state_estimate.Y_dot,
-				state_estimate.Z_dot, state_estimate.quat_mocap[1], state_estimate.quat_mocap[2], state_estimate.quat_mocap[3], state_estimate.quat_mocap[0],
+				tmp_pos[0], tmp_pos[1], tmp_pos[2], tmp_vel[0], tmp_vel[1],
+				tmp_vel[2], tmp_quat[1], tmp_quat[2], tmp_quat[3], tmp_quat[0],
 				GS_RX.sm_event);
 		}
 		if (settings.printf_gain_tunning)
@@ -397,6 +407,7 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 				printf("%+5.2f|", fstate.get_m(i));
 			}
 		}
+		/*
 		if (settings.printf_int_mag)
 		{
 			printf("%s%+7.2f|%+7.2f|%+7.2f|%+7.2f|", __next_colour(), state_estimate.mag[0],
@@ -404,20 +415,24 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 				sqrt(pow(state_estimate.mag[0], 2) + pow(state_estimate.mag[1], 2) +
 					pow(state_estimate.mag[2], 2)));
 		}
+		*/
 		printf(KNRM);
 		// we are not using encoders
+		/*
  		if(settings.printf_rev){
 			for(i=0;i<4;i++){
 				printf("%10d|", state_estimate.rev[i]);
 			}
  		}
-
+		*/
 		if(settings.printf_mode){
 			print_flight_mode(user_input.get_flight_mode());
 		}
+		/*
 		if(settings.printf_counter){
 			printf("%d ",state_estimate.counter);
 		}
+		*/
 		fflush(stdout);
 		rc_usleep(1000000/PRINTF_MANAGER_HZ);
 	}

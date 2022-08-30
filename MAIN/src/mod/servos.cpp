@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  07/30/2020 (MM/DD/YYYY)
+ * Last Edit:  08/26/2022 (MM/DD/YYYY)
  */
 
 #include "tools.h"
@@ -34,9 +34,14 @@
 #endif // RC_PILOT_DEFS_H ////only need these if used with rc_pilot
 
 
- // preposessor macros
+// preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
 /*
 * Calibration matrix

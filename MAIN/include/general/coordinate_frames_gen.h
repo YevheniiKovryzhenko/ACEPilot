@@ -1,5 +1,5 @@
-﻿/*
- * main.hpp
+/*
+ * coordinate_frames_gen.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -21,59 +21,61 @@
  * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * Last Edit:  08/26/2022 (MM/DD/YYYY)
+ *
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ *
+ * Summary :
+ * Here are defined general coordinate frames and related functionality
  */
 
-#ifndef MAIN_HPP
-#define MAIN_HPP
+#ifndef COORDINATE_FRAMES_GEN_HPP
+#define COORDINATE_FRAMES_GEN_HPP
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-#include <iostream>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <inttypes.h> // for PRIu64
-#include <string.h>
-#include <stdio.h>
-#include <fcntl.h>
+ /*
+		 Coordinate frame types
+
+	 Assume that we should have:
+	 * North
+	 *	X
+	 *	|
+	 *  / \
+	 *	|
+	 *	|
+	 *	Z ---->  Y East
+	 *  Down
+	 If any of the sensors are pointing in other directions,
+	 You need to select the respective coordinate fram (w.r.to NED)
+	 */
+typedef enum coordinate_frame_t {
+	/* Axis:	X		Y		Z */
+	NED,	//North		East	Down
+	NWU,	//North		West	Up
+	NUE,	//North		Up		East
+	NDW,	//North		Down	West
+	ENU,	//East		North	Up
+	ESD,	//East		South	Down
+	EUS,	//East		Up		South
+	EDN,	//East		Down	North
+	UNW,	//Up		North	West
+	USE,	//Up		South	East
+	UEN,	//Up		East	North
+	UWS,	//Up		West	South
+	DNE		//Down		North	East
+}coordinate_frame_t;
+
+/* function to quickly converst input 3D data into NED coordiante frame */
+char rotate2NED(coordinate_frame_t type, double* out, double in[3]);
 
 
-#include <rc/pthread.h>
-#include <rc/time.h> // for nanos
-#include <rc/start_stop.h>
-#include <rc/adc.h>
-#include <rc/servo.h>
-#include <rc/mpu.h>
-#include <rc/dsm.h>
-#include <rc/bmp.h>
-#include <rc/button.h>
-#include <rc/led.h>
-#include <rc/cpu.h>
-#include <rc/encoder.h>
-#include <signal.h>
+#ifdef __cplusplus
+}
+#endif
+#endif // !COORDINATE_FRAMES_GEN_HPP
 
 
-#include "state_estimator.hpp"
-#include "tools.h"
-#include "gps.h"
-#include "serial_com.h"
-#include "AdafruitGPS_cmds.hpp"
-#include "adafruit_servo_driver.hpp"
-#include "servos.hpp"
-#include "lwgps.h"
-#include "lwrb.h"
-#include "rc_pilot_defs.h"
-#include "input_manager.hpp"
-#include "settings.h"
-#include "state_machine.hpp"
-#include "log_manager.hpp"
-#include "printf_manager.hpp"
-//#include "xbee_receive.h"
-#include "setpoint_manager.hpp"
-#include "benchmark.h"
-#include "feedback.hpp"
-#include "mix_servos.hpp"
-#include "path.hpp"
-#include "comms_manager.hpp"
 
-#endif //MAIN_HPP
+

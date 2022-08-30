@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/12/2022 (MM/DD/YYYY)
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  */
 
 
@@ -44,6 +44,34 @@ inline double cubicPol(double xi, double xf, double xdoti, double xdotf, float t
     tt_s is total time in seconds
     */
     // double dX = (-2*xf/(tt_s*tt_s*tt_s)) * dt*dt*dt + 3*xf/(tt_s*tt_s) * dt*dt;
+}
+
+inline void omega_att2att_rates(double* att_rates, double att[3], double omega[3])
+{
+    /*
+    double att_rates[3] = {roll_dot, pitch_dot, yaw_dot};
+    double att[3] = {roll, pitch, yaw};
+    double omega[3] = {p, q, r};
+    */
+
+    att_rates[0] = omega[0] + omega[1] * sin(att[0]) * tan(att[1]) + omega[2] * cos(att[0]) * tan(att[1]);
+    att_rates[1] = omega[1] * cos(att[0]) + omega[2] * sin(att[0]);
+    att_rates[2] = omega[1] * sin(att[0]) * 1.0 / cos(att[1]) + omega[2] * cos(att[0]) * 1.0 / cos(att[1]);
+    return;
+}
+
+inline void att_rates_att2omega(double* omega, double att[3], double att_rates[3])
+{
+    /*
+    double att_rates[3] = {roll_dot, pitch_dot, yaw_dot};
+    double att[3] = {roll, pitch, yaw};
+    double omega[3] = {p, q, r};
+    */
+
+    omega[0] = att_rates[0] - att_rates[2] * sin(att[1]);
+    omega[1] = att_rates[1] * cos(att[0]) + att_rates[2] * sin(att[0]) * cos(att[1]);
+    omega[2] = -att_rates[1] * sin(att[0]) + att_rates[2] * cos(att[0]) * cos(att[1]);
+    return;
 }
 
 
@@ -166,14 +194,14 @@ void rotate_i2b(double** vec)
         {0.0,                       0.0,                        1.0}};
 
     double R2[3][3] = { \
-        {cos(state_estimate.pitch), 0.0,    -sin(state_estimate.pitch)},\
+        {cos(state_estimate.get_pitch()), 0.0,    -sin(state_estimate.get_pitch())},\
         {0.0,                       1.0,                        0.0},\
-        {sin(state_estimate.pitch), 0.0,    cos(state_estimate.pitch)}};
+        {sin(state_estimate.get_pitch()), 0.0,    cos(state_estimate.get_pitch())}};
 
     double R1[3][3] = { \
         {1.0,                       0.0,                        0.0},\
-        {0.0, cos(state_estimate.roll),     sin(state_estimate.roll)},\
-        {0.0, -sin(state_estimate.roll),    cos(state_estimate.roll)}};
+        {0.0, cos(state_estimate.get_roll()),     sin(state_estimate.get_roll())},\
+        {0.0, -sin(state_estimate.get_roll()),    cos(state_estimate.get_roll())}};
 
     multiply(double mat1, double mat2, double res)
 }
