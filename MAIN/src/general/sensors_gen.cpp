@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/30/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating sensors. Currently supports:
@@ -758,7 +758,7 @@ void IMU_9DOF_gen_t::get_tb_dmp_raw(double* buff)
 }
 void IMU_9DOF_gen_t::get_tb_dmp(double* buff)
 {
-	for (int i = 0; i < 3; i++) buff[i] = att_tb_dmp_raw[i];
+	for (int i = 0; i < 3; i++) buff[i] = att_tb_dmp_NED[i];
 	return;
 }
 double IMU_9DOF_gen_t::get_continuous_yaw_dmp(void)
@@ -782,7 +782,7 @@ void IMU_9DOF_gen_t::get_tb_fused_raw(double* buff)
 }
 void IMU_9DOF_gen_t::get_tb_fused(double* buff)
 {
-	for (int i = 0; i < 3; i++) buff[i] = att_tb_fused_raw[i];
+	for (int i = 0; i < 3; i++) buff[i] = att_tb_fused_NED[i];
 	return;
 }
 double IMU_9DOF_gen_t::get_continuous_yaw_fused(void)

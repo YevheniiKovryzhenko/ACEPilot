@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/30/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This class defines an Extended Kalman Filter V-1 operations.
@@ -37,6 +37,7 @@
 #include "settings.h"
 #include "rc/math/quaternion.h"
 #include "rc/math.h"
+#include "tools.h"
 
 #ifndef GET_VARIABLE_NAME
 #define GET_VARIABLE_NAME(Variable) (#Variable)
@@ -53,9 +54,13 @@ char EKF2_t::march(double omega[3], double accel[3], double mag[3])
     {
         enable_mag = settings.enable_magnetometer;
     }
+    /* from NED to ENU */
+    double om[3] = { omega[1], omega[0], -omega[2] };
+    double acc[3] = { accel[1], accel[0], -accel[2] };
+    double magn[3] = { mag[1], mag[0], -mag[2] };
 
-    /* march EKF */
-    IMU_EKF2(Pcov, quat, Cov_info, omega, accel, mag, finddt_s(time), initialized, enable_mag);
+    /* march EKF V-2 */
+    IMU_EKF2(Pcov, quat, Cov_info, om, acc, magn, finddt_s(time), initialized, enable_mag);
     time = rc_nanos_since_boot(); //log new timestamp
 
     /* Final calculations */
