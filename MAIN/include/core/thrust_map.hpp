@@ -1,22 +1,18 @@
 /**
- * @headerfile thrust_map.h
+ * @headerfile thrust_map.hpp
  *
  * @brief      Functions to start and stop the printf manager which is a
  *             separate thread printing data to the console for debugging.
  */
 
 
-#ifndef THRUST_MAP_H
-#define THRUST_MAP_H
+#ifndef THRUST_MAP_HPP
+#define THRUST_MAP_HPP
 
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 /**
  * enum thrust_map_t
  *
@@ -52,7 +48,5 @@ int thrust_map_init(thrust_map_t map);
  */
 double map_motor_signal(double m);
 
-#ifdef __cplusplus
-}
-#endif
-#endif // THRUST_MAP_H
+
+#endif // THRUST_MAP_HPP

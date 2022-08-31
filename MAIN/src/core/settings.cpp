@@ -16,12 +16,12 @@
 #include <rc/mpu.h>
 
 //#include "input_manager.h"
-#include "flight_mode.h"
-#include "thrust_map.h"
-#include "mix.h"
-#include "rc_pilot_defs.h"
+#include "flight_mode.hpp"
+#include "thrust_map.hpp"
+#include "mix.hpp"
+#include "rc_pilot_defs.hpp"
 
-#include "settings.h"
+#include "settings.hpp"
 
 // json object respresentation of the whole settings file
 static json_object* jobj;
@@ -178,8 +178,6 @@ if(__parse_controller(tmp, &settings.name)){\
 	return -1;\
 }\
 */
-
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -768,6 +766,14 @@ static int __parse_controller_gains(json_object* jobj_ctl, rc_filter_t* filter)
 	rc_vector_free(&num_vec);
 	rc_vector_free(&den_vec);
 
+	return 0;
+}
+
+
+/* Parsing _gen settings */
+
+static int parse_signal_filter_gen_settings_t(json_object* jobj_ctl, rc_filter_t* filter)
+{
 	return 0;
 }
 

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Functions to mix orthogonal inputs to motor controls
@@ -52,12 +52,10 @@
  *
  * possible rotor configurations, see mixing_matrix_defs.h
  */
-#include "servo_mix_defs.h" //include this untill settings.h is converted into C++ 
-/*
 typedef enum servo_layout_t {
-	LAYOUT_4xDIRECT_TEST
+	LAYOUT_6xDIRECT_TEST,
+	LAYOUT_16xZEPPELIN
 } servo_layout_t;
-*/
 
 class servo_mix_t 
 {

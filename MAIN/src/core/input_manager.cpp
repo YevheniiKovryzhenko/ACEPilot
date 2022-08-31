@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Functions to start and stop the input manager thread which is the translation
  * beween control inputs from DSM to the user_input struct which is read by the
@@ -42,12 +42,12 @@
 #include <rc/math/other.h>
 
 #include "setpoint_manager.hpp"
-#include "settings.h"
-#include "rc_pilot_defs.h"
-#include "flight_mode.h"
+#include "settings.hpp"
+#include "rc_pilot_defs.hpp"
+#include "flight_mode.hpp"
 #include "state_estimator.hpp"
-#include "rc_pilot_defs.h"
-#include "thread_defs.h"
+#include "rc_pilot_defs.hpp"
+#include "thread_defs.hpp"
 #include "feedback.hpp"
 
 #include "input_manager.hpp"

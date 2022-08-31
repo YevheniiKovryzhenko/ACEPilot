@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/01/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -34,7 +34,7 @@
 #include "input_manager.hpp"
 #include "setpoint_manager.hpp"
 #include "mix_servos.hpp"
-#include "settings.h"
+#include "settings.hpp"
 
 #include "servo_controller.hpp"
 

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This class defines an Extended Kalman Filter V-2 operations.
@@ -34,8 +34,8 @@
  */
 
 
-#ifndef IMU_EKF2_HPP
-#define IMU_EKF2_HPP
+#ifndef EKF2_HPP
+#define EKF2_HPP
 #include <math.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -68,6 +68,9 @@ public:
 	void get_quat(double* buff);
 	void get_tb(double* buff);
 };
+
+
+extern EKF2_t EKF2;
 
 
 /** @name Logging class for EKF-2

@@ -1,14 +1,14 @@
 /*
- * @file thrust_map.c
+ * @file thrust_map.cpp
  *
  * Most ESC/motor/propeller combinations provide a highly non-linear map from
- * input to thrust. For the thrust table defined in thrust_map.h, this provides
+ * input to thrust. For the thrust table defined in thrust_map.hpp, this provides
  * the function to translate a desired normalized thrust (0-1) to the necessary
  * input (also 0-1).
  **/
 
 
-#include "thrust_map.h"
+#include "thrust_map.hpp"
 
 static double* signal;
 static double* thrust;

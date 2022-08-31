@@ -1,9 +1,9 @@
 /**
- * @file coordinates.c
+ * @file coordinates.cpp
  *
  **/
 
-#include <coordinates.h>
+#include "coordinates.hpp"
 #include <stdio.h>
 
 origin_t origin;

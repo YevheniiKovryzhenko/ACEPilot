@@ -1,5 +1,5 @@
 /*
- * gps.h
+ * gps.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -23,8 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __GPS__
-#define __GPS__
+#ifndef GPS_HPP
+#define GPS_HPP
 
 #include <stdint.h>
 #include <assert.h>
@@ -38,13 +38,11 @@
 
 #include "lwgps.h"
 #include "lwrb.h"
-#include "coordinates.h"
 #include "tools.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#include "coordinates.hpp"
+
+
 
     /**
      * @brief   Gps fix type
@@ -112,11 +110,6 @@ extern "C"
 
     int gps_cleanup();
 
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __GPS__ */
+#endif /* GPS_HPP */
 
 /* @} end group Gps */

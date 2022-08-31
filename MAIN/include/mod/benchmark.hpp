@@ -1,5 +1,5 @@
 /**
- * <benchmark.h>
+ * <benchmark.hpp>
  *
  * @brief       Structure for timing portions of the software.
  *              Recommended to use rc_nanos_since_boot() for timers for consistency with other
@@ -16,8 +16,8 @@
  * @{
  */
 
-#ifndef __BENCHMARK__
-#define __BENCHMARK__
+#ifndef BENCHMARK_HPP
+#define BENCHMARK_HPP
 
 #include <inttypes.h>
 #include <time.h>	// for timespec
@@ -35,4 +35,4 @@ typedef struct benchmark_t{
 extern benchmark_t benchmark_timers;
 
 
-#endif //__BENCHMARK__
+#endif //BENCHMARK_HPP

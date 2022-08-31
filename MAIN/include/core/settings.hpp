@@ -1,11 +1,11 @@
 /**
- * <settings.h>
+ * <settings.hpp>
  *
  * @brief      Functions to read the json settings file
  */
 
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#ifndef SETTINGS_HPP
+#define SETTINGS_HPP
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>	// FOR str_cmp()
@@ -17,18 +17,12 @@
 #include <rc/math/filter.h>
 #include <rc/mpu.h>
 
-#include "mix.h"
-#include "flight_mode.h"
-#include "rc_pilot_defs.h"
-#include "thrust_map.h"
-//#include "mix_servos.hpp"
-#include "servo_mix_defs.h"
-#include "coordinate_frames_gen.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#include "mix.hpp"
+#include "flight_mode.hpp"
+#include "rc_pilot_defs.hpp"
+#include "thrust_map.hpp"
+#include "coordinate_frames_gen.hpp"
+#include "mix_servos.hpp"
 
 /** @name feedback control struct */
 ///@{
@@ -61,7 +55,6 @@ typedef struct signal_filter_gen_settings_t
 	double max;// = 1.0;
 }signal_filter_gen_settings_t;
 
-
 /* Sensor settings structures */
 
 /* Voltage sensor */
@@ -87,13 +80,6 @@ typedef struct compass_settings_t
 	coordinate_frame_t frame_type;// = ENU; //physical placemet of the sensor		
 }compass_settings_t;
 
-typedef struct mocap_settings_t
-{
-	coordinate_frame_t frame_type;// = NWU;
-	signal_filter_gen_settings_t att_filter[3]; //filter settings for attitude
-	signal_filter_gen_settings_t vel_filter[3]; //filter settings for velocity		
-}mocap_settings_t;
-
 typedef struct IMU_9DOF_settings_t
 {
 	coordinate_frame_t frame_type;// = ENU;
@@ -102,6 +88,15 @@ typedef struct IMU_9DOF_settings_t
 	bool en_compass;// = false;
 	compass_settings_t compass;
 }IMU_9DOF_settings_t;
+
+typedef struct mocap_settings_t
+{
+	coordinate_frame_t frame_type;// = NWU;
+	signal_filter_gen_settings_t att_filter[3]; //filter settings for attitude
+	signal_filter_gen_settings_t vel_filter[3]; //filter settings for velocity		
+}mocap_settings_t;
+
+
 
 
 /**
@@ -397,9 +392,5 @@ int settings_load_from_file(char* path);
  * @return     0 on success, -1 on failure
  */
 int settings_print(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // SETTINGS_H

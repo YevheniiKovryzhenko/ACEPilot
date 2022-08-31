@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  06/04/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  */
 
 #ifndef CONTROLLER_HPP
@@ -36,7 +36,7 @@
 #include <rc/time.h>
 #include <rc/math/filter.h>
 
-#include "mix.h"
+#include "mix.hpp"
 #include <stdbool.h>
 #include "feedback_filter_gen.hpp"
 

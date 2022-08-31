@@ -2,6 +2,6 @@
  * @file benchmark.c
  */
 
-#include <benchmark.h>
+#include "benchmark.hpp"
 
 benchmark_t benchmark_timers;

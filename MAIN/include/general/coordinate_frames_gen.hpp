@@ -1,5 +1,5 @@
 /*
- * servo_mix_defs.h
+ * coordinate_frames_gen.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -22,20 +22,51 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
- * Temporary header. Exists for C/C++ compatability
- *
+ * Here are defined general coordinate frames and related functionality
  */
 
+#ifndef COORDINATE_FRAMES_GEN_HPP
+#define COORDINATE_FRAMES_GEN_HPP
 
-#ifndef SERVO_MIX_DEFS_H
-#define SERVO_MIX_DEFS_H
+ /*
+		 Coordinate frame types
 
-typedef enum servo_layout_t {
-	LAYOUT_6xDIRECT_TEST,
-	LAYOUT_16xZEPPELIN
-} servo_layout_t;
+	 Assume that we should have:
+	 * North
+	 *	X
+	 *	|
+	 *  / \
+	 *	|
+	 *	|
+	 *	Z ---->  Y East
+	 *  Down
+	 If any of the sensors are pointing in other directions,
+	 You need to select the respective coordinate fram (w.r.to NED)
+	 */
+typedef enum coordinate_frame_t {
+	/* Axis:	X		Y		Z */
+	NED,	//North		East	Down
+	NWU,	//North		West	Up
+	NUE,	//North		Up		East
+	NDW,	//North		Down	West
+	ENU,	//East		North	Up
+	ESD,	//East		South	Down
+	EUS,	//East		Up		South
+	EDN,	//East		Down	North
+	UNW,	//Up		North	West
+	USE,	//Up		South	East
+	UEN,	//Up		East	North
+	UWS,	//Up		West	South
+	DNE		//Down		North	East
+}coordinate_frame_t;
 
-#endif //SERVO_MIX_DEFS_H
+/* function to quickly converst input 3D data into NED coordiante frame */
+char rotate2NED(coordinate_frame_t type, double* out, double in[3]);
+#endif // !COORDINATE_FRAMES_GEN_HPP
+
+
+
+

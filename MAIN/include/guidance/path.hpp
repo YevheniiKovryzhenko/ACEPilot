@@ -50,7 +50,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "coordinates.h"
+#include "coordinates.hpp"
 #include "setpoint_manager.hpp"
 #include "state_machine.hpp"
 

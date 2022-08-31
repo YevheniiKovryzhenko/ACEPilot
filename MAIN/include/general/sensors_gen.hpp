@@ -38,8 +38,7 @@
 #include <stdint.h> // for uint64_t
 #include <rc/time.h>
 
-//#include "coordinate_frames_gen.hpp"
-#include "settings.h"
+#include "settings.hpp"
 #include "signal_filter_gen.hpp"
 
  /* General class for all battery instances */
@@ -69,6 +68,7 @@ public:
 	char reset(voltage_sensor_settings_t new_settings);
 	void cleanup(void);
 };
+extern battery_gen_t batt;
 
 /* General class for all barometer instances */
 class barometer_gen_t
@@ -96,6 +96,7 @@ public:
 	char reset(void);
 	void cleanup(void);
 };
+extern barometer_gen_t bmp;
 
  /* General class for all gyro instances */
 class gyro_gen_t
@@ -277,6 +278,7 @@ public:
 	char reset(void);
 	void cleanup(void);	
 };
+extern IMU_9DOF_gen_t imu;
 
 
 /** @name Logging class for battery

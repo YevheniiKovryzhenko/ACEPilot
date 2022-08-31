@@ -22,9 +22,10 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/26/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  */
+#include "printf_manager.hpp"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -36,18 +37,18 @@
 #include <rc/encoder.h>
 #include <signal.h>
 
-#include "rc_pilot_defs.h"
-#include "flight_mode.h"
+#include "rc_pilot_defs.hpp"
+#include "flight_mode.hpp"
 #include "input_manager.hpp"
 #include "setpoint_manager.hpp"
 #include "feedback.hpp"
 #include "state_estimator.hpp"
-#include "thread_defs.h"
-#include "settings.h"
+#include "thread_defs.hpp"
+#include "settings.hpp"
 #include "comms_tmp_data_packet.h"
-#include "gps.h"
+#include "gps.hpp"
 
-#include "printf_manager.hpp"
+#include "mocap_gen.hpp"
 
 static pthread_t printf_manager_thread;
 static int initialized = 0;
@@ -375,9 +376,9 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 		if (settings.printf_mocap)
 		{
 			double tmp_pos[3], tmp_quat[4], tmp_vel[3];
-			state_estimate.mocap.get_pos(tmp_pos);
-			state_estimate.mocap.get_vel(tmp_vel);
-			state_estimate.mocap.get_quat(tmp_quat);
+			mocap.get_pos(tmp_pos);
+			mocap.get_vel(tmp_vel);
+			mocap.get_quat(tmp_quat);
 
 
 			printf("%s%+6.2f|%+6.2f|%+6.2f|%+9.2f|%+9.2f|%+9.2f|%+7.2f|%+7.2f|%+7.2f|%+7.2f|  %3X  |", __next_colour(),

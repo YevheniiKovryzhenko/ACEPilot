@@ -47,7 +47,7 @@
 #include <rc/math/quaternion.h>
 #include <rc/math/filter.h>
 #include "setpoint_gen.hpp"
-#include "flight_mode.h"
+#include "flight_mode.hpp"
 
 #ifndef SETPOINT_MANAGER_H
 #define SETPOINT_MANAGER_H

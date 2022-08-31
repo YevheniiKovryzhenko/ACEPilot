@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains all the primary functionality and framework for state estimation rountines
@@ -43,11 +43,7 @@
 
 //#include "coordinate_frames_gen.hpp"
 #include "signal_filter_gen.hpp"
-#include "settings.h"
-#include "sensors_gen.hpp"
-#include "mocap_gen.hpp"
-#include "EKF.hpp"
-#include "EKF2.hpp"
+#include "settings.hpp"
 
 	typedef struct ext_mag_t
 	{
@@ -80,14 +76,6 @@
 		rc_bmp_data_t bmp_data;
 
 		int bmp_sample_counter = 0;		
-
-		// altitude filter components
-		rc_kalman_t alt_kf = RC_KALMAN_INITIALIZER;
-		rc_vector_t u = RC_VECTOR_INITIALIZER;
-		rc_vector_t y = RC_VECTOR_INITIALIZER;
-		double alt_kf_est = 0.0;
-		double vertical_speed_kf_est = 0.0;
-		double vertical_acc_kf_est = 0.0;
 
 		/** @name Primary Estimate
 		 * This is the global estimated position, velocity, acceleration, attitude, etc.
@@ -123,9 +111,12 @@
 		double alt_acc;				///< Vertical acceleration (m)
 		///@}
 
-		//EOL{
+
 		//int counter;
 		//int rev[4]; //for encoders
+
+		//EOL{
+		
 
 		/** @name IMU (accel gyro)
 		 * Normalized Quaternion is straight from the DMP but converted to NED
@@ -226,10 +217,6 @@
 
 		//EOL}
 
-		char init_altitude_kf(void);
-		void march_altitude_kf(double* Z_est, double Z_acc, double Z);
-		void cleanup_altitude_kf(void);
-
 		void mocap_check_timeout(void);
 
 		/**
@@ -275,6 +262,15 @@
 		
 
 		/**
+		* @brief       Initializes internal filters
+		*
+		* @param[in]   void
+		*
+		* @return      0 on success, -1 on failure
+		*/
+		char init_internal_filters(void);
+
+		/**
 		* @brief       Updates internal KF and EKF algorithms
 		*
 		* @param[in]   void
@@ -283,16 +279,26 @@
 		*/
 		void update_internal_filters(void);
 
+
+		/**
+		* @brief       Cleanup routine for internal filters
+		*
+		* @param[in]   void
+		*
+		* @return      void
+		*/
+		void cleanup_internal_filters(void);
+
 	public:
 		/* Define all the sensors and external input sources */
 		// Assume these are primary:
-		battery_gen_t batt{};	//battery voltage sensor
-		barometer_gen_t bmp{};	//barometer
-		IMU_9DOF_gen_t imu{};	//IMU-9DOF with Gyro + Accel + Mag
-		mocap_gen_t mocap{};	//mocap system
+		//battery_gen_t batt{};	//battery voltage sensor
+		//barometer_gen_t bmp{};	//barometer
+		//IMU_9DOF_gen_t imu{};	//IMU-9DOF with Gyro + Accel + Mag
+		//mocap_gen_t mocap{};	//mocap system
 
-		EKF_t EKF{};			//EKF for attitude estimation V-1
-		EKF2_t EKF2{};			//EKF for attitude estimation V-2
+		//EKF_t EKF{};			//EKF for attitude estimation V-1
+		//EKF2_t EKF2{};			//EKF for attitude estimation V-2
 
 
 		/**

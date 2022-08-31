@@ -34,7 +34,7 @@
 
 #ifndef __STATE_MACHINE__
 #define __STATE_MACHINE__
-#include "flight_mode.h"
+#include "flight_mode.hpp"
 #include "thread_gen.hpp"
 
     /**

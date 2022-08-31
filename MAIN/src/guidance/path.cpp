@@ -51,7 +51,7 @@
 #include <stdlib.h>
 #include <unistd.h>  // for access()
 
-#include "coordinates.h"
+#include "coordinates.hpp"
 #include "setpoint_manager.hpp"
 #include "tools.h"
 #include "state_machine.hpp"

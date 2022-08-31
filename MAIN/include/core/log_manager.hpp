@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -34,6 +34,11 @@
 #include <stdbool.h>
 #include "thread_gen.hpp"
 #include "state_estimator.hpp"
+#include "sensors_gen.hpp"
+#include "mocap_gen.hpp"
+#include "KF.hpp"
+#include "EKF.hpp"
+#include "EKF2.hpp"
 
 #define MAX_LOG_FILES	500
 
@@ -71,24 +76,14 @@ private:
 
 	/** @name sensors */
 	///@{
-	battery_log_entry_t battery{};
-	barometer_log_entry_t bmp{};
-	IMU_9DOF_log_entry_t imu{};
-	///@}
-
-	/** @name Encoders */
-	///@{
-	/*
-	int64_t rev1;
-	int64_t rev2;
-	int64_t rev3;
-	int64_t rev4;
-	*/
+	battery_log_entry_t battery_entry{};
+	barometer_log_entry_t bmp_entry{};
+	IMU_9DOF_log_entry_t imu_entry{};
 	///@}
 
 	/*** @name mocap data */
 	///@{
-	mocap_log_entry_t mocap{};
+	mocap_log_entry_t mocap_entry{};
 	///@}
 
 	/*** @name gps data */
@@ -117,8 +112,8 @@ private:
 	///@}
 
 	/* Filters */
-	EKF_log_entry_t EKF{};
-	EKF2_log_entry_t EKF2{};
+	EKF_log_entry_t EKF1_entry{};
+	EKF2_log_entry_t EKF2_entry{};
 
 	/** @name throttles */
 	///@{

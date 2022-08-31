@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/26/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -49,11 +49,11 @@
 #include <rc/time.h>
 
 #include "state_estimator.hpp"
-#include "rc_pilot_defs.h"
+#include "rc_pilot_defs.hpp"
 #include "setpoint_manager.hpp"
-#include "settings.h"
-#include "mix.h"
-#include "thrust_map.h"
+#include "settings.hpp"
+#include "mix.hpp"
+#include "thrust_map.hpp"
 #include "tools.h"
 #include "controller.hpp"
 #include "log_manager.hpp"

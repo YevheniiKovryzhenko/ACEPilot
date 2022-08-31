@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/30/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This class defines an Extended Kalman Filter V-1 operations.
@@ -34,7 +34,7 @@
  */
 
 #include "EKF2.hpp"
-#include "settings.h"
+#include "settings.hpp"
 #include "rc/math/quaternion.h"
 #include "rc/math.h"
 #include "tools.h"
@@ -42,6 +42,8 @@
 #ifndef GET_VARIABLE_NAME
 #define GET_VARIABLE_NAME(Variable) (#Variable)
 #endif // !GET_VARIABLE_NAME
+
+EKF2_t EKF2{};
 
 void IMU_EKF2(double P[16], double q[4], const double Cov_info[3], const double
     omega[3], double accel[3], double mag[3], double dt, bool initilized,

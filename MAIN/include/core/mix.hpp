@@ -1,5 +1,5 @@
 /**
- * <include/mix.h>
+ * <include/mix.hpp>
  *
  * @brief      Functions to mix orthogonal inputs to motor controls
  *
@@ -11,17 +11,13 @@
  *             and do the actual mixing.
  */
 
-#ifndef MIXING_MATRIX_H
-#define MIXING_MATRIX_H
+#ifndef MIXING_MATRIX_HPP
+#define MIXING_MATRIX_HPP
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h> // for DBL_MAX
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 
 #define MAX_INPUTS 6	///< up to 6 control inputs (roll,pitch,yaw,z,x,y)
 #define MAX_ROTORS 8	///< up to 8 rotors
@@ -116,7 +112,4 @@ int mix_check_saturation(int ch, double* mot, double* min, double* max);
  */
 int mix_add_input(double u, int ch, double* mot);
 
-#ifdef __cplusplus
-}
-#endif
 #endif // MIXING_MATRIX_H

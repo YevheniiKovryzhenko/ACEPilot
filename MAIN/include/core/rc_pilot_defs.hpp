@@ -1,11 +1,11 @@
 /**
- * <rc_pilot_defs.h>
+ * <rc_pilot_defs.hpp>
  *
  * @brief constants, parameters and global defines
  */
 
-#ifndef RC_PILOT_DEFS_H
-#define RC_PILOT_DEFS_H
+#ifndef RC_PILOT_DEFS_HPP
+#define RC_PILOT_DEFS_HPP
 /**
  * @brief      ARMED or DISARMED to indicate if the feedback controller is
  *             allowed to output to the motors
@@ -173,4 +173,4 @@ typedef enum dsm_kill_mode_t {
 
 
 //#define DEBUG
-#endif // RC_PILOT_DEFS_H
+#endif // RC_PILOT_DEFS_HPP

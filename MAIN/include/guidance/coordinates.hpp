@@ -1,5 +1,5 @@
 /**
- * <coordinates.h>
+ * <coordinates.hpp>
  *
  * @brief   Data structures and functions related to the coordinate systems of the vehicle
  *
@@ -13,15 +13,11 @@
  * @{
  */
 
-#ifndef __COORDINATES__
-#define __COORDINATES__
+#ifndef COORDINATES_HPP
+#define COORDINATES_HPP
 
 #include <math.h>
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 /**
  * @brief   Lattitude longitude altitude coordinates
  */
@@ -101,10 +97,7 @@ ecef_waypoint_t lla2ecef(const lla_t* lla);
  * @param[in]   origin_lla  lla coordinates to be set as origin
  */
 void set_origin(const lla_t* origin_lla);
-#ifdef __cplusplus
-}
-#endif
 
-#endif /*__COORDINATES__*/
+#endif /*COORDINATES_HPP*/
 
 /**@} end group Coordinates */

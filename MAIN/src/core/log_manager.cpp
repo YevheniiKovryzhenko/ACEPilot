@@ -22,10 +22,11 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
+#include "log_manager.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -42,19 +43,21 @@
 #include <rc/time.h>
 #include <rc/encoder.h>
 
-#include "rc_pilot_defs.h"
-#include "thread_defs.h"
-#include "settings.h"
+#include "rc_pilot_defs.hpp"
+#include "thread_defs.hpp"
+#include "settings.hpp"
 #include "setpoint_manager.hpp"
 #include "feedback.hpp"
 #include "state_estimator.hpp"
 #include "signal.h"
 #include "tools.h"
-#include "gps.h"
-#include "benchmark.h"
+#include "gps.hpp"
+#include "benchmark.hpp"
 #include "input_manager.hpp"
-
-#include "log_manager.hpp"
+#include "KF.hpp"
+#include "EKF.hpp"
+#include "EKF2.hpp"
+ 
 // preposessor macros
 #ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
@@ -127,14 +130,14 @@ int log_entry_t::write_header(void)
     
     if (settings.log_sensors)
     {
-        battery.print_header(log_fd, "batt_");
-        bmp.print_header(log_fd, "bmp_");
-        imu.print_header(log_fd, "imu_");
+        battery_entry.print_header(log_fd, "batt_");
+        bmp_entry.print_header(log_fd, "bmp_");
+        imu_entry.print_header(log_fd, "imu_");
     }
 
     if (settings.log_mocap)
     {
-        mocap.print_header(log_fd, "mocap_");
+        mocap_entry.print_header(log_fd, "mocap_");
     }
 
 	if (settings.log_gps)
@@ -145,8 +148,8 @@ int log_entry_t::write_header(void)
             "gps_minute,gps_second,gps_time_received_ns");
     }
 
-    EKF.print_header(log_fd, "EKF_");
-    EKF2.print_header(log_fd, "EKF2_");
+    EKF1_entry.print_header(log_fd, "EKF1_");
+    EKF2_entry.print_header(log_fd, "EKF2_");
 
     if (settings.log_setpoints)
     {
@@ -265,14 +268,14 @@ int log_entry_t::write_log_entry(void)
     
     if (settings.log_sensors)
     {
-        battery.print_entry(log_fd);
-        bmp.print_entry(log_fd);
-        imu.print_entry(log_fd);
+        battery_entry.print_entry(log_fd);
+        bmp_entry.print_entry(log_fd);
+        imu_entry.print_entry(log_fd);
     }
     
     if (settings.log_mocap)
     {
-        mocap.print_entry(log_fd);
+        mocap_entry.print_entry(log_fd);
     }
 
     if (settings.log_gps)
@@ -285,8 +288,8 @@ int log_entry_t::write_log_entry(void)
         fprintf(log_fd, ",%" PRIu64, gps_time_received_ns);
     }
 
-    EKF.print_entry(log_fd);
-    EKF2.print_entry(log_fd);
+    EKF1_entry.print_entry(log_fd);
+    EKF2_entry.print_entry(log_fd);
 
     if (settings.log_setpoints)
     {
@@ -536,14 +539,14 @@ void log_entry_t::construct_new_entry(void)
 
     if (settings.log_sensors)
     {
-        battery.update(&state_estimate.batt);
-        bmp.update(&state_estimate.bmp);
-        imu.update(&state_estimate.imu);
+        battery_entry.update(&batt);
+        bmp_entry.update(&bmp);
+        imu_entry.update(&imu);
     }
 
     if (settings.log_state) state_estimator_entry.update(&state_estimate);
     
-    if (settings.log_mocap) mocap.update(&state_estimate.mocap);
+    if (settings.log_mocap) mocap_entry.update(&mocap);
 
     /*
     rev1 = state_estimate.rev[0];
@@ -575,8 +578,8 @@ void log_entry_t::construct_new_entry(void)
     gps_time_received_ns = gps_data.gps_data_received_ns;
 
     /* Filters */
-    EKF.update(&state_estimate.EKF);
-    EKF2.update(&state_estimate.EKF2);
+    EKF1_entry.update(&EKF1);
+    EKF2_entry.update(&EKF2);
 
 
     X_throttle 	    = setpoint.POS_throttle.x.value.get();//setpoint.X_throttle;

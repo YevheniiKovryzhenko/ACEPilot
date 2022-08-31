@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system 
@@ -33,8 +33,7 @@
 #include <rc/time.h>
 #include <stdint.h> // for uint64_t
 
-#include "settings.h"
-//#include "coordinate_frames_gen.hpp"
+#include "settings.hpp"
 #include "signal_filter_gen.hpp"
 
  /* General class for all mocap instances */
@@ -107,6 +106,8 @@ public:
 	char reset(void);
 	void cleanup(void);
 };
+
+extern mocap_gen_t mocap;
 
 
 /** @name Logging class for IMU-9DOF

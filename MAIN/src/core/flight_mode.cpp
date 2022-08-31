@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include "flight_mode.h"
+#include "flight_mode.hpp"
 
 
 bool mode_needs_mocap(flight_mode_t mode)

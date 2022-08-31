@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/30/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating sensors. Currently supports:
@@ -37,75 +37,17 @@
 #include "sensors_gen.hpp"
 #include <rc/adc.h>
 
+#include "coordinate_frames_gen.hpp"
+
 #ifndef GET_VARIABLE_NAME
 #define GET_VARIABLE_NAME(Variable) (#Variable)
 #endif // !GET_VARIABLE_NAME
 
+battery_gen_t batt{};	//battery voltage sensor
+barometer_gen_t bmp{};	//barometer
+IMU_9DOF_gen_t imu{};	//IMU-9DOF with Gyro + Accel + Mag
 
-/* Methods for general BAROMETER class */
-char barometer_gen_t::init(void)
-{
-	if (unlikely(initialized))
-	{
-		fprintf(stderr, "ERROR in init: barometer already initialized.\n");
-		return -1;
-	}
-
-	initialized = true;
-	first_run = true;
-	return 0;
-}
-
-char barometer_gen_t::march(double new_pr, double new_alt, double new_temp)
-{
-	if (unlikely(!initialized))
-	{
-		fprintf(stderr, "ERROR in march: barometer is not initialized.\n");
-		return -1;
-	}
-	if (first_run) initial_alt = new_alt;
-	pressure_raw = new_pr;
-	temperature_raw = new_temp;
-	altitude_raw = new_alt;
-	alt_ground = new_alt - initial_alt;
-
-	first_run = false;
-	return 0;
-}
-
-double barometer_gen_t::get_alt(void)
-{
-	return altitude_raw;
-}
-double barometer_gen_t::get_alt_ground(void)
-{
-	return alt_ground;
-}
-double barometer_gen_t::get_pr(void)
-{
-	return pressure_raw;
-}
-double barometer_gen_t::get_temp(void)
-{
-	return temperature_raw;
-}
-
-char barometer_gen_t::reset(void)
-{
-	first_run = true;
-	return 0;
-}
-
-void barometer_gen_t::cleanup(void)
-{
-	if (!initialized) return;
-	initialized = false;
-	first_run = true;
-	return;
-}
-
-
- /* Methods for general BATTERY class */
+/* Methods for general BATTERY class */
 char battery_gen_t::init(voltage_sensor_settings_t new_settings)
 {
 	if (unlikely(initialized))
@@ -146,7 +88,7 @@ char battery_gen_t::init(voltage_sensor_settings_t new_settings, double new_in)
 		fprintf(stderr, "ERROR in init: failted to initialize battery filter.\n");
 		return -1;
 	}
-	
+
 	if (new_in < new_settings.min_critical) {
 		if (new_settings.en_warnings) {
 			fprintf(stderr, "WARNING in init: voltage read is %2.1fV (too low).\n", new_in);
@@ -154,7 +96,7 @@ char battery_gen_t::init(voltage_sensor_settings_t new_settings, double new_in)
 		}
 		new_in = new_settings.nominal;
 	}
-	
+
 	filter.prefill_inputs(new_in);
 	filter.prefill_outputs(new_in);
 
@@ -223,6 +165,68 @@ void battery_gen_t::cleanup(void)
 	if (!initialized) return;
 	filter.cleanup();
 	initialized = false;
+	return;
+}
+
+/* Methods for general BAROMETER class */
+char barometer_gen_t::init(void)
+{
+	if (unlikely(initialized))
+	{
+		fprintf(stderr, "ERROR in init: barometer already initialized.\n");
+		return -1;
+	}
+
+	initialized = true;
+	first_run = true;
+	return 0;
+}
+
+char barometer_gen_t::march(double new_pr, double new_alt, double new_temp)
+{
+	if (unlikely(!initialized))
+	{
+		fprintf(stderr, "ERROR in march: barometer is not initialized.\n");
+		return -1;
+	}
+	if (first_run) initial_alt = new_alt;
+	pressure_raw = new_pr;
+	temperature_raw = new_temp;
+	altitude_raw = new_alt;
+	alt_ground = new_alt - initial_alt;
+
+	first_run = false;
+	return 0;
+}
+
+double barometer_gen_t::get_alt(void)
+{
+	return altitude_raw;
+}
+double barometer_gen_t::get_alt_ground(void)
+{
+	return alt_ground;
+}
+double barometer_gen_t::get_pr(void)
+{
+	return pressure_raw;
+}
+double barometer_gen_t::get_temp(void)
+{
+	return temperature_raw;
+}
+
+char barometer_gen_t::reset(void)
+{
+	first_run = true;
+	return 0;
+}
+
+void barometer_gen_t::cleanup(void)
+{
+	if (!initialized) return;
+	initialized = false;
+	first_run = true;
 	return;
 }
 

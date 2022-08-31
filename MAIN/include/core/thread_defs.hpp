@@ -1,7 +1,7 @@
 
 
-#ifndef THREAD_DEFS_H
-#define THREAD_DEFS_H
+#ifndef THREAD_DEFS_HPP
+#define THREAD_DEFS_HPP
 
 // thread speeds, prioritites, and close timeouts
 #define INPUT_MANAGER_HZ	20

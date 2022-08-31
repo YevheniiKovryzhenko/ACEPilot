@@ -1,15 +1,9 @@
 /**
- * <flight_mode.h>
+ * <flight_mode.hpp>
  */
 
-#ifndef FLIGHT_MODE_H
-#define FLIGHT_MODE_H
-
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#ifndef FLIGHT_MODE_HPP
+#define FLIGHT_MODE_HPP
 
 /**
  * This is how the user interacts with the setpoint manager.
@@ -342,10 +336,6 @@ typedef enum flight_mode_t{
  * that require Motion Capture (MOCAP) to function properly.
  */
 bool mode_needs_mocap(flight_mode_t mode);
-
-#ifdef __cplusplus
-}
-#endif
 
 
 

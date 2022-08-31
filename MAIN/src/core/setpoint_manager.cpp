@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -51,11 +51,11 @@
 #include <rc/start_stop.h>
 #include <rc/math/quaternion.h>
 
-#include "rc_pilot_defs.h"
+#include "rc_pilot_defs.hpp"
 #include "input_manager.hpp"
-#include "settings.h"
+#include "settings.hpp"
 #include "state_estimator.hpp"
-#include "flight_mode.h"
+#include "flight_mode.hpp"
 //#include "xbee_receive.h"
 #include "setpoint_guidance.hpp"
 #include "tools.h"
@@ -63,7 +63,7 @@
 #include "state_machine.hpp"
 
 #include "setpoint_manager.hpp"
-#include "benchmark.h"
+#include "benchmark.hpp"
 // preposessor macros
 #ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)

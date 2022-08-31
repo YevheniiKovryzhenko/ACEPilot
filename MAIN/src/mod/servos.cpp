@@ -22,16 +22,16 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  08/26/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  */
 
 #include "tools.h"
 #include "servos.hpp"
 #include "mix_servos.hpp"
-#include "rc_pilot_defs.h"
-#ifdef RC_PILOT_DEFS_H ////only need these if used with rc_pilot
-#include "settings.h"
-#endif // RC_PILOT_DEFS_H ////only need these if used with rc_pilot
+#include "rc_pilot_defs.hpp"
+#ifdef RC_PILOT_DEFS_HPP ////only need these if used with rc_pilot
+#include "settings.hpp"
+#endif // RC_PILOT_DEFS_HPP ////only need these if used with rc_pilot
 
 
 // preposessor macros
@@ -313,7 +313,7 @@ int servo_state_t::set_servo_calibration(void)
     }
     */
     double (*servo_cal)[3];
-#ifdef RC_PILOT_DEFS_H
+#ifdef RC_PILOT_DEFS_HPP
 
     switch (settings.servo_layout)
     {
@@ -328,10 +328,10 @@ int servo_state_t::set_servo_calibration(void)
         return -1;
     }
 
-#endif // RC_PILOT_DEFS_H
-#ifndef RC_PILOT_DEFS_H
+#endif // RC_PILOT_DEFS_HPP
+#ifndef RC_PILOT_DEFS_HPP
     servo_cal = servo_cal_def;
-#endif // !RC_PILOT_DEFS_H
+#endif // !RC_PILOT_DEFS_HPP
 
 
 
@@ -378,7 +378,7 @@ int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
         return -1;
     }
 
-#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#ifdef RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
     arm_state = DISARMED;
 #endif
     arm_time_ns = 0;
@@ -440,7 +440,7 @@ int servo_state_t::init(int driver_bus_id, uint8_t devAddr)
 
     set_nom_pulse();
 
-#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#ifdef RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
     if (unlikely(controller.init() == -1))
     {
         printf("\nERROR in init: failed to initialize servo controller");
@@ -475,7 +475,7 @@ bool servo_state_t::is_initialized(void)
 }
 
 
-#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#ifdef RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
 int servo_state_t::arm(void)
 {
     if (unlikely(arm_state == ARMED)) {
@@ -571,7 +571,7 @@ int servo_state_t::disarm(void)
     arm_state = DISARMED;
     return 0;
 }
-#endif //RC_PILOT_DEFS_H
+#endif //RC_PILOT_DEFS_HPP
 
 
 /*
@@ -660,12 +660,12 @@ int servo_state_t::cmnd_signal_saturate_center(int i, double signal)
 }
 
 
-#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#ifdef RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
 int servo_state_t::march_controller(double(&u)[MAX_SERVO_INPUTS], double(&mot)[MAX_SERVOS])
 {
     return controller.march(u, mot);
 }
-#endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#endif // RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
 
 
 /*
@@ -683,12 +683,12 @@ int servo_state_t::march(int i, double signal)
         return -1;
     }
 
-#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#ifdef RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
     if (unlikely(arm_state == DISARMED)) {
         if (settings.warnings_en) printf("WARNING: trying to march servos when servos disarmed\n");
         return 0;
     }
-#endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#endif // RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
 
     
     // need to check saturation between [0 1] and record the signal
@@ -733,12 +733,12 @@ int servo_state_t::march_with_centering(int i, double signal)
         return -1;
     }
 
-#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#ifdef RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
     if (unlikely(arm_state == DISARMED)) {
         if (settings.warnings_en) printf("WARNING: trying to march servos when servos disarmed\n");
         return 0;
     }
-#endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#endif // RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
 
     // need to check saturation between [-1 1] and record the signal
     if (unlikely(cmnd_signal_saturate_center(i, signal) == -1))

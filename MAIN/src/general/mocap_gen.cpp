@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system
@@ -30,10 +30,13 @@
 
 #include "mocap_gen.hpp"
 #include "tools.h"
+#include "coordinate_frames_gen.hpp"
 
 #ifndef GET_VARIABLE_NAME
 #define GET_VARIABLE_NAME(Variable) (#Variable)
 #endif // !GET_VARIABLE_NAME
+
+mocap_gen_t mocap{};
 
  /* General class for all MOCAP instances */
 char mocap_gen_t::init(mocap_settings_t new_mocap_settings)

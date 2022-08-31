@@ -1,8 +1,8 @@
 /**
- * @file mixing_matrix.c
+ * @file mixing_matrix.cpp
  */
 
-#include "mix.h"
+#include "mix.hpp"
 
 /**
  * Most popular: 4-rotor X layout like DJI Phantom and 3DR Iris

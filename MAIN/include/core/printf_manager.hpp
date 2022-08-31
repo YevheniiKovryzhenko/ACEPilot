@@ -30,11 +30,10 @@
  * Last Edit:  08/26/2022 (MM/DD/YYYY)
  *
  */
-
-
 #ifndef PRINTF_MANAGER_H
 #define PRINTF_MANAGER_H
 
+#include "flight_mode.hpp"
 
 /**
 * @brief      Start the printf_manager thread which should be the only thing

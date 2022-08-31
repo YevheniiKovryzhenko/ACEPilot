@@ -22,13 +22,13 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here are defined general coordinate frames and related functionality
  */
 
-#include "coordinate_frames_gen.h"
+#include "coordinate_frames_gen.hpp"
 #include <stdio.h>
 
 char rotate2NED(coordinate_frame_t type, double* out, double in[3])

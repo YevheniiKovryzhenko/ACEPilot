@@ -23,7 +23,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "gps.h"
+#include "gps.hpp"
 
 int gps_portID;
 /* GPS handle */
@@ -94,7 +94,7 @@ int gps_getData()
 
         gps_data.ned        = lla2ned(&gps_data.lla);
         gps_data.spd        = hgps.speed * knot2ms;     ///< speed in m/s
-        gps_data.fix        = hgps.fix;                 ///< fix type
+        gps_data.fix        = (fixType_t)hgps.fix;                 ///< fix type
         gps_data.sat        = hgps.sats_in_use;         ///< number of satellites
         //gps_data.headingNc  = 0.0;                      ///< heading (not tilt compensated) in degrees from compass
         gps_data.cog        = hgps.course;              ///< course over ground

@@ -1,5 +1,5 @@
 /*
- * coordinate_frames_gen.hpp
+ * KF.cpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -22,60 +22,65 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
- * Here are defined general coordinate frames and related functionality
+ * This class defines a Kalman Filter operations.
+ * Currently estimates altitude from IMU and barometer.
  */
 
-#ifndef COORDINATE_FRAMES_GEN_HPP
-#define COORDINATE_FRAMES_GEN_HPP
-#ifdef __cplusplus
-extern "C"
+#ifndef KF_HPP
+#define KF_HPP
+#include <math.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <rc/math/kalman.h>
+
+#include <rc/time.h>
+
+#include "tools.h"
+
+class KF_t
 {
+private:	
+	bool initialized = false;
+
+	// altitude filter components
+	rc_kalman_t alt_kf = RC_KALMAN_INITIALIZER;
+	rc_vector_t u = RC_VECTOR_INITIALIZER;
+	rc_vector_t y = RC_VECTOR_INITIALIZER;
+	double alt_est = 0.0;
+	double alt_vel_est = 0.0;
+	double alt_acc_est = 0.0;
+
+public:
+	char init(void);
+	bool is_initialized(void);
+
+	char march(double Z_acc, double Z);
+	void cleanup(void);
+
+	/* Data retreival */
+	double get_alt(void);
+	double get_alt_vel(void);
+	double get_alt_acc(void);
+};
+
+extern KF_t KF_altitude;
+
+/** @name Logging class for KF
+* Defines how logging should be done for this class
+*/
+class KF_log_entry_t
+{
+private:
+	double alt_est;
+	double alt_vel_est;
+	double alt_acc_est;
+
+public:
+	char update(KF_t* new_state);
+	char print_header(FILE* file, const char* prefix);
+	char print_entry(FILE* file);
+};
 #endif
-
- /*
-		 Coordinate frame types
-
-	 Assume that we should have:
-	 * North
-	 *	X
-	 *	|
-	 *  / \
-	 *	|
-	 *	|
-	 *	Z ---->  Y East
-	 *  Down
-	 If any of the sensors are pointing in other directions,
-	 You need to select the respective coordinate fram (w.r.to NED)
-	 */
-typedef enum coordinate_frame_t {
-	/* Axis:	X		Y		Z */
-	NED,	//North		East	Down
-	NWU,	//North		West	Up
-	NUE,	//North		Up		East
-	NDW,	//North		Down	West
-	ENU,	//East		North	Up
-	ESD,	//East		South	Down
-	EUS,	//East		Up		South
-	EDN,	//East		Down	North
-	UNW,	//Up		North	West
-	USE,	//Up		South	East
-	UEN,	//Up		East	North
-	UWS,	//Up		West	South
-	DNE		//Down		North	East
-}coordinate_frame_t;
-
-/* function to quickly converst input 3D data into NED coordiante frame */
-char rotate2NED(coordinate_frame_t type, double* out, double in[3]);
-
-
-#ifdef __cplusplus
-}
-#endif
-#endif // !COORDINATE_FRAMES_GEN_HPP
-
-
-
-

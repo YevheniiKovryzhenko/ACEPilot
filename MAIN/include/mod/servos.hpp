@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include "i2c_driver.hpp"
 #include "adafruit_servo_driver.hpp"
-#include "rc_pilot_defs.h"
+#include "rc_pilot_defs.hpp"
 #include "mix_servos.hpp"
 #include "servo_controller.hpp"
 
@@ -55,10 +55,10 @@ private:
 	i2c i2c_driver;								///< i2c driver interface
 	Adafruit_PWMServoDriver_mod servo_driver;	///< servo driver interface
 
-#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#ifdef RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
 	arm_state_t arm_state;						///< servo arm state
 	feedback_servo_controller_t controller;
-#endif // RC_PILOT_DEFS_H
+#endif // RC_PILOT_DEFS_HPP
 
 	uint64_t arm_time_ns;						///< arm time
 
@@ -163,7 +163,7 @@ public:
 	int init(int driver_bus_id, uint8_t devAddr);
 	bool is_initialized(void);
 
-#ifdef RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#ifdef RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
 	int return_to_nominal(void);
 
 	int arm(void);
@@ -172,7 +172,7 @@ public:
 	int march_controller(double(&u)[MAX_SERVO_INPUTS], double(&mot)[MAX_SERVOS]);
 
 	int disarm(void);
-#endif // RC_PILOT_DEFS_H //only need arming/disarming if used with rc_pilot
+#endif // RC_PILOT_DEFS_HPP //only need arming/disarming if used with rc_pilot
 	
 	/*
 	* This is how the user should march (apply)

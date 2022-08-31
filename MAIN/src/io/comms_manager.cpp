@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Object that governs all the logic related to communications.
  */
@@ -30,16 +30,16 @@
 
 #include "comms_manager.hpp"
 #include <rc/time.h>
-#include "settings.h"
-#include "benchmark.h"
-#include "gps.h"
+#include "settings.hpp"
+#include "benchmark.hpp"
+#include "gps.hpp"
 #include "telem_packet_t.h"
 #include "state_estimator.hpp"
 #include "setpoint_manager.hpp"
 #include "input_manager.hpp"
 #include "state_machine.hpp"
 #include "tools.h"
-#include "thread_defs.h"
+#include "thread_defs.hpp"
 
 // preposessor macros
 #ifndef unlikely

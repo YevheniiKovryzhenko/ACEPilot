@@ -31,7 +31,7 @@
 #include <rc/math.h>
 #include <rc/time.h>
 #include <rc/math/filter.h>
-#include "settings.h"
+#include "settings.hpp"
 #include "input_manager.hpp"
 #include "setpoint_manager.hpp"
 #include "state_estimator.hpp"

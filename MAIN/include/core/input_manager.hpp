@@ -37,8 +37,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "rc_pilot_defs.h"
-#include "flight_mode.h"
+#include "rc_pilot_defs.hpp"
+#include "flight_mode.hpp"
 #include "signal_filter_gen.hpp"
 
 class stick_t {

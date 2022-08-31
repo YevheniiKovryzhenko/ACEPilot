@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains all the primary functionality and framework for state estimation rountines
@@ -48,359 +48,26 @@
 #include <rc/time.h>
 #include <rc/bmp.h>
 
-#include "rc_pilot_defs.h"
-#include "settings.h"
+#include "rc_pilot_defs.hpp"
+#include "settings.hpp"
 #include "tools.h"
  //#include "input_manager.h"	
 #include "comms_tmp_data_packet.h"
-#include "gps.h"
-#include "benchmark.h" //for velocity estimation
+#include "gps.hpp"
+#include "benchmark.hpp" //for velocity estimation
 
 #include "state_estimator.hpp"
-//#include <rc/math/filter.h>
-//#include <rc/math/kalman.h>
+#include "sensors_gen.hpp"
+#include "mocap_gen.hpp"
+#include "KF.hpp"
+#include "EKF.hpp"
+#include "EKF2.hpp"
 
 #define TWO_PI (M_PI*2.0)
 
 rc_mpu_data_t mpu_data; // extern variable in state_estimator.hpp
 state_estimate_t state_estimate{}; // extern variable in state_estimator.hpp
 ext_mag_t ext_mag;
-
-/*
-static void __mocap_march(void)
-{
-	state_estimate.get_X_vel() = rc_filter_march(&mocap_dx_lpf, state_estimate.X_dot_raw);
-	state_estimate.get_Y_vel() = rc_filter_march(&mocap_dy_lpf, state_estimate.Y_dot_raw);
-	state_estimate.get_Z_vel() = rc_filter_march(&mocap_dz_lpf, state_estimate.Z_dot_raw);
-
-	if (settings.use_mocap_roll_rate)
-	{
-		state_estimate.get_roll_dot() = rc_filter_march(&mocap_r_lpf, state_estimate.roll_dot_raw);
-	}
-	if (settings.use_mocap_pitch_rate)
-	{
-		state_estimate.get_pitch_dot() = rc_filter_march(&mocap_p_lpf, state_estimate.pitch_dot_raw);
-	}
-	if (settings.use_mocap_pitch_rate)
-	{
-		state_estimate.get_yaw_dot() = rc_filter_march(&mocap_y_lpf, state_estimate.yaw_dot_raw);
-	}
-	return;
-}
-
-
-static void __z_init(void)
-{
-    rc_filter_first_order_lowpass(&z_lpf, DT, 300*DT);
-    return;
-}
-
-static void __z_march(void)
-{
-    // state_estimate.Z_ddot = rc_filter_march(&z_lpf, state_estimate.accel_ground_frame[2]);
-    state_estimate.Z_ddot = 0;
-    return;
-}
-
-static void __z_cleanup(void)
-{
-    rc_filter_free(&z_lpf);
-    return;
-}
-
-static void __imu_march(void)
-{
-	static double last_yaw = 0.0;
-	static int num_yaw_spins = 0;
-	double diff;
-
-	static double last_yaw_mocap = 0.0;
-    static int num_yaw_spins_mocap = 0;
-    double diff_mocap;
-
-	static double last_mocap_x = 0.0;
-	static double last_mocap_y = 0.0;
-	static double last_mocap_z = 0.0;
-	double last_mocap_dt = 0.0;
-
-	// gyro and accel require converting to NED coordinates
-	state_estimate.gyro[0] =  mpu_data.gyro[1] * DEG_TO_RAD; //East
-	state_estimate.gyro[1] =  mpu_data.gyro[0] * DEG_TO_RAD; //North
-	state_estimate.gyro[2] = -mpu_data.gyro[2] * DEG_TO_RAD; //Up
-
-	// quaternion also needs coordinate transform
-	state_estimate.quat_imu[0] =  mpu_data.dmp_quat[0]; // W
-	state_estimate.quat_imu[1] =  mpu_data.dmp_quat[2]; // X (i)
-	state_estimate.quat_imu[2] =  mpu_data.dmp_quat[1]; // Y (j)
-	state_estimate.quat_imu[3] = -mpu_data.dmp_quat[3]; // Z (k)
-	if (settings.enable_mocap) {
-		state_estimate.quat_mocap[0] = GS_RX.qw; // W
-		state_estimate.quat_mocap[1] = GS_RX.qx; // X (i)
-		state_estimate.quat_mocap[2] = GS_RX.qy; // Y (j)
-		state_estimate.quat_mocap[3] = GS_RX.qz; // Z (k)
-		
-		// normalize quaternion because we don't trust the mocap system
-		rc_normalize_quaternion_array(state_estimate.quat_mocap);
-		// calculate tait bryan angles too
-		double tmp[3];
-		tmp[0] = state_estimate.tb_mocap[0];
-		tmp[1] = state_estimate.tb_mocap[1];
-		tmp[2] = state_estimate.tb_mocap[2];
-
-		rc_quaternion_to_tb_array(state_estimate.quat_mocap, state_estimate.tb_mocap);
-		state_estimate.tb_mocap[1] = -state_estimate.tb_mocap[1];
-		state_estimate.tb_mocap[2] = -state_estimate.tb_mocap[2];
-
-		// we need to estimate velocity from mocap position
-		last_mocap_dt = finddt_s(benchmark_timers.tNAV); //get time elapsed since last itter.
-
-		state_estimate.roll_dot_raw = (state_estimate.tb_mocap[0] - tmp[0]) / last_mocap_dt;
-		state_estimate.pitch_dot_raw = (state_estimate.tb_mocap[1] - tmp[1]) / last_mocap_dt;
-		state_estimate.yaw_dot_raw = (state_estimate.tb_mocap[2] - tmp[2]) / last_mocap_dt;
-		
-		last_mocap_x = state_estimate.pos_mocap[0];
-		last_mocap_y = state_estimate.pos_mocap[1];
-		last_mocap_z = state_estimate.pos_mocap[2];
-		// position in the inertial frame
-		state_estimate.pos_mocap[0]=(double)GS_RX.x;
-		state_estimate.pos_mocap[1]=-(double)GS_RX.y;
-		state_estimate.pos_mocap[2]=-(double)GS_RX.z;
-		
-		
-		if (last_mocap_dt <= 0) //undefined division by zero, or if time is negative assume velocity did not change
-		{
-			printf("WARNING in __imu_march: undefined time step of %d\n", last_mocap_dt);
-		}
-		else
-		{
-			state_estimate.X_dot_raw = (state_estimate.pos_mocap[0] - last_mocap_x)\
-				/ last_mocap_dt;
-			state_estimate.Y_dot_raw = (state_estimate.pos_mocap[1] - last_mocap_y)\
-				/ last_mocap_dt;
-			state_estimate.Z_dot_raw = (state_estimate.pos_mocap[2] - last_mocap_z)\
-				/ last_mocap_dt;
-		}
-
-		// yaw is more annoying since we have to detect spins
-        // also make sign negative since NED coordinates has Z point down
-        diff_mocap = -state_estimate.tb_mocap[2] + (num_yaw_spins_mocap * TWO_PI) - last_yaw_mocap;
-        // detect the crossover point at +-PI and update num yaw spins
-        if (diff_mocap < -M_PI) num_yaw_spins_mocap++;
-        else if (diff_mocap > M_PI) num_yaw_spins_mocap--;
-
-        // finally the new value can be written
-        state_estimate.mocap_continuous_yaw = -state_estimate.tb_mocap[2] + (num_yaw_spins_mocap * TWO_PI);
-        last_yaw_mocap = state_estimate.mocap_continuous_yaw;
-	}
-
-	// normalize it just in case
-	rc_normalize_quaternion_array(state_estimate.quat_imu);
-	// generate tait bryan angles
-	rc_quaternion_to_tb_array(state_estimate.quat_imu, state_estimate.tb_imu);
-
-	// yaw is more annoying since we have to detect spins
-	// also make sign negative since NED coordinates has Z point down
-	diff = state_estimate.tb_imu[2] + (num_yaw_spins * TWO_PI) - last_yaw;
-	//detect the crossover point at +-PI and update num yaw spins
-	if(diff < -M_PI) num_yaw_spins++;
-	else if(diff > M_PI) num_yaw_spins--;
-
-	// finally the new value can be written
-	state_estimate.imu_continuous_yaw = state_estimate.tb_imu[2] + (num_yaw_spins * TWO_PI);
-	last_yaw = state_estimate.imu_continuous_yaw;
-	
-	state_estimate.accel[0] =  mpu_data.accel[1];
-	state_estimate.accel[1] =  mpu_data.accel[0];
-	state_estimate.accel[2] = -mpu_data.accel[2];
-	
-	accel_in.d[0] = state_estimate.accel[0];
-    accel_in.d[1] = state_estimate.accel[1];
-    accel_in.d[2] = state_estimate.accel[2];
-
-    // rotate accel vector
-    rc_quaternion_rotate_vector_array(accel_in.d, state_estimate.quat_imu);
-
-    state_estimate.accel_ground_frame[0] = accel_in.d[0];
-    state_estimate.accel_ground_frame[1] = accel_in.d[1];
-    state_estimate.accel_ground_frame[2] = accel_in.d[2] + GRAVITY;
-	return;
-}
-
-static void __mag_march(void)
-{
-	static double last_yaw = 0.0;
-	static int num_yaw_spins = 0;
-
-	// don't do anything if mag isn't enabled
-	if(!settings.enable_magnetometer) return;
-
-	// mag require converting to NED coordinates
-	state_estimate.mag[0] =  mpu_data.mag[1]; // East
-	state_estimate.mag[1] =  mpu_data.mag[0]; // North
-	state_estimate.mag[2] = -mpu_data.mag[2]; // Up
-
-	// quaternion also needs coordinate transform
-	state_estimate.quat_mag[0] =  mpu_data.fused_quat[0]; // W
-	state_estimate.quat_mag[1] =  mpu_data.fused_quat[2]; // X (i)
-	state_estimate.quat_mag[2] =  mpu_data.fused_quat[1]; // Y (j)
-	state_estimate.quat_mag[3] = -mpu_data.fused_quat[3]; // Z (k)
-	
-	
-	// normalize it just in case
-	rc_normalize_quaternion_array(state_estimate.quat_mag);
-	// generate tait bryan angles
-	rc_quaternion_to_tb_array(state_estimate.quat_mag, state_estimate.tb_mag);
-
-	// heading
-	//state_estimate.mag_heading_raw = mpu_data.compass_heading_raw; //this is never used for some reason
-	//state_estimate.mag_heading = state_estimate.tb_mag[2]; //this is never used for some reason
-
-	// yaw is more annoying since we have to detect spins
-	// also make sign negative since NED coordinates has Z point down
-	double diff = state_estimate.tb_mag[2] + (num_yaw_spins * TWO_PI) - last_yaw;
-	//detect the crossover point at +-PI and update num yaw spins
-	if(diff < -M_PI) num_yaw_spins++;
-	else if(diff > M_PI) num_yaw_spins--;
-
-	// finally the new value can be written
-	state_estimate.mag_heading_continuous = state_estimate.tb_mag[2] + (num_yaw_spins * TWO_PI);
-	last_yaw = state_estimate.mag_heading_continuous;
-	return;
-}
-*/
-
-/**
- * @brief      initialize the altitude kalman filter
- *
- * @return     0 on success, -1 on failure
- */
-char state_estimate_t::init_altitude_kf(void)
-{
-	//initialize altitude kalman filter and bmp sensor
-	rc_matrix_t F = RC_MATRIX_INITIALIZER;
-	rc_matrix_t G = RC_MATRIX_INITIALIZER;
-	rc_matrix_t H = RC_MATRIX_INITIALIZER;
-	rc_matrix_t Q = RC_MATRIX_INITIALIZER;
-	rc_matrix_t R = RC_MATRIX_INITIALIZER;
-	rc_matrix_t Pi = RC_MATRIX_INITIALIZER;
-
-	const int Nx = 3;
-	const int Ny = 1;
-	const int Nu = 1;
-
-	// allocate appropirate memory for system
-	rc_matrix_zeros(&F, Nx, Nx);
-	rc_matrix_zeros(&G, Nx, Nu);
-	rc_matrix_zeros(&H, Ny, Nx);
-	rc_matrix_zeros(&Q, Nx, Nx);
-	rc_matrix_zeros(&R, Ny, Ny);
-	rc_matrix_zeros(&Pi, Nx, Nx);
-
-	// define system -DT; // accel bias
-	F.d[0][0] = 1.0;
-	F.d[0][1] = DT;
-	F.d[0][2] = 0.0;
-	F.d[1][0] = 0.0;
-	F.d[1][1] = 1.0;
-	F.d[1][2] = -DT; // subtract accel bias
-	F.d[2][0] = 0.0;
-	F.d[2][1] = 0.0;
-	F.d[2][2] = 1.0; // accel bias state
-
-	G.d[0][0] = 0.5 * DT * DT;
-	G.d[0][1] = DT;
-	G.d[0][2] = 0.0;
-
-	H.d[0][0] = 1.0;
-	H.d[0][1] = 0.0;
-	H.d[0][2] = 0.0;
-
-	// covariance matrices
-	Q.d[0][0] = 0.000000001;
-	Q.d[1][1] = 0.000000001;
-	Q.d[2][2] = 0.0001; // don't want bias to change too quickly
-	R.d[0][0] = 1000000.0;
-
-	// initial P, cloned from converged P while running
-	Pi.d[0][0] = 1258.69;
-	Pi.d[0][1] = 158.6114;
-	Pi.d[0][2] = -9.9937;
-	Pi.d[1][0] = 158.6114;
-	Pi.d[1][1] = 29.9870;
-	Pi.d[1][2] = -2.5191;
-	Pi.d[2][0] = -9.9937;
-	Pi.d[2][1] = -2.5191;
-	Pi.d[2][2] = 0.3174;
-
-	// initialize the kalman filter
-	if (rc_kalman_alloc_lin(&alt_kf, F, G, H, Q, R, Pi) < 0) return -1;
-	rc_matrix_free(&F);
-	rc_matrix_free(&G);
-	rc_matrix_free(&H);
-	rc_matrix_free(&Q);
-	rc_matrix_free(&R);
-	rc_matrix_free(&Pi);
-
-	return 0;
-}
-
-void state_estimate_t::march_altitude_kf(double* Z_est, double Z_acc, double Z)
-{
-	//int i;
-	//double accel_vec[3];
-	
-	//static double global_update;
-
-	// grab raw data
-	//state_estimate.bmp_pressure_raw = bmp.pressure_pa;
-	//state_estimate.alt_bmp_raw = bmp_data.alt_m;
-	//state_estimate.bmp_temp = bmp_data.temp_c;
-
-	// Set Global update variable
-	//global_update = gps_data.lla.alt;
-
-
-	// make copy of acceleration reading before rotating
-	//for (i = 0; i < 3; i++) accel_vec[i] = state_estimate.accel[i];
-
-	// rotate accel vector
-	//rc_quaternion_rotate_vector_array(acc_imu, att_quat);
-
-	// do first-run filter setup
-	if (alt_kf.step == 0) {
-		rc_vector_zeros(&u, 1);
-		rc_vector_zeros(&y, 1);
-		alt_kf.x_est.d[0] = Z;
-		//rc_filter_prefill_inputs(&acc_lp, accel_vec[2] + GRAVITY);
-		//rc_filter_prefill_outputs(&acc_lp, accel_vec[2] + GRAVITY);
-	}
-
-	// calculate acceleration and smooth it just a tad
-	// put result in u for kalman and flip sign since with altitude, positive
-	// is up whereas acceleration in Z points down.
-	u.d[0] = Z_acc;// acc_imu[2] + GRAVITY;
-	y.d[0] = Z;
-	// don't bother filtering Barometer, kalman will deal with that
-	/*
-	if (settings.enable_gps)
-	{
-		// Use gps for kalman update
-		y.d[0] = -global_update;
-	}
-	else
-	{
-		y.d[0] = -bmp_data.alt_m;
-	}
-	*/
-	rc_kalman_update_lin(&alt_kf, u, y);
-
-	// altitude estimate
-	Z_est[0] = alt_kf.x_est.d[0]; //Z
-	Z_est[1] = alt_kf.x_est.d[1]; //Z velocity
-	Z_est[2] = alt_kf.x_est.d[2]; //Z acceleration
-	return;
-}
-
 
 /**
 * @brief       Updates and Marches all the sourses
@@ -640,32 +307,52 @@ void state_estimate_t::fetch_external_sourses(void)
 	}	
 }
 
-
-
 void state_estimate_t::update_internal_filters(void)
 {
 	/* Update Altitude KF */
-	
-	double tmp[3];
-	march_altitude_kf(tmp, accel_global[2], pos_global[2]); //using the best available data
-	alt = -tmp[0];
-	alt_vel = -tmp[1];
-	alt_acc = -tmp[2];
+	KF_altitude.march(accel_global[2], pos_global[2]);
+	alt = KF_altitude.get_alt();
+	alt_vel = KF_altitude.get_alt_vel();
+	alt_acc = KF_altitude.get_alt_acc();
 
 	/* Update Attitude EKF */
+	double tmp[3];
 	imu.compass.get(tmp);
-	EKF.march(omega, accel_relative, tmp);
+	EKF1.march(omega, accel_relative, tmp);
 	EKF2.march(omega, accel_relative, tmp);
 }
 
-void state_estimate_t::cleanup_altitude_kf(void)
+char state_estimate_t::init_internal_filters(void)
 {
-	rc_kalman_free(&alt_kf);
-	rc_vector_free(&u);
-	rc_vector_free(&y);
-	return;
+	if (unlikely(KF_altitude.init() < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize altitude KF\n");
+		return -1;
+	}
+
+	if (unlikely(EKF1.reset() < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize EKF-1\n");
+		return -1;
+	}
+
+	if (unlikely(EKF2.reset() < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize EKF-1\n");
+		return -1;
+	}
+	return 0;
 }
 
+void state_estimate_t::cleanup_internal_filters(void)
+{
+	EKF1.reset();
+	EKF2.reset();
+
+	KF_altitude.cleanup();
+
+	return;
+}
 
 
 void state_estimate_t::mocap_check_timeout(void)
@@ -722,14 +409,11 @@ int state_estimate_t::init(void)
 	}
 
 
-	if (unlikely(init_altitude_kf() < 0))
+	if (unlikely(init_internal_filters() < 0))
 	{
-		fprintf(stderr, "ERROR in init: failed to initialize altitude Kalman Filter\n");
+		fprintf(stderr, "ERROR in init: failed to initialize internal filters\n");
 		return -1;
 	}
-    
-	EKF.reset();
-	EKF2.reset();
 
 	initialized = true;
 	return 0;
@@ -798,7 +482,7 @@ int state_estimate_t::cleanup(void)
 	imu.cleanup();
 	mocap.cleanup();
 
-	cleanup_altitude_kf();
+	cleanup_internal_filters();
 	return 0;
 }
 
