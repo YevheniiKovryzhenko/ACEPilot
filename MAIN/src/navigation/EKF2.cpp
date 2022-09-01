@@ -61,15 +61,32 @@ char EKF2_t::march(double omega[3], double accel[3], double mag[3])
     double acc[3] = { accel[1], accel[0], -accel[2] };
     double magn[3] = { mag[1], mag[0], -mag[2] };
 
-    /* march EKF V-2 */
-    IMU_EKF2(Pcov, quat, Cov_info, om, acc, magn, finddt_s(time), initialized, enable_mag);
+    /* march EKF-V2 */
+    IMU_EKF2(Pcov, quat_raw, Cov_info, om, acc, magn, finddt_s(time), initialized, enable_mag);
     time = rc_nanos_since_boot(); //log new timestamp
+
+
+    quat_NED[0] = quat_raw[0];
+    rotate2NED(ENU, &quat_NED[1], &quat_raw[1]);
 
     /* Final calculations */
     // normalize quaternion because we don't trust the EKF to do it
-    rc_normalize_quaternion_array(quat);
+    rc_normalize_quaternion_array(quat_NED);
     // generate tait bryan angles
-    rc_quaternion_to_tb_array(quat, att_tb);
+    rc_quaternion_to_tb_array(quat_NED, att_tb_NED);
+
+    /*	Heading
+    continuous heading is more annoying since we have to detect spins
+    also make sign negative since NED coordinates has Z point down
+    */
+    double diff_heading = att_tb_NED[2] + (num_heading_spins * TWO_PI) - continuous_heading_NED;
+    // detect the crossover point at +-PI and update num yaw spins
+    if (diff_heading < -M_PI) num_heading_spins++;
+    else if (diff_heading > M_PI) num_heading_spins--;
+
+    // finally the new value can be written
+    continuous_heading_NED = att_tb_NED[2] + (num_heading_spins * TWO_PI);
+
 
     initialized = true;
     return 0;
@@ -87,13 +104,22 @@ uint64_t EKF2_t::get_time(void)
 }
 void EKF2_t::get_quat(double* buff)
 {
-    for (int i = 0; i < 4; i++) buff[i] = quat[i];
+    for (int i = 0; i < 4; i++) buff[i] = quat_NED[i];
+    return;
+}
+void EKF2_t::get_quat_raw(double* buff)
+{
+    for (int i = 0; i < 4; i++) buff[i] = quat_raw[i];
     return;
 }
 void EKF2_t::get_tb(double* buff)
 {
-    for (int i = 0; i < 3; i++) buff[i] = att_tb[i];
+    for (int i = 0; i < 3; i++) buff[i] = att_tb_NED[i];
     return;
+}
+double EKF2_t::get_continuous_heading(void)
+{
+    return continuous_heading_NED;
 }
 
 
@@ -105,8 +131,10 @@ char EKF2_log_entry_t::update(EKF2_t* new_state)
 {
     time = new_state->get_time();
 
-    new_state->get_quat(quat);
-    new_state->get_tb(att_tb);
+    new_state->get_quat_raw(quat_raw);
+    new_state->get_quat(quat_NED);
+    new_state->get_tb(att_tb_NED);
+    continuous_heading_NED = new_state->get_continuous_heading();
     return 0;
 }
 char EKF2_log_entry_t::print_vec(FILE* file, double* vec_in, int size)
@@ -131,16 +159,21 @@ char EKF2_log_entry_t::print_header(FILE* file, const char* prefix)
 {
     fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time));
 
-    print_header_vec(file, prefix, GET_VARIABLE_NAME(quat), 4);
-    print_header_vec(file, prefix, GET_VARIABLE_NAME(att_tb), 3);
+    print_header_vec(file, prefix, GET_VARIABLE_NAME(quat_raw), 4);
+    print_header_vec(file, prefix, GET_VARIABLE_NAME(quat_NED), 4);
+    print_header_vec(file, prefix, GET_VARIABLE_NAME(att_tb_NED), 3);
+
+    fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(continuous_heading_NED));
     return 0;
 }
 char EKF2_log_entry_t::print_entry(FILE* file)
 {
     fprintf(file, ",%" PRIu64, time);
 
-    print_vec(file, quat, 4);
-    print_vec(file, att_tb, 3);
+    print_vec(file, quat_raw, 4);
+    print_vec(file, quat_NED, 4);
+    print_vec(file, att_tb_NED, 3);
+    fprintf(file, ",%.4F", continuous_heading_NED);
     return 0;
 }
 

@@ -112,6 +112,7 @@ private:
 	///@}
 
 	/* Filters */
+	KF_log_entry_t KF_altitude_entry{};
 	EKF_log_entry_t EKF1_entry{};
 	EKF2_log_entry_t EKF2_entry{};
 

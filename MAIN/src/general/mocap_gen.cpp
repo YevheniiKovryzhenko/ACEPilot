@@ -130,8 +130,8 @@ char mocap_gen_t::update_att_from_quat(double new_mocap_quat_raw[4])
 	*/
 	double diff_mocap = att_tb_NED[2] + (num_heading_spins * TWO_PI) - continuous_heading_NED;
 	// detect the crossover point at +-PI and update num yaw spins
-	if (diff_mocap < -M_PI) num_heading_spins--;
-	else if (diff_mocap > M_PI) num_heading_spins++;
+	if (diff_mocap < -M_PI) num_heading_spins++;
+	else if (diff_mocap > M_PI) num_heading_spins--;
 
 	// finally the new value can be written
 	continuous_heading_NED = att_tb_NED[2] + (num_heading_spins * TWO_PI);

@@ -53,8 +53,11 @@ private:
 	bool enable_mag = false;
 	double Pcov[16];
 
-	double quat[4];	//estimated quaternians
-	double att_tb[3]; //roll pitch and yaw from estimated quaternians
+	double quat_raw[4];		// raw estimated quaternians
+	double quat_NED[4];		// estimated quaternian in NED
+	double att_tb_NED[3]; //roll pitch and yaw from estimated quaternians
+	double continuous_heading_NED;
+	int num_heading_spins = 0;
 
 	double Cov_info[3] = { 0.00001,0.1,1.0 };
 
@@ -65,8 +68,10 @@ public:
 
 	/* Data retreival */
 	uint64_t get_time(void);
+	void get_quat_raw(double* buff);
 	void get_quat(double* buff);
 	void get_tb(double* buff);
+	double get_continuous_heading(void);
 };
 
 
@@ -81,8 +86,10 @@ class EKF2_log_entry_t
 private:
 	uint64_t time;
 
-	double quat[4];	//estimated quaternians
-	double att_tb[3]; //roll pitch and yaw from estimated quaternians
+	double quat_raw[4];		// raw estimated quaternians
+	double quat_NED[4];		// estimated quaternian in NED
+	double att_tb_NED[3]; //roll pitch and yaw from estimated quaternians
+	double continuous_heading_NED;
 
 	char print_vec(FILE* file, double* vec_in, int size);
 	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);

@@ -688,8 +688,8 @@ char IMU_9DOF_gen_t::update_att_from_quat_dmp(double new_att_quat_dmp_raw[4])
 	*/
 	double diff_yaw = att_tb_dmp_NED[2] + (num_heading_spins_dmp_NED * TWO_PI) - continuous_heading_dmp_NED;
 	// detect the crossover point at +-PI and update num yaw spins
-	if (diff_yaw < -M_PI) num_heading_spins_dmp_NED--;
-	else if (diff_yaw > M_PI) num_heading_spins_dmp_NED++;
+	if (diff_yaw < -M_PI) num_heading_spins_dmp_NED++;
+	else if (diff_yaw > M_PI) num_heading_spins_dmp_NED--;
 
 	// finally the new value can be written
 	continuous_heading_dmp_NED = att_tb_dmp_NED[2] + (num_heading_spins_dmp_NED * TWO_PI);
@@ -719,8 +719,8 @@ char IMU_9DOF_gen_t::update_att_from_quat_fused(double new_att_quat_fused_raw[4]
 	*/
 	double diff_yaw = att_tb_fused_NED[2] + (num_heading_spins_fused_NED * TWO_PI) - continuous_heading_fused_NED;
 	// detect the crossover point at +-PI and update num yaw spins
-	if (diff_yaw < -M_PI) num_heading_spins_fused_NED--;
-	else if (diff_yaw > M_PI) num_heading_spins_fused_NED++;
+	if (diff_yaw < -M_PI) num_heading_spins_fused_NED++;
+	else if (diff_yaw > M_PI) num_heading_spins_fused_NED--;
 
 	// finally the new value can be written
 	continuous_heading_fused_NED = att_tb_fused_NED[2] + (num_heading_spins_fused_NED * TWO_PI);

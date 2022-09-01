@@ -148,6 +148,7 @@ int log_entry_t::write_header(void)
             "gps_minute,gps_second,gps_time_received_ns");
     }
 
+    KF_altitude_entry.print_header(log_fd, "KF_alt_");
     EKF1_entry.print_header(log_fd, "EKF1_");
     EKF2_entry.print_header(log_fd, "EKF2_");
 
@@ -288,6 +289,7 @@ int log_entry_t::write_log_entry(void)
         fprintf(log_fd, ",%" PRIu64, gps_time_received_ns);
     }
 
+    KF_altitude_entry.print_entry(log_fd);
     EKF1_entry.print_entry(log_fd);
     EKF2_entry.print_entry(log_fd);
 
@@ -578,6 +580,7 @@ void log_entry_t::construct_new_entry(void)
     gps_time_received_ns = gps_data.gps_data_received_ns;
 
     /* Filters */
+    KF_altitude_entry.update(&KF_altitude);
     EKF1_entry.update(&EKF1);
     EKF2_entry.update(&EKF2);
 
