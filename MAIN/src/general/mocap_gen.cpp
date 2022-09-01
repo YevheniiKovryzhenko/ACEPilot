@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/01/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system
@@ -56,6 +56,7 @@ char mocap_gen_t::init(mocap_settings_t new_mocap_settings)
 
 	settings = new_mocap_settings;
 	initialized = true;
+	valid = false;
 	att_updated = false;
 	pos_updated = false;
 	return 0;
@@ -80,6 +81,7 @@ char mocap_gen_t::init(void)
 	settings.vel_filter[0].tc = 20.0 * DT;
 	settings.vel_filter[1].tc = 20.0 * DT;
 	settings.vel_filter[2].tc = 4.0 * DT;
+	settings.enable_warnings = true;
 
 	return init(settings);
 
@@ -89,6 +91,30 @@ char mocap_gen_t::init(void)
 bool mocap_gen_t::is_initialized(void)
 {
 	return initialized;
+}
+bool mocap_gen_t::is_valid(void)
+{
+	return valid;
+}
+
+char mocap_gen_t::update_time(uint64_t new_time, uint8_t new_valid_fl)
+{
+	if (new_valid_fl > 0 && new_time > time)
+	{
+		time = new_time;
+		no_new_updates = 0;
+		valid = true;
+	}
+	else
+	{
+		if (no_new_updates > 3)
+		{
+			valid = false;
+			if (settings.enable_warnings) printf("WARNING: mocap lost visual\n");
+		}
+		no_new_updates++;
+	}
+	return 0;
 }
 
 char mocap_gen_t::update_att_from_quat(double new_mocap_quat_raw[4])
@@ -225,6 +251,10 @@ void mocap_gen_t::cleanup(void)
 
 
 /* Data retrieval */
+uint64_t mocap_gen_t::get_time(void)
+{
+	return time;
+}
 uint64_t mocap_gen_t::get_time_att(void)
 {
 	return time_att;
@@ -299,8 +329,9 @@ void mocap_gen_t::get_vel(double* buff)
 */
 char mocap_log_entry_t::update(mocap_gen_t* new_state)
 {
+	time = new_state->get_time();
 	time_att = new_state->get_time_att();
-	time_pos = new_state->get_time_pos();
+	valid = new_state->is_valid();
 
 	new_state->get_quat_raw(att_quat_raw);
 	new_state->get_quat(att_quat_NED);
@@ -308,6 +339,7 @@ char mocap_log_entry_t::update(mocap_gen_t* new_state)
 	new_state->get_tb_raw(att_tb_raw);
 	new_state->get_tb(att_tb_NED);
 	
+	time_pos = new_state->get_time_pos();
 	new_state->get_tb_rate_raw(att_rate_tb_raw_NED);
 	new_state->get_tb_rate(att_rate_tb_filtered_NED);
 
@@ -339,7 +371,9 @@ char mocap_log_entry_t::print_header_vec(FILE* file, const char* prefix, const c
 
 char mocap_log_entry_t::print_header(FILE* file, const char* prefix)
 {
-	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time_att));	
+	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time));
+	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time_att));
+	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(valid));
 
 	print_header_vec(file, prefix, GET_VARIABLE_NAME(att_quat_raw), 4);
 	print_header_vec(file, prefix, GET_VARIABLE_NAME(att_quat_NED), 4);
@@ -365,7 +399,9 @@ char mocap_log_entry_t::print_header(FILE* file, const char* prefix)
 }
 char mocap_log_entry_t::print_entry(FILE* file)
 {
+	fprintf(file, ",%" PRIu64, time);
 	fprintf(file, ",%" PRIu64, time_att);
+	fprintf(file, ",%i", valid);
 
 	print_vec(file, att_quat_raw, 4);
 	print_vec(file, att_quat_NED, 4);

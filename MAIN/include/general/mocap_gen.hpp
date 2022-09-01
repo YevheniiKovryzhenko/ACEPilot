@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/01/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system 
@@ -40,9 +40,14 @@
 class mocap_gen_t
 {
 private:
+	uint64_t time = 0;
+
 	uint64_t time_att = rc_nanos_since_boot();
 
 	bool initialized = false;
+	bool valid = false;
+	int no_new_updates = 0; //counts the number of updates
+
 	bool att_updated = false; //has to be true before marching
 	bool pos_updated = false; //has to be true before marching
 
@@ -80,13 +85,16 @@ public:
 	char init(void);
 	char init(mocap_settings_t new_mocap_settings);
 	bool is_initialized(void);
+	bool is_valid(void);
 
 	/* Updating */
+	char update_time(uint64_t new_time, uint8_t new_valid_fl);
 	char update_att_from_quat(double new_mocap_quat_raw[4]);
 	char update_pos_vel_from_pos(double new_mocap_pos_raw[3]);
 	char march(void);
 
 	/* Data retrieval */
+	uint64_t get_time(void);
 	uint64_t get_time_att(void);
 	uint64_t get_time_pos(void);
 	void get_quat_raw(double* buff);
@@ -116,7 +124,9 @@ extern mocap_gen_t mocap;
 class mocap_log_entry_t
 {
 private:
-	uint64_t time_att = rc_nanos_since_boot();
+	uint64_t time;
+	uint64_t time_att;
+	bool valid;
 
 	double att_quat_raw[4];
 	double att_quat_NED[4];
@@ -130,7 +140,7 @@ private:
 	double continuous_heading_NED; ///<  keeps increasing/decreasing above +-2pi
 
 
-	uint64_t time_pos = rc_nanos_since_boot();
+	uint64_t time_pos;
 
 	double pos_raw[3];
 	double pos_NED[3];

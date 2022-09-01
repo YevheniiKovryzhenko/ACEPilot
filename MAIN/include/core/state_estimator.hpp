@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/01/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains all the primary functionality and framework for state estimation rountines
@@ -44,7 +44,8 @@
 //#include "coordinate_frames_gen.hpp"
 #include "signal_filter_gen.hpp"
 #include "settings.hpp"
-
+	
+	/*
 	typedef struct ext_mag_t
 	{
 		double x;
@@ -52,8 +53,8 @@
 		double z;
 		double norm;
 	}ext_mag_t;
-
-	extern ext_mag_t ext_mag;
+	*/
+	//extern ext_mag_t ext_mag;
 
 	/**
 	 * This is the output from the state estimator. It contains raw sensor values
@@ -202,10 +203,10 @@
 		 * As mocap drop in and out the mocap_running flag will turn on and off.
 		 * Old values will remain readable after mocap drops out.
 		 */
-		 ///@{
-		bool mocap_running = false;	///< true if motion capture data is recent and valid
-		uint64_t mocap_timestamp_ns; ///< timestamp of last received packet in nanoseconds since boot
-		uint32_t mocap_time;	///< time receved from mocap
+		 ///@{		
+		//bool mocap_running = false;	///< true if motion capture data is recent and valid
+		//uint64_t mocap_timestamp_ns; ///< timestamp of last received packet in nanoseconds since boot
+		//uint32_t mocap_time;	///< time receved from mocap
 		/*
 		double pos_mocap[3];	///< position in mocap frame, converted to NED if necessary
 		double quat_mocap[4];	///< UAV orientation according to mocap
@@ -217,7 +218,7 @@
 
 		//EOL}
 
-		void mocap_check_timeout(void);
+		//void mocap_check_timeout(void);
 
 		/**
 		* @brief       Updates and Marches all the sourses

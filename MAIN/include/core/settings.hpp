@@ -93,7 +93,8 @@ typedef struct mocap_settings_t
 {
 	coordinate_frame_t frame_type;// = NWU;
 	signal_filter_gen_settings_t att_filter[3]; //filter settings for attitude
-	signal_filter_gen_settings_t vel_filter[3]; //filter settings for velocity		
+	signal_filter_gen_settings_t vel_filter[3]; //filter settings for velocity
+	bool enable_warnings;
 }mocap_settings_t;
 
 
@@ -124,6 +125,7 @@ typedef struct settings_t{
 	int dof;
 	thrust_map_t thrust_map;
 	double v_nominal;
+	voltage_sensor_settings_t battery;
 	bool enable_v_gain_scaling;
 	bool enable_magnetometer; // we suggest leaving as 0 (mag OFF)
 	bool enable_mocap;	//enable mocap serial link

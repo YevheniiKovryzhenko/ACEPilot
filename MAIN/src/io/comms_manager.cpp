@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/01/2022 (MM/DD/YYYY)
  *
  * Object that governs all the logic related to communications.
  */
@@ -40,6 +40,7 @@
 #include "state_machine.hpp"
 #include "tools.h"
 #include "thread_defs.hpp"
+#include "mocap_gen.hpp"
 
 // preposessor macros
 #ifndef unlikely
@@ -351,7 +352,7 @@ char comms_manager_t::mocap_save_data_st(void)
 */
 char comms_manager_t::mocap_save_data(void)
 {
-	GS_TX.time = rc_nanos_since_boot();
+	GS_TX.time = state_estimate.get_time();
 	GS_TX.st_f = (uint8_t)user_input.get_flight_mode();
 	GS_TX.st_SM = (uint8_t)waypoint_state_machine.get_current_state();
 
@@ -384,8 +385,6 @@ char comms_manager_t::mocap_update(void)
 		printf("ERROR in mocap_update: failed to read new data\n");
 		return -2;
 	}
-	
-	if (settings.telem_warnings_en) if (GS_RX.trackingValid == 0) printf("WARNING: mocap lost visual\n");
 
 	if (mocap_en_TX && finddt_s(TX_time) > 1.0 / MOCAP_THREAD_TX_HZ)
 	{

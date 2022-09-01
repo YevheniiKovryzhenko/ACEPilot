@@ -9,6 +9,20 @@
 	"thrust_map": "RS2212_920_4S",
 	"orientation": "ORIENTATION_X_FORWARD",
 	"v_nominal": 16.5,
+	"battery": {
+		"filter": {
+			"type": "Moving_Avg",
+			"dt": 0.005,
+			"tc": 0.05,
+			"n_samples": 20,
+			"en_saturation": false,
+			"min": -1.0,
+			"max": 1.0
+		},
+		"en_warnings": true,
+		"nominal": 16.5,
+		"min_critical": 4.8
+	},
 	"enable_v_gain_scaling": false,
 
 	"enable_magnetometer": true,

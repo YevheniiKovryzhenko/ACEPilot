@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/01/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains all the primary functionality and framework for state estimation rountines
@@ -67,7 +67,7 @@
 
 rc_mpu_data_t mpu_data; // extern variable in state_estimator.hpp
 state_estimate_t state_estimate{}; // extern variable in state_estimator.hpp
-ext_mag_t ext_mag;
+//ext_mag_t ext_mag;
 
 /**
 * @brief       Updates and Marches all the sourses
@@ -135,33 +135,37 @@ char state_estimate_t::update_all_sourses(void)
 	//MOCAP
 	if (settings.enable_mocap)
 	{
-		double tmp[4];
-		tmp[0] = GS_RX.qw;
-		tmp[1] = GS_RX.qx;
-		tmp[2] = GS_RX.qy;
-		tmp[3] = GS_RX.qz;
-		if (unlikely(mocap.update_att_from_quat(tmp) < 0))
+		mocap.update_time(GS_RX.time, GS_RX.trackingValid);
+		if (mocap.is_valid())
 		{
-			fprintf(stderr, "ERROR in march: failed to update mocap attitude\n");
-			return -1;
-		}
-		tmp[0] = GS_RX.x;
-		tmp[1] = GS_RX.y;
-		tmp[2] = GS_RX.z;
+			double tmp[4];
+			tmp[0] = GS_RX.qw;
+			tmp[1] = GS_RX.qx;
+			tmp[2] = GS_RX.qy;
+			tmp[3] = GS_RX.qz;
+			if (unlikely(mocap.update_att_from_quat(tmp) < 0))
+			{
+				fprintf(stderr, "ERROR in march: failed to update mocap attitude\n");
+				return -1;
+			}
+			tmp[0] = GS_RX.x;
+			tmp[1] = GS_RX.y;
+			tmp[2] = GS_RX.z;
 
-		if (unlikely(mocap.update_pos_vel_from_pos(tmp) < 0))
-		{
-			fprintf(stderr, "ERROR in march: failed to update mocap position\n");
-			return -1;
-		}
+			if (unlikely(mocap.update_pos_vel_from_pos(tmp) < 0))
+			{
+				fprintf(stderr, "ERROR in march: failed to update mocap position\n");
+				return -1;
+			}
 
-		if (unlikely(mocap.march() < 0))
-		{
-			fprintf(stderr, "ERROR in march: failed to march mocap\n");
-			return -1;
-		}
+			if (unlikely(mocap.march() < 0))
+			{
+				fprintf(stderr, "ERROR in march: failed to march mocap\n");
+				return -1;
+			}
+		}		
 
-		mocap_check_timeout();
+		//mocap_check_timeout();
 	}
 	return 0;
 }
@@ -252,7 +256,7 @@ void state_estimate_t::fetch_external_sourses(void)
 	}
 
 	/* MOCAP */
-	if (settings.enable_mocap) //assumed to be the most accurate sourse, so directly update position and attitude
+	if (settings.enable_mocap && mocap.is_valid()) //assumed to be the most accurate sourse, so directly update position and attitude
 	{
 		mocap.get_pos(pos_global);
 		mocap.get_vel(vel_global);
@@ -304,7 +308,7 @@ void state_estimate_t::fetch_external_sourses(void)
 			rc_quaternion_rotate_vector_array(accel_global, quat);
 			accel_global[2] = accel_global[2] + GRAVITY;
 		}		
-	}	
+	}
 }
 
 void state_estimate_t::update_internal_filters(void)
@@ -354,7 +358,7 @@ void state_estimate_t::cleanup_internal_filters(void)
 	return;
 }
 
-
+/*
 void state_estimate_t::mocap_check_timeout(void)
 {
 	if (mocap_running) {
@@ -369,7 +373,7 @@ void state_estimate_t::mocap_check_timeout(void)
 	}
 	return;
 }
-
+*/
 
 int state_estimate_t::init(void)
 {
@@ -378,7 +382,7 @@ int state_estimate_t::init(void)
 		return -1;
 	}
 
-	if (unlikely(batt.init() < 0)) //need settings
+	if (unlikely(batt.init(settings.battery) < 0))
 	{
 		fprintf(stderr, "ERROR in init: failed to initialize battery\n");
 		return -1;

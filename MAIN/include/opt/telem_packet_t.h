@@ -9,7 +9,7 @@ extern "C"
 
     typedef struct telem_packet_t
     {
-        uint64_t time;          ///< Unique id for the rigid body being described
+        uint64_t time;          ///< Unique time for the rigid body being described
         uint8_t st_SM;          ///< state machine state
         uint8_t st_f;           ///< flight state
         float x;                ///< x-position state
