@@ -846,7 +846,7 @@ static int __parse_double_min(json_object* jobj_str, const char* name, double& n
 		fprintf(stderr, "ERROR: failed to parse min\n");
 		return -1;
 	}
-	if (tmp1 > min_min)
+	if (tmp1 < min_min)
 	{
 		fprintf(stderr, "ERROR: min must be greater than %f\n", min_min);
 		return -1;
@@ -968,25 +968,52 @@ static int __parse_signal_filter_gen_settings(json_object* in_json, const char* 
 		fprintf(stderr, "ERROR: failed to parse time step dt for %s\n", name);
 		return -1;
 	}
-	if (__parse_double_positive(tmp_main_json, "tc", filter->tc))
+	switch (filter->type)
 	{
-		fprintf(stderr, "ERROR: failed to parse time constant tc for %s\n", name);
+	case Lowpass:		
+		if (__parse_double_positive(tmp_main_json, "tc", filter->tc))
+		{
+			fprintf(stderr, "ERROR: failed to parse time constant tc for %s\n", name);
+			return -1;
+		}
+		break;
+	case Highpass:
+		if (__parse_double_positive(tmp_main_json, "tc", filter->tc))
+		{
+			fprintf(stderr, "ERROR: failed to parse time constant tc for %s\n", name);
+			return -1;
+		}
+		break;
+	case Integrator:
+		//nothing extra for now...
+		break;
+	case Moving_Avg:
+		if (__parse_int_positive(tmp_main_json, "n_samples", filter->n_samples))
+		{
+			fprintf(stderr, "ERROR: failed to parse n_samples for %s\n", name);
+			return -1;
+		}
+		break;
+	default:
+		fprintf(stderr, "ERROR: something went wrong parsing filter type for %s", name);
 		return -1;
 	}
-	if (__parse_int_positive(tmp_main_json, "n_samples", filter->n_samples))
-	{
-		fprintf(stderr, "ERROR: failed to parse n_samples for %s\n", name);
-		return -1;
+
+	if (json_object_object_get_ex(tmp_main_json, name, &tmp)) {
+		if (__parse_bool(tmp_main_json, "en_saturation", filter->en_saturation))
+		{
+			fprintf(stderr, "ERROR: failed to parse en_saturation for %s\n", name);
+			return -1;
+		}
+		if (__parse_double_min_max(tmp_main_json, filter->min, filter->max))
+		{
+			fprintf(stderr, "ERROR: failed to parse min max for %s\n", name);
+			return -1;
+		}
 	}
-	if (__parse_bool(tmp_main_json, "enable_saturation", filter->en_saturation))
+	else
 	{
-		fprintf(stderr, "ERROR: failed to parse enable_saturation for %s\n", name);
-		return -1;
-	}
-	if (__parse_double_min_max(tmp_main_json, filter->min, filter->max))
-	{
-		fprintf(stderr, "ERROR: failed to parse min max for %s\n", name);
-		return -1;
+		filter->en_saturation = false; //just in case
 	}
 
 
