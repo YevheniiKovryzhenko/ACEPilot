@@ -31,6 +31,7 @@
 #include "mocap_gen.hpp"
 #include "tools.h"
 #include "coordinate_frames_gen.hpp"
+#include "settings_gen.hpp"
 
 #ifndef GET_VARIABLE_NAME
 #define GET_VARIABLE_NAME(Variable) (#Variable)
@@ -422,5 +423,64 @@ char mocap_log_entry_t::print_entry(FILE* file)
 
 	print_vec(file, vel_raw_NED, 3);
 	print_vec(file, vel_filtered_NED, 3);
+	return 0;
+}
+
+
+
+int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_settings_t& sensor)
+{
+	struct json_object* tmp_main_json = NULL;
+	struct json_object* tmp = NULL;    // temp object
+
+	//find filter entry
+	if (json_object_object_get_ex(in_json, name, &tmp_main_json) == 0)
+	{
+		fprintf(stderr, "ERROR: can't find %s entry\n", name);
+		return -1;
+	}
+	if (json_object_is_type(tmp_main_json, json_type_object) == 0)
+	{
+		fprintf(stderr, "ERROR: %s must be an object\n", name);
+		return -1;
+	}
+
+	// Parse coordinate frame type:
+	if (parse_coordinate_frame_gen_type(tmp_main_json, "frame_type", sensor.frame_type))
+	{
+		fprintf(stderr, "ERROR: failed to parse frame_type flag for %s\n", name);
+		return -1;
+	}
+
+	// Parse filter
+	char buf[12+3];
+	for (int i = 0; i < 3; i++)
+	{
+		snprintf(buf, 15, "att_filter[%i]", i); // puts string into buffer
+		if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.att_filter[i]) < 0)
+		{
+			fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);
+			return -1;
+		}
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		snprintf(buf, 15, "vel_filter[%i]", i); // puts string into buffer
+		if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.vel_filter[i]) < 0)
+		{
+			fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);
+			return -1;
+		}
+	}
+	
+
+	// Parse other entries
+	if (parse_bool(tmp_main_json, "enable_warnings", sensor.enable_warnings))
+	{
+		fprintf(stderr, "ERROR: failed to parse enable_warnings flag for %s\n", name);
+		return -1;
+	}
+
+
 	return 0;
 }

@@ -2,6 +2,7 @@
 file(GLOB ALL_MAIN 
 "include/core/*.h" "include/core/*.hpp"
 "include/general/*.h" "include/general/*.hpp"
+"src/general/sensors/*.h" "src/general/sensors/*.hpp"
 "include/controllers/*.h" "include/controllers/*.hpp"
 "include/mod/*.h" "include/mod/*.hpp"
 "include/io/*.h" "include/io/*.hpp"
@@ -10,6 +11,7 @@ file(GLOB ALL_MAIN
 "src/navigation/*.h" "src/navigation/*.hpp"
 "src/core/*.c" "src/core/*.cpp"
 "src/general/*.c" "src/general/*.cpp"
+"src/general/sensors/*.c" "src/general/sensors/*.cpp"
 "src/controllers/*.c" "src/controllers/*.cpp"
 "src/mod/*.c" "src/mod/*.cpp"
 "src/io/*.c" "src/io/*.cpp"
@@ -31,33 +33,35 @@ source_group("ALL_FILES" FILES ${ALL_MAIN})
 # at this point we can compile all the sources and headers individually, but they don't see 
 # each other, so linking will fail. To fix this, add all the folders to the executable 
 # tree (called using variable "Main") so linker can search over it for all #inludes:
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/core")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/core")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/general")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/general")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/controllers")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/controllers")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/mod")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/mod")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/io")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/io")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/opt")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/opt")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/guidance")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/guidance")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/navigation")
-target_include_directories(rc_pilot PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/navigation")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/core")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/core")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/general")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/general")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/general/sensors/")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/general/sensors/")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/controllers")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/controllers")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/mod")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/mod")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/io")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/io")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/opt")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/opt")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/guidance")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/guidance")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/navigation")
+target_include_directories(rc_pilot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/navigation")
 # note, we can do all the above lines by droping a separate CMakeLists.txt into each of the subfolder
 # and adding respective header and source file along with the path to the Cmake file tree, but this
 # allows reducing everyhting to a one general CMakeLists.txt and keeping everything important for the 
 # MAIN project in one place. 
 
 # Link all the outside libraries used in this project (from libs folder):
-target_link_libraries(rc_pilot PUBLIC GPS_lib)
-target_link_libraries(rc_pilot PUBLIC robotics_cape)
-target_link_libraries(rc_pilot PUBLIC lwrb_lib)
-target_link_libraries(rc_pilot PUBLIC json-c)
-target_link_libraries(rc_pilot PUBLIC Serial_Tools_lib)
+target_link_libraries(rc_pilot PRIVATE GPS_lib)
+target_link_libraries(rc_pilot PRIVATE robotics_cape)
+target_link_libraries(rc_pilot PRIVATE lwrb_lib)
+target_link_libraries(rc_pilot PRIVATE json-c)
+target_link_libraries(rc_pilot PRIVATE Serial_Tools_lib)
 
 # This forces to use threads library:
 set(THREADS_PREFER_PTHREAD_FLAG ON)

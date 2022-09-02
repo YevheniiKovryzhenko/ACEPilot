@@ -22,13 +22,17 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/02/2022 (MM/DD/YYYY)
  *
  * Summary :
  * General-purpose class for applying simple filtering on a signal.
  *
  */
+#include "settings_gen.hpp"
 #include "signal_filter_gen.hpp"
+
+#include <cstring>
+
 
 // preposessor macros
 #ifndef unlikely
@@ -42,6 +46,7 @@
  /**
  * Setpoint filter class.
  */
+// depricated {
 bool signal_filter_gen_t::is_init(void)
 {
 	return initialized;
@@ -239,7 +244,133 @@ int signal_filter_triplet_gen_t::reset_all(void)
 	integrator.reset();
 	return 0;
 }
+// } depricated
 
+
+/* Parser for filter type */
+int parse_singal_filter_gen_type(json_object* in_json, const char* name, signal_filter_gen_type_t& type)
+{
+	struct json_object* tmp_main_json = NULL;    // temp object
+
+	//find and parse entry
+	if (json_object_object_get_ex(in_json, name, &tmp_main_json) == 0)
+	{
+		fprintf(stderr, "ERROR: can't find %s entry\n", name);
+		return -1;
+	}
+	if (json_object_is_type(tmp_main_json, json_type_string) == 0)
+	{
+		fprintf(stderr, "ERROR: %s must be a string\n", name);
+		return -1;
+	}
+
+	char* tmp_str = NULL;
+	if (json_object_is_type(tmp_main_json, json_type_string) == 0) {
+		fprintf(stderr, "ERROR: %s should be a string\n", name);
+		return -1;
+	}
+	tmp_str = (char*)json_object_get_string(tmp_main_json);
+	if (strcmp(tmp_str, "Lowpass") == 0) {
+		type = Lowpass;
+	}
+	else if (strcmp(tmp_str, "Highpass") == 0) {
+		type = Highpass;
+	}
+	else if (strcmp(tmp_str, "Integrator") == 0) {
+		type = Integrator;
+	}
+	else if (strcmp(tmp_str, "Moving_Avg") == 0) {
+		type = Moving_Avg;
+	}
+	else {
+		fprintf(stderr, "ERROR: invalid type\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int parse_signal_filter_gen_settings(json_object* in_json, const char* name, signal_filter_gen_settings_t& filter)
+{
+	struct json_object* tmp_main_json = NULL;
+	struct json_object* tmp = NULL;    // temp object
+
+	//find filter entry
+	if (json_object_object_get_ex(in_json, name, &tmp_main_json) == 0)
+	{
+		fprintf(stderr, "ERROR: can't find %s entry\n", name);
+		return -1;
+	}
+	if (json_object_is_type(tmp_main_json, json_type_object) == 0)
+	{
+		fprintf(stderr, "ERROR: %s must be an object\n", name);
+		return -1;
+	}
+
+	// Parse filter type
+	if (parse_singal_filter_gen_type(tmp_main_json, "type", filter.type) < 0)
+	{
+		fprintf(stderr, "ERROR: failed to parse filter type for %s\n", name);
+		return -1;
+	}
+
+	// Parse other entries
+	if (parse_double_positive(tmp_main_json, "dt", filter.dt))
+	{
+		fprintf(stderr, "ERROR: failed to parse time step dt for %s\n", name);
+		return -1;
+	}
+	switch (filter.type)
+	{
+	case Lowpass:
+		if (parse_double_positive(tmp_main_json, "tc", filter.tc))
+		{
+			fprintf(stderr, "ERROR: failed to parse time constant tc for %s\n", name);
+			return -1;
+		}
+		break;
+	case Highpass:
+		if (parse_double_positive(tmp_main_json, "tc", filter.tc))
+		{
+			fprintf(stderr, "ERROR: failed to parse time constant tc for %s\n", name);
+			return -1;
+		}
+		break;
+	case Integrator:
+		//nothing extra for now...
+		break;
+	case Moving_Avg:
+		if (parse_int_positive(tmp_main_json, "n_samples", filter.n_samples))
+		{
+			fprintf(stderr, "ERROR: failed to parse n_samples for %s\n", name);
+			return -1;
+		}
+		break;
+	default:
+		fprintf(stderr, "ERROR: something went wrong parsing filter type for %s", name);
+		return -1;
+	}
+
+	if (json_object_object_get_ex(tmp_main_json, name, &tmp)) {
+		if (parse_bool(tmp_main_json, "en_saturation", filter.enable_saturation))
+		{
+			fprintf(stderr, "ERROR: failed to parse en_saturation for %s\n", name);
+			return -1;
+		}
+		if (parse_double_min_max(tmp_main_json, filter.min, filter.max))
+		{
+			fprintf(stderr, "ERROR: failed to parse min max for %s\n", name);
+			return -1;
+		}
+	}
+	else
+	{
+		filter.enable_saturation = false; //just in case
+	}
+
+
+	return 0;
+}
 
 
 /* Methods for general low-pass filter class */
@@ -289,7 +420,7 @@ char signal_filter1D_gen_t::set(signal_filter_gen_settings_t new_settings)
 		reset();
 		return -1;
 	}
-	if (new_settings.en_saturation)
+	if (new_settings.enable_saturation)
 	{
 		if (unlikely(rc_filter_enable_saturation(&filter, new_settings.min, new_settings.max) == -1))
 		{
@@ -321,7 +452,7 @@ char signal_filter1D_gen_t::enable_saturation(double new_min, double new_max)
 	}
 	settings.min = new_min;
 	settings.max = new_max;
-	settings.en_saturation = true;
+	settings.enable_saturation = true;
 	return 0;
 }
 char signal_filter1D_gen_t::reset(void)
@@ -331,7 +462,7 @@ char signal_filter1D_gen_t::reset(void)
 		fprintf(stderr, "ERROR in reset: failed to reset filter\n");
 		return -1;
 	}
-	settings.en_saturation = false;
+	settings.enable_saturation = false;
 	return 0;
 }
 void signal_filter1D_gen_t::cleanup(void)

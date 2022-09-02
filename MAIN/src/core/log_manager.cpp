@@ -57,6 +57,7 @@
 #include "KF.hpp"
 #include "EKF.hpp"
 #include "EKF2.hpp"
+#include "voltage_sensor_gen.hpp"
  
 // preposessor macros
 #ifndef unlikely

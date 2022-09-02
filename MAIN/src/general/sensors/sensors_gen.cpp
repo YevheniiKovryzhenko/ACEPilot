@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/02/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating sensors. Currently supports:
@@ -33,140 +33,22 @@
  *		- Magnetometer (Compass)
  *		- IMU-9DOF: combination of gyro + accel + mag
  */
-
 #include "sensors_gen.hpp"
-#include <rc/adc.h>
+
+#include <cstring>
+#include "signal_filter_gen.hpp"
+
 
 #include "coordinate_frames_gen.hpp"
+//#include "settings_gen.hpp"
+//#include "signal_filter_gen.hpp"
 
 #ifndef GET_VARIABLE_NAME
 #define GET_VARIABLE_NAME(Variable) (#Variable)
 #endif // !GET_VARIABLE_NAME
 
-battery_gen_t batt{};	//battery voltage sensor
 barometer_gen_t bmp{};	//barometer
 IMU_9DOF_gen_t imu{};	//IMU-9DOF with Gyro + Accel + Mag
-
-/* Methods for general BATTERY class */
-char battery_gen_t::init(voltage_sensor_settings_t new_settings)
-{
-	if (unlikely(initialized))
-	{
-		fprintf(stderr, "ERROR in init: battery already initialized.\n");
-		return -1;
-	}
-	if (new_settings.nominal < new_settings.min_critical)
-	{
-		fprintf(stderr, "ERROR in init: Nominal voltage (%4.1fV) must be greater than critical minium of %4.1fV.\n", new_settings.nominal, new_settings.min_critical);
-		return -1;
-	}
-	// init the battery filter
-	if (unlikely(filter.set(new_settings.filter) < 0))
-	{
-		fprintf(stderr, "ERROR in init: failted to initialize battery filter.\n");
-		return -1;
-	}
-
-	initialized = true;
-	return 0;
-}
-char battery_gen_t::init(voltage_sensor_settings_t new_settings, double new_in)
-{
-	if (unlikely(initialized))
-	{
-		fprintf(stderr, "ERROR in init: battery already initialized.\n");
-		return -1;
-	}
-	if (new_settings.nominal < new_settings.min_critical)
-	{
-		fprintf(stderr, "ERROR in init: Nominal voltage (%4.1fV) must be greater than critical minium of %4.1fV.\n", new_settings.nominal, new_settings.min_critical);
-		return -1;
-	}
-	// init the battery filter
-	if (unlikely(filter.set(new_settings.filter) < 0))
-	{
-		fprintf(stderr, "ERROR in init: failted to initialize battery filter.\n");
-		return -1;
-	}
-
-	if (new_in < new_settings.min_critical) {
-		if (new_settings.en_warnings) {
-			fprintf(stderr, "WARNING in init: voltage read is %2.1fV (too low).\n", new_in);
-			fprintf(stderr, "Assuming nominal voltage for now.\n");
-		}
-		new_in = new_settings.nominal;
-	}
-
-	filter.prefill_inputs(new_in);
-	filter.prefill_outputs(new_in);
-
-	initialized = true;
-	return 0;
-}
-char battery_gen_t::init(void)
-{
-	/* assume some default values */
-	settings.filter.type = Moving_Avg;
-	settings.filter.dt = DT;
-	settings.filter.n_samples = 20;
-	settings.en_warnings = true;
-	settings.min_critical = 3.0;
-	settings.nominal = 3.3;
-
-	return init(settings, rc_adc_dc_jack());
-}
-
-
-char battery_gen_t::march(double new_v)
-{
-	if (unlikely(!initialized))
-	{
-		fprintf(stderr, "ERROR in march: battery is not initialized.\n");
-		return -1;
-	}
-	raw = new_v;
-
-	if (new_v < settings.min_critical)
-	{
-		if (settings.en_warnings)
-		{
-			printf("WARNING in march: measured voltage is below critical, assuming measured is equal to critical voltage.\n");
-		}
-		filtered = filter.march(settings.min_critical);
-		return 0;
-	}
-
-	filtered = filter.march(raw);
-	return 0;
-}
-
-double battery_gen_t::get_raw(void)
-{
-	return raw;
-}
-double battery_gen_t::get(void)
-{
-	return filtered;
-}
-
-char battery_gen_t::reset(void)
-{
-	return filter.reset();;
-}
-char battery_gen_t::reset(voltage_sensor_settings_t new_settings)
-{
-	initialized = false;
-	reset();
-	return init(new_settings);
-}
-
-void battery_gen_t::cleanup(void)
-{
-	if (!initialized) return;
-	filter.cleanup();
-	initialized = false;
-	return;
-}
 
 /* Methods for general BAROMETER class */
 char barometer_gen_t::init(void)
@@ -817,47 +699,6 @@ void IMU_9DOF_gen_t::cleanup(void)
 	initialized = false;
 	return;
 }
-
-/** @name Logging class for battery
-* Defines how logging should be done for this class
-*/
-char battery_log_entry_t::update(battery_gen_t* new_state)
-{
-	raw = new_state->get_raw();
-	filtered = new_state->get();
-	return 0;
-}
-char battery_log_entry_t::print_vec(FILE* file, double* vec_in, int size)
-{
-	for (int i = 0; i < size; i++)
-	{
-		fprintf(file, ",%.4F", vec_in[i]);
-	}
-	return 0;
-}
-
-char battery_log_entry_t::print_header_vec(FILE* file, const char* prefix, const char* var_name, int size)
-{
-	for (int i = 0; i < size; i++)
-	{
-		fprintf(file, ",%s%s_%i", prefix, var_name, i);
-	}
-	return 0;
-}
-
-char battery_log_entry_t::print_header(FILE* file, const char* prefix)
-{
-	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(raw));
-	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(filtered));
-	return 0;
-}
-char battery_log_entry_t::print_entry(FILE* file)
-{
-	fprintf(file, ",%.4F", raw);
-	fprintf(file, ",%.4F", filtered);
-	return 0;
-}
-
 
 
 /** @name Logging class for barometer

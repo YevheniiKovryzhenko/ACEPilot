@@ -58,6 +58,7 @@
 
 #include "state_estimator.hpp"
 #include "sensors_gen.hpp"
+#include "voltage_sensor_gen.hpp"
 #include "mocap_gen.hpp"
 #include "KF.hpp"
 #include "EKF.hpp"

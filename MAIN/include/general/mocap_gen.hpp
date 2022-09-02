@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/01/2022 (MM/DD/YYYY)
+ * Last Edit:  09/02/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system 
@@ -32,9 +32,19 @@
 #define MOCAP_GEN_HPP
 #include <rc/time.h>
 #include <stdint.h> // for uint64_t
+#include <json.h>
 
 #include "settings.hpp"
 #include "signal_filter_gen.hpp"
+
+typedef struct mocap_settings_t
+{
+	coordinate_frames_gen_t frame_type;// = NWU;
+	signal_filter_gen_settings_t att_filter[3]; //filter settings for attitude
+	signal_filter_gen_settings_t vel_filter[3]; //filter settings for velocity
+	bool enable_warnings;
+}mocap_settings_t;
+
 
  /* General class for all mocap instances */
 class mocap_gen_t
@@ -118,7 +128,7 @@ public:
 extern mocap_gen_t mocap;
 
 
-/** @name Logging class for IMU-9DOF
+/** @name Logging class for mocap
 * Defines how logging should be done for this class
 */
 class mocap_log_entry_t
@@ -156,5 +166,8 @@ public:
 	char print_header(FILE* file, const char* prefix);
 	char print_entry(FILE* file);
 };
+
+
+int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_settings_t& sensor);
 
 #endif // !MOCAP_GEN_HPP

@@ -30,8 +30,9 @@
 
 #include "coordinate_frames_gen.hpp"
 #include <stdio.h>
+#include <cstring>
 
-char rotate2NED(coordinate_frame_t type, double* out, double in[3])
+char rotate2NED(coordinate_frames_gen_t type, double* out, double in[3])
 {
 	switch (type)
 	{
@@ -106,4 +107,76 @@ char rotate2NED(coordinate_frame_t type, double* out, double in[3])
 	}
 	fprintf(stderr, "ERROR in rotate2NED: something went wrong, should not have reached this line...\n");
 	return -1;
+}
+
+
+
+/* Parser for filter type */
+int parse_coordinate_frame_gen_type(json_object* in_json, const char* name, coordinate_frames_gen_t& type)
+{
+	struct json_object* tmp_main_json = NULL;    // temp object
+
+	//find and parse entry
+	if (json_object_object_get_ex(in_json, name, &tmp_main_json) == 0)
+	{
+		fprintf(stderr, "ERROR: can't find %s entry\n", name);
+		return -1;
+	}
+	if (json_object_is_type(tmp_main_json, json_type_string) == 0)
+	{
+		fprintf(stderr, "ERROR: %s must be a string\n", name);
+		return -1;
+	}
+
+	char* tmp_str = NULL;
+	if (json_object_is_type(tmp_main_json, json_type_string) == 0) {
+		fprintf(stderr, "ERROR: %s should be a string\n", name);
+		return -1;
+	}
+	tmp_str = (char*)json_object_get_string(tmp_main_json);
+	if (strcmp(tmp_str, "NED") == 0) {
+		type = NED;
+	}
+	else if (strcmp(tmp_str, "NWU") == 0) {
+		type = NWU;
+	}
+	else if (strcmp(tmp_str, "NUE") == 0) {
+		type = NUE;
+	}
+	else if (strcmp(tmp_str, "NDW") == 0) {
+		type = NDW;
+	}
+	else if (strcmp(tmp_str, "ENU") == 0) {
+		type = ENU;
+	}
+	else if (strcmp(tmp_str, "ESD") == 0) {
+		type = ESD;
+	}
+	else if (strcmp(tmp_str, "EUS") == 0) {
+		type = EUS;
+	}
+	else if (strcmp(tmp_str, "EDN") == 0) {
+		type = EDN;
+	}
+	else if (strcmp(tmp_str, "UNW") == 0) {
+		type = UNW;
+	}
+	else if (strcmp(tmp_str, "USE") == 0) {
+		type = USE;
+	}
+	else if (strcmp(tmp_str, "UEN") == 0) {
+		type = UEN;
+	}
+	else if (strcmp(tmp_str, "UWS") == 0) {
+		type = UWS;
+	}
+	else if (strcmp(tmp_str, "DNE") == 0) {
+		type = DNE;
+	}
+	else {
+		fprintf(stderr, "ERROR: invalid type\n");
+		return -1;
+	}
+
+	return 0;
 }

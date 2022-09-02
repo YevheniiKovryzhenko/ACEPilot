@@ -28,50 +28,8 @@
  * Here are defined general coordinate frames and related functionality
  */
 
-#ifndef COORDINATE_FRAMES_GEN_HPP
-#define COORDINATE_FRAMES_GEN_HPP
-#include <json.h>
-
- /*
-		 Coordinate frame types
-
-	 Assume that we should have:
-	 * North
-	 *	X
-	 *	|
-	 *  / \
-	 *	|
-	 *	|
-	 *	Z ---->  Y East
-	 *  Down
-	 If any of the sensors are pointing in other directions,
-	 You need to select the respective coordinate fram (w.r.to NED)
-	 */
-typedef enum coordinate_frames_gen_t {
-	/* Axis:	X		Y		Z */
-	NED = 0,	//North		East	Down
-	NWU = 1,	//North		West	Up
-	NUE = 2,	//North		Up		East
-	NDW = 3,	//North		Down	West
-	ENU = 4,	//East		North	Up
-	ESD = 5,	//East		South	Down
-	EUS = 6,	//East		Up		South
-	EDN = 7,	//East		Down	North
-	UNW = 8,	//Up		North	West
-	USE = 9,	//Up		South	East
-	UEN = 10,	//Up		East	North
-	UWS = 11,	//Up		West	South
-	DNE = 12	//Down		North	East
-}coordinate_frames_gen_t;
-
-/* function to quickly converst input 3D data into NED coordiante frame */
-char rotate2NED(coordinate_frames_gen_t type, double* out, double in[3]);
+#include "coordinate_frames_gen.hpp"
+#include "settings_gen.hpp"
 
 
-/* Parser for filter type */
 int parse_coordinate_frame_gen_type(json_object* in_json, const char* name, coordinate_frames_gen_t& type);
-#endif // !COORDINATE_FRAMES_GEN_HPP
-
-
-
-

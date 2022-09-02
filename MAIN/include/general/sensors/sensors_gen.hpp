@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  09/02/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating sensors. Currently supports:
@@ -38,37 +38,33 @@
 #include <stdint.h> // for uint64_t
 #include <rc/time.h>
 
-#include "settings.hpp"
+//#include "settings.hpp"
+#include "coordinate_frames_gen.hpp"
 #include "signal_filter_gen.hpp"
 
- /* General class for all battery instances */
-class battery_gen_t
+
+/* Gyroscope */
+typedef struct gyro_settings_t
 {
-private:
-	bool initialized = false;
-	double raw = 0.0;
-	double filtered = 0.0;
+	coordinate_frames_gen_t frame_type;// = ENU; //physical placemet of the sensor
+	signal_filter_gen_settings_t filter[3]; //filter settings
+}gyro_settings_t;
 
-	voltage_sensor_settings_t settings; //sensor settings
+typedef struct gyro_settings_t accel_settings_t; //same as gyro for now
 
-	// battery filter
-	signal_filter1D_gen_t filter{};
-public:
-	char init(void);
-	char init(voltage_sensor_settings_t new_settings);
-	char init(voltage_sensor_settings_t new_settings, double new_in);
-	bool is_initialized(void);
+typedef struct compass_settings_t
+{
+	coordinate_frames_gen_t frame_type;// = ENU; //physical placemet of the sensor		
+}compass_settings_t;
 
-	char march(double new_v);
-
-	double get_raw(void);
-	double get(void);
-
-	char reset(void);
-	char reset(voltage_sensor_settings_t new_settings);
-	void cleanup(void);
-};
-extern battery_gen_t batt;
+typedef struct IMU_9DOF_settings_t
+{
+	coordinate_frames_gen_t frame_type;// = ENU;
+	gyro_settings_t gyro;
+	accel_settings_t accel;
+	bool en_compass;// = false;
+	compass_settings_t compass;
+}IMU_9DOF_settings_t;
 
 /* General class for all barometer instances */
 class barometer_gen_t
@@ -279,24 +275,6 @@ public:
 	void cleanup(void);	
 };
 extern IMU_9DOF_gen_t imu;
-
-
-/** @name Logging class for battery
-	* Defines how logging should be done for this class
-	*/
-class battery_log_entry_t
-{
-private:
-	double raw;
-	double filtered;
-
-	char print_vec(FILE* file, double* vec_in, int size);
-	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
-public:
-	char update(battery_gen_t* new_state);
-	char print_header(FILE* file, const char* prefix);
-	char print_entry(FILE* file);
-};
 
 /** @name Logging class for barometer
 * Defines how logging should be done for this class

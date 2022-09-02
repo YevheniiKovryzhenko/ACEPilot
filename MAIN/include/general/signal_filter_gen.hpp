@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/02/2022 (MM/DD/YYYY)
  *
  * Summary :
  * General-purpose class for applying simple filtering on a signal.
@@ -35,11 +35,26 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+#include <json.h>
 #include <rc/math.h>
 #include <rc/math/filter.h>
 #include "rc_pilot_defs.hpp"
-#include "settings.hpp"
 
+//#include "settings.hpp"
+
+
+/**
+* Defines supported filter types.
+*/
+typedef enum signal_filter_gen_type_t {
+	Lowpass = 0,
+	Highpass = 1,
+	Integrator = 2,
+	Moving_Avg = 3
+}signal_filter_gen_type_t;
+
+
+//depricated {
 /**
 * Setpoint filter class.
 */
@@ -95,6 +110,22 @@ public:
 	int reset_all(void);
 };
 
+// }depricated
+
+
+
+/* Filter settings structure */
+typedef struct signal_filter_gen_settings_t
+{
+	signal_filter_gen_type_t type;// = Lowpass;
+	double dt;// = DT; //time step of a discrete filter in seconds
+	double tc;// = 10.0 * DT; // time constant: Seconds it takes to decay by 63.4% of a steady - state input
+	int n_samples;// = 20; //number of samples for moving average filter
+	bool enable_saturation;// = false;
+	double min;// = -1.0;
+	double max;// = 1.0;
+}signal_filter_gen_settings_t;
+
 /* General class for low-pass filter operation */
 class signal_filter1D_gen_t
 {
@@ -125,5 +156,9 @@ public:
 	void cleanup(void);
 };
 
+/* Parser for filter type */
+int parse_singal_filter_gen_type(json_object* in_json, const char* name, signal_filter_gen_type_t& type);
 
+/* Parser for filter class */
+int parse_signal_filter_gen_settings(json_object* in_json, const char* name, signal_filter_gen_settings_t& filter);
 #endif // !SIGNAL_FILTER_GEN_HPP
