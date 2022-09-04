@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/02/2022 (MM/DD/YYYY)
+ * Last Edit:  09/04/2022 (MM/DD/YYYY)
  *
  * Summary :
  * General-purpose class for applying simple filtering on a signal.
@@ -320,6 +320,11 @@ int parse_signal_filter_gen_settings(json_object* in_json, const char* name, sig
 		fprintf(stderr, "ERROR: failed to parse time step dt for %s\n", name);
 		return -1;
 	}
+	if (filter.dt < 0)
+	{
+		fprintf(stderr, "ERROR: time step dt should be positive for %s\n", name);
+		return -1;
+	}
 	switch (filter.type)
 	{
 	case Lowpass:
@@ -328,11 +333,21 @@ int parse_signal_filter_gen_settings(json_object* in_json, const char* name, sig
 			fprintf(stderr, "ERROR: failed to parse time constant tc for %s\n", name);
 			return -1;
 		}
+		if (filter.tc < 0)
+		{
+			fprintf(stderr, "ERROR: time constant tc should be positive for %s\n", name);
+			return -1;
+		}
 		break;
 	case Highpass:
 		if (parse_double_positive(tmp_main_json, "tc", filter.tc))
 		{
 			fprintf(stderr, "ERROR: failed to parse time constant tc for %s\n", name);
+			return -1;
+		}
+		if (filter.tc < 0)
+		{
+			fprintf(stderr, "ERROR: time constant tc should be positive for %s\n", name);
 			return -1;
 		}
 		break;
@@ -343,6 +358,11 @@ int parse_signal_filter_gen_settings(json_object* in_json, const char* name, sig
 		if (parse_int_positive(tmp_main_json, "n_samples", filter.n_samples))
 		{
 			fprintf(stderr, "ERROR: failed to parse n_samples for %s\n", name);
+			return -1;
+		}
+		if (filter.n_samples < 0)
+		{
+			fprintf(stderr, "ERROR: time constant n_samples should be positive for %s\n", name);
 			return -1;
 		}
 		break;
@@ -382,7 +402,7 @@ char signal_filter1D_gen_t::set(signal_filter_gen_settings_t new_settings)
 	case Lowpass:
 		if (unlikely(rc_filter_first_order_lowpass(&filter, new_settings.dt, new_settings.tc) == -1))
 		{
-			printf("ERROR in set: failed to create low-pass filter\n");
+			printf("ERROR in set: failed to create low-pass filter with dt=%f and tc=%f\n", new_settings.dt, new_settings.tc);
 			reset();
 			return -1;
 		}
@@ -391,7 +411,7 @@ char signal_filter1D_gen_t::set(signal_filter_gen_settings_t new_settings)
 	case Highpass:
 		if (unlikely(rc_filter_first_order_highpass(&filter, new_settings.dt, new_settings.tc) == -1))
 		{
-			printf("ERROR in set: failed to create high-pass filter\n");
+			printf("ERROR in set: failed to create high-pass filter with dt=%f and tc=%f\n", new_settings.dt, new_settings.tc);
 			reset();
 			return -1;
 		}
@@ -400,7 +420,7 @@ char signal_filter1D_gen_t::set(signal_filter_gen_settings_t new_settings)
 	case Integrator:
 		if (unlikely(rc_filter_integrator(&filter, new_settings.dt) == -1))
 		{
-			printf("ERROR in set: failed to create integrator\n");
+			printf("ERROR in set: failed to create integrator with dt=%f\n", new_settings.dt);
 			reset();
 			return -1;
 		}
@@ -409,7 +429,7 @@ char signal_filter1D_gen_t::set(signal_filter_gen_settings_t new_settings)
 	case Moving_Avg:
 		if (unlikely(rc_filter_moving_average(&filter, new_settings.n_samples, new_settings.dt) == -1))
 		{
-			printf("ERROR in set: failed to create moving average filter\n");
+			printf("ERROR in set: failed to create moving average filter with n_samples=%f and tc=%f\n", new_settings.n_samples, new_settings.dt);
 			reset();
 			return -1;
 		}

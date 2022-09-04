@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/04/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains all the primary functionality and framework for state estimation rountines
@@ -57,6 +57,93 @@
 
 rc_mpu_data_t mpu_data; // extern variable in state_estimator.hpp
 state_estimate_t state_estimate{}; // extern variable in state_estimator.hpp
+
+
+char state_estimate_t::init_internal_filters(void)
+{
+	if (unlikely(KF_altitude.init() < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize altitude KF\n");
+		return -1;
+	}
+
+	if (unlikely(EKF1.reset() < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize EKF-1\n");
+		return -1;
+	}
+
+	if (unlikely(EKF2.reset() < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize EKF-1\n");
+		return -1;
+	}
+	return 0;
+}
+
+void state_estimate_t::cleanup_internal_filters(void)
+{
+	EKF1.reset();
+	EKF2.reset();
+
+	KF_altitude.cleanup();
+
+	return;
+}
+
+int state_estimate_t::init(void)
+{
+	if (initialized) {
+		fprintf(stderr, "ERROR in init: estimator is already initialized\n");
+		return -1;
+	}
+
+	if (unlikely(batt.init(settings.battery) < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize battery\n");
+		return -1;
+	}
+	if (unlikely(bmp.init() < 0)) //need settings
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize barometer\n");
+		return -1;
+	}
+	else
+	{
+		if (unlikely(march_jobs_after_feedback() < 0)) //need settings
+		{
+			fprintf(stderr, "ERROR in init: failed to do first barometer read\n");
+			return -1;
+		}
+
+	}
+	if (unlikely(imu.init(settings.imu) < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize IMU\n");
+		return -1;
+	}
+	if (unlikely(mocap.init(settings.mocap) < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize mocap\n");
+		return -1;
+	}
+
+
+	if (unlikely(init_internal_filters() < 0))//need settings
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize internal filters\n");
+		return -1;
+	}
+
+	initialized = true;
+	first_run = true;
+	return 0;
+}
+
+bool state_estimate_t::is_initialized(void)
+{
+	return initialized;
+}
 
 /**
 * @brief       Updates and Marches all the sourses
@@ -316,95 +403,10 @@ void state_estimate_t::update_internal_filters(void)
 	imu.compass.get(tmp);
 	EKF1.march(omega, accel_relative, tmp);
 	EKF2.march(omega, accel_relative, tmp);
+
+	//EKF2.get_tb(att);
+	//continuous_yaw = EKF2.get_continuous_heading();
 }
-
-char state_estimate_t::init_internal_filters(void)
-{
-	if (unlikely(KF_altitude.init() < 0))
-	{
-		fprintf(stderr, "ERROR in init: failed to initialize altitude KF\n");
-		return -1;
-	}
-
-	if (unlikely(EKF1.reset() < 0))
-	{
-		fprintf(stderr, "ERROR in init: failed to initialize EKF-1\n");
-		return -1;
-	}
-
-	if (unlikely(EKF2.reset() < 0))
-	{
-		fprintf(stderr, "ERROR in init: failed to initialize EKF-1\n");
-		return -1;
-	}
-	return 0;
-}
-
-void state_estimate_t::cleanup_internal_filters(void)
-{
-	EKF1.reset();
-	EKF2.reset();
-
-	KF_altitude.cleanup();
-
-	return;
-}
-
-int state_estimate_t::init(void)
-{
-	if (initialized) {
-		fprintf(stderr, "ERROR in init: estimator is already initialized\n");
-		return -1;
-	}
-
-	if (unlikely(batt.init(settings.battery) < 0))
-	{
-		fprintf(stderr, "ERROR in init: failed to initialize battery\n");
-		return -1;
-	}
-	if (unlikely(bmp.init() < 0)) //need settings
-	{
-		fprintf(stderr, "ERROR in init: failed to initialize barometer\n");
-		return -1;
-	}
-	else
-	{
-		if (unlikely(march_jobs_after_feedback() < 0)) //need settings
-		{
-			fprintf(stderr, "ERROR in init: failed to do first barometer read\n");
-			return -1;
-		}
-		
-	}
-	if (unlikely(imu.init() < 0)) //need settings
-	{
-		fprintf(stderr, "ERROR in init: failed to initialize IMU\n");
-		return -1;
-	}
-	if (unlikely(mocap.init() < 0)) //need settings
-	{
-		fprintf(stderr, "ERROR in init: failed to initialize mocap\n");
-		return -1;
-	}
-
-
-	if (unlikely(init_internal_filters() < 0))
-	{
-		fprintf(stderr, "ERROR in init: failed to initialize internal filters\n");
-		return -1;
-	}
-
-	initialized = true;
-	return 0;
-}
-
-bool state_estimate_t::is_initialized(void)
-{
-	return initialized;
-}
-
-
-
 
 int state_estimate_t::march(void)
 {
@@ -424,12 +426,13 @@ int state_estimate_t::march(void)
 	update_internal_filters();
 
 	//Print warning if too slow
-	if (settings.delay_warnings_en)
+	if (!first_run && settings.delay_warnings_en)
 	{   //check the update frequency
 		double tmp = 1.0 / finddt_s(time);
 		if (tmp < 90.0) printf("WARNING in march: Low update frequency of state estimator: %6.2f (Hz)\n", tmp);
 	}
 	time = rc_nanos_since_boot();
+	first_run = false;
 	return 0;
 }
 

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/04/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system
@@ -42,16 +42,21 @@ mocap_gen_t mocap{};
  /* General class for all MOCAP instances */
 char mocap_gen_t::init(mocap_settings_t& new_mocap_settings)
 {
+	if (!new_mocap_settings.enable) settings.enable = false; return 0; //return if disabled
 	if (unlikely(initialized))
 	{
 		fprintf(stderr, "ERROR in init: mocap already initialized.\n");
 		return -1;
 	}
 
-	char tmp = att_lp.set(new_mocap_settings.att_filter);
-	if (unlikely(vel_lp.set(new_mocap_settings.vel_filter) < 0 || tmp < 0))
+	if (unlikely(att_lp.set(new_mocap_settings.att_filter) < 0))
 	{
-		fprintf(stderr, "ERROR in init: failed to initialize mocap filters\n");
+		fprintf(stderr, "ERROR in init: failed to initialize mocap attitude filters\n");
+		return -1;
+	}
+	if (unlikely(vel_lp.set(new_mocap_settings.vel_filter) < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize mocap velocity filters\n");
 		return -1;
 	}
 
@@ -206,6 +211,7 @@ char mocap_gen_t::update_pos_vel_from_pos(double new_mocap_pos_raw[3])
 
 char mocap_gen_t::march(void)
 {
+	if (!settings.enable) return 0; //return if disabled
 	if (unlikely(!initialized))
 	{
 		fprintf(stderr, "ERROR in march: mocap not initialized.\n");
@@ -227,6 +233,7 @@ char mocap_gen_t::march(void)
 
 char mocap_gen_t::reset(void)
 {
+	if (!settings.enable) return 0; //return if disabled
 	if (unlikely(!initialized))
 	{
 		fprintf(stderr, "ERROR in reset: mocap not initialized.\n");

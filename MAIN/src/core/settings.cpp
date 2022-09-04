@@ -977,7 +977,6 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(log_dsm);
 	PARSE_BOOL(log_flight_mode);
 	PARSE_BOOL(log_benchmark);
-	PARSE_BOOL(log_ext_mag);
 	PARSE_BOOL(log_control_u);
 	PARSE_BOOL(log_motor_signals);
 	PARSE_BOOL(log_encoders);

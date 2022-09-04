@@ -61,6 +61,7 @@
 	{
 	private:
 		bool initialized = false;
+		bool first_run = true;
 		uint64_t time;
 		rc_bmp_data_t bmp_data;
 

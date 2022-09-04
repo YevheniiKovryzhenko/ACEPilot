@@ -137,7 +137,7 @@ int log_entry_t::write_header(void)
     }
 
 
-    mocap_entry.print_header(log_fd, "mocap_",settings.mocap);
+    if (settings.mocap.enable) mocap_entry.print_header(log_fd, "mocap_",settings.mocap);
 
 	if (settings.log_gps)
     {
@@ -273,7 +273,7 @@ int log_entry_t::write_log_entry(void)
         imu_entry.print_entry(log_fd, settings.imu);
     }
     
-    mocap_entry.print_entry(log_fd, settings.mocap);
+    if (settings.mocap.enable) mocap_entry.print_entry(log_fd, settings.mocap);
 
     if (settings.log_gps)
     {
@@ -544,7 +544,7 @@ void log_entry_t::construct_new_entry(void)
 
     if (settings.log_state) state_estimator_entry.update(&state_estimate);
     
-    mocap_entry.update(mocap, settings.mocap);
+    if (settings.mocap.enable) mocap_entry.update(mocap, settings.mocap);
 
     /*
     rev1 = state_estimate.rev[0];

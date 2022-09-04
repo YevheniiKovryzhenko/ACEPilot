@@ -163,7 +163,6 @@ typedef struct settings_t{
 	bool log_dsm;
 	bool log_flight_mode;
 	bool log_benchmark;
-	bool log_ext_mag;
 	bool log_control_u;
 	bool log_motor_signals;
 	bool log_encoders;
@@ -189,62 +188,6 @@ typedef struct settings_t{
 	controller_settings_t X_pos_ctrl;
 	controller_settings_t Y_pos_ctrl;
 	controller_settings_t Z_pos_ctrl;
-	/*
-	rc_filter_t roll_rate_controller_pd;
-	rc_filter_t roll_rate_controller_i;
-	double roll_rate_controller_FF;
-	double roll_rate_controller_K;	
-
-	
-	rc_filter_t pitch_rate_controller_pd;
-	rc_filter_t pitch_rate_controller_i;
-	double pitch_rate_controller_FF;
-	double pitch_rate_controller_K;
-	rc_filter_t yaw_rate_controller_pd;
-	rc_filter_t yaw_rate_controller_i;
-	double yaw_rate_controller_FF;
-	double yaw_rate_controller_K;
-
-	rc_filter_t roll_controller_pd;
-	rc_filter_t pitch_controller_pd;
-	rc_filter_t yaw_controller_pd;
-	rc_filter_t roll_controller_i;
-	rc_filter_t pitch_controller_i;
-	rc_filter_t yaw_controller_i;
-	double roll_controller_FF;
-	double pitch_controller_FF;
-	double yaw_controller_FF;
-	double roll_controller_K;
-	double pitch_controller_K;
-	double yaw_controller_K;
-
-	rc_filter_t altitude_rate_controller_pd;
-	rc_filter_t altitude_rate_controller_i;
-	double altitude_rate_controller_FF;
-	double altitude_rate_controller_K;
-	rc_filter_t altitude_controller_pd;
-	rc_filter_t altitude_controller_i;
-	double altitude_controller_FF;
-	double altitude_controller_K;
-
-	rc_filter_t horiz_vel_ctrl_pd_X;
-	rc_filter_t horiz_vel_ctrl_i_X;
-	double horiz_vel_X_controller_FF;
-	double horiz_vel_X_controller_K;
-	rc_filter_t horiz_vel_ctrl_pd_Y;
-	rc_filter_t horiz_vel_ctrl_i_Y;
-	double horiz_vel_Y_controller_FF;
-	double horiz_vel_Y_controller_K;
-
-	rc_filter_t horiz_pos_ctrl_X_pd;
-	rc_filter_t horiz_pos_ctrl_Y_pd;
-	rc_filter_t horiz_pos_ctrl_X_i;
-	rc_filter_t horiz_pos_ctrl_Y_i;
-	double horiz_pos_X_ctrl_FF;
-	double horiz_pos_Y_ctrl_FF;
-	double horiz_pos_X_ctrl_K;
-	double horiz_pos_Y_ctrl_K;
-	*/
 
 	///@}
 
