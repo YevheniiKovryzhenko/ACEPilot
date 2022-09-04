@@ -37,7 +37,7 @@
 #include "state_estimator.hpp"
 
 #include "controller.hpp"
-#include "comms_tmp_data_packet.h"
+#include "comms_manager.hpp"
 
 // preposessor macros
 #ifndef unlikely
@@ -131,10 +131,10 @@ int feedback_controller_t::rpy_march(void)
 		last_en_rpy_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		double scale_val = settings.v_nominal / state_estimate.get_v_batt();
+		double scale_val = settings.battery.nominal / state_estimate.get_v_batt();
 		roll.scale_gains(scale_val);
 		pitch.scale_gains(scale_val);
 		yaw.scale_gains(scale_val);
@@ -249,10 +249,10 @@ int feedback_controller_t::rpy_rate_march(void)
 		last_en_rpy_rate_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		double scale_val = settings.v_nominal / state_estimate.get_v_batt();
+		double scale_val = settings.battery.nominal / state_estimate.get_v_batt();
 		roll_dot.scale_gains(scale_val);
 		pitch_dot.scale_gains(scale_val);
 		yaw_dot.scale_gains(scale_val);
@@ -360,10 +360,10 @@ int feedback_controller_t::xy_march(void)
 	}
 
 	////////////// PID for horizontal positon control /////////////
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		double scale_val = settings.v_nominal / state_estimate.get_v_batt();
+		double scale_val = settings.battery.nominal / state_estimate.get_v_batt();
 		x.scale_gains(scale_val);
 		y.scale_gains(scale_val);
 	}
@@ -454,10 +454,10 @@ int feedback_controller_t::xy_rate_march(void)
 		last_en_XYdot_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		double scale_val = settings.v_nominal / state_estimate.get_v_batt();
+		double scale_val = settings.battery.nominal / state_estimate.get_v_batt();
 		x_dot.scale_gains(scale_val);
 		y_dot.scale_gains(scale_val);
 	}
@@ -581,10 +581,10 @@ int feedback_controller_t::z_march(void)
 		last_en_Z_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		z.scale_gains(settings.v_nominal / state_estimate.get_v_batt());
+		z.scale_gains(settings.battery.nominal / state_estimate.get_v_batt());
 	}
 
 	//double tmp_z_err = setpoint.Z.value.get() - state_estimate.get_Z();
@@ -668,10 +668,10 @@ int feedback_controller_t::z_rate_march(void)
 		last_en_Zdot_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		z_dot.scale_gains(settings.v_nominal / state_estimate.get_v_batt());
+		z_dot.scale_gains(settings.battery.nominal / state_estimate.get_v_batt());
 	}
 	
 	double tmp_z = state_estimate.get_Z_vel();

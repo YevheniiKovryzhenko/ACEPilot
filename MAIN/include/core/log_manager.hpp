@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -34,7 +34,8 @@
 #include <stdbool.h>
 #include "thread_gen.hpp"
 #include "state_estimator.hpp"
-#include "sensors_gen.hpp"
+#include "barometer_gen.hpp"
+#include "IMU_9DOF_gen.hpp"
 #include "mocap_gen.hpp"
 #include "KF.hpp"
 #include "EKF.hpp"
@@ -76,7 +77,7 @@ private:
 
 	/** @name sensors */
 	///@{
-	battery_log_entry_t battery_entry{};
+	voltage_sensor_log_entry_t battery_entry{};
 	barometer_log_entry_t bmp_entry{};
 	IMU_9DOF_log_entry_t imu_entry{};
 	///@}

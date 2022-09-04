@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/02/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating voltage sensors
@@ -41,7 +41,7 @@
 voltage_sensor_gen_t batt{};	//battery voltage sensor
 
 /* Methods for general BATTERY class */
-char voltage_sensor_gen_t::init(voltage_sensor_settings_t new_settings)
+char voltage_sensor_gen_t::init(voltage_sensor_settings_t& new_settings)
 {
 	if (unlikely(initialized))
 	{
@@ -63,7 +63,7 @@ char voltage_sensor_gen_t::init(voltage_sensor_settings_t new_settings)
 	initialized = true;
 	return 0;
 }
-char voltage_sensor_gen_t::init(voltage_sensor_settings_t new_settings, double new_in)
+char voltage_sensor_gen_t::init(voltage_sensor_settings_t& new_settings, double new_in)
 {
 	if (unlikely(initialized))
 	{
@@ -83,12 +83,14 @@ char voltage_sensor_gen_t::init(voltage_sensor_settings_t new_settings, double n
 	}
 
 	if (new_in < new_settings.min_critical) {
-		if (new_settings.en_warnings) {
+		if (new_settings.enable_warnings) {
 			fprintf(stderr, "WARNING in init: voltage read is %2.1fV (too low).\n", new_in);
 			fprintf(stderr, "Assuming nominal voltage for now.\n");
 		}
 		new_in = new_settings.nominal;
 	}
+
+	settings = new_settings;
 
 	filter.prefill_inputs(new_in);
 	filter.prefill_outputs(new_in);
@@ -99,10 +101,11 @@ char voltage_sensor_gen_t::init(voltage_sensor_settings_t new_settings, double n
 char voltage_sensor_gen_t::init(void)
 {
 	/* assume some default values */
+	settings.enable_gain_scaling = false;
 	settings.filter.type = Moving_Avg;
 	settings.filter.dt = DT;
 	settings.filter.n_samples = 20;
-	settings.en_warnings = true;
+	settings.enable_warnings = true;
 	settings.min_critical = 3.0;
 	settings.nominal = 3.3;
 
@@ -121,7 +124,7 @@ char voltage_sensor_gen_t::march(double new_v)
 
 	if (new_v < settings.min_critical)
 	{
-		if (settings.en_warnings)
+		if (settings.enable_warnings)
 		{
 			printf("WARNING in march: measured voltage is below critical, assuming measured is equal to critical voltage.\n");
 		}
@@ -165,13 +168,14 @@ void voltage_sensor_gen_t::cleanup(void)
 /** @name Logging class for battery
 * Defines how logging should be done for this class
 */
-char battery_log_entry_t::update(voltage_sensor_gen_t* new_state)
+char voltage_sensor_log_entry_t::update(voltage_sensor_gen_t& new_state, voltage_sensor_settings_t& new_settings)
 {
-	raw = new_state->get_raw();
-	filtered = new_state->get();
+	if (!new_settings.enable_logging) return 0; //return if disabled
+	if (new_settings.log_raw) raw = new_state.get_raw();
+	filtered = new_state.get();
 	return 0;
 }
-char battery_log_entry_t::print_vec(FILE* file, double* vec_in, int size)
+char voltage_sensor_log_entry_t::print_vec(FILE* file, double* vec_in, int size)
 {
 	for (int i = 0; i < size; i++)
 	{
@@ -180,7 +184,7 @@ char battery_log_entry_t::print_vec(FILE* file, double* vec_in, int size)
 	return 0;
 }
 
-char battery_log_entry_t::print_header_vec(FILE* file, const char* prefix, const char* var_name, int size)
+char voltage_sensor_log_entry_t::print_header_vec(FILE* file, const char* prefix, const char* var_name, int size)
 {
 	for (int i = 0; i < size; i++)
 	{
@@ -189,15 +193,17 @@ char battery_log_entry_t::print_header_vec(FILE* file, const char* prefix, const
 	return 0;
 }
 
-char battery_log_entry_t::print_header(FILE* file, const char* prefix)
+char voltage_sensor_log_entry_t::print_header(FILE* file, const char* prefix, voltage_sensor_settings_t& new_settings)
 {
-	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(raw));
+	if (!new_settings.enable_logging) return 0; //return if disabled
+	if (new_settings.log_raw) fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(raw));
 	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(filtered));
 	return 0;
 }
-char battery_log_entry_t::print_entry(FILE* file)
+char voltage_sensor_log_entry_t::print_entry(FILE* file, voltage_sensor_settings_t& new_settings)
 {
-	fprintf(file, ",%.4F", raw);
+	if (!new_settings.enable_logging) return 0; //return if disabled
+	if (new_settings.log_raw) fprintf(file, ",%.4F", raw);
 	fprintf(file, ",%.4F", filtered);
 	return 0;
 }
@@ -228,9 +234,14 @@ int parse_voltage_sensor_gen_settings(json_object* in_json, const char* name, vo
 	}
 
 	// Parse other entries
-	if (parse_bool(tmp_main_json, "en_warnings", sensor.en_warnings))
+	if (parse_bool(tmp_main_json, "enable_gain_scaling", sensor.enable_gain_scaling))
 	{
-		fprintf(stderr, "ERROR: failed to parse en_warnings flag for %s\n", name);
+		fprintf(stderr, "ERROR: failed to parse enable_gain_scaling flag for %s\n", name);
+		return -1;
+	}
+	if (parse_bool(tmp_main_json, "enable_warnings", sensor.enable_warnings))
+	{
+		fprintf(stderr, "ERROR: failed to parse enable_warnings flag for %s\n", name);
 		return -1;
 	}
 
@@ -242,6 +253,18 @@ int parse_voltage_sensor_gen_settings(json_object* in_json, const char* name, vo
 	if (parse_double_min(tmp_main_json, "min_critical", sensor.min_critical, 3.0))
 	{
 		fprintf(stderr, "ERROR: failed to parse critical minimum voltage for %s\n", name);
+		return -1;
+	}
+
+	if (parse_bool(tmp_main_json, "enable_logging", sensor.enable_logging))
+	{
+		fprintf(stderr, "ERROR: failed to parse enable_logging flag for %s\n", name);
+		return -1;
+	}
+	if (!sensor.enable_logging) return 0; //return if disabled
+	if (parse_bool(tmp_main_json, "log_raw", sensor.log_raw))
+	{
+		fprintf(stderr, "ERROR: failed to parse log_raw flag for %s\n", name);
 		return -1;
 	}
 

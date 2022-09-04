@@ -1,5 +1,5 @@
 /*
- * voltage_sensor_gen.hpp
+ * gyro_gen.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -25,75 +25,84 @@
  * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
- * This contains the nessesary framework for operating voltage sensors
+ * This contains the nessesary framework for operating Gyroscope.
  */
 
-#ifndef VOLTAGE_SENSOR_GEN_HPP
-#define VOLTAGE_SENSOR_GEN_HPP
+#ifndef GYRO_GEN_HPP
+#define GYRO_GEN_HPP
+#include <stdint.h> // for uint64_t
+#include <rc/time.h>
 #include <json.h>
 
+#include "coordinate_frames_gen.hpp"
 #include "signal_filter_gen.hpp"
 
-
- /* Voltage sensor */
-typedef struct voltage_sensor_settings_t
+ /* Gyroscope */
+typedef struct gyro_gen_settings_t
 {
-	signal_filter_gen_settings_t filter; //filter settings
-	bool enable_gain_scaling;
-	bool enable_warnings;// = false;
-	double nominal;// = 5.0;
-	double min_critical;// = 3.0;
+	coordinate_frames_gen_t frame_type;// = ENU; //physical placemet of the sensor
+	signal_filter_gen_settings_t filter[3]; //filter settings
 	bool enable_logging;
 	bool log_raw;
-}voltage_sensor_settings_t;
+}gyro_gen_settings_t;
 
-/* General class for all battery instances */
-class voltage_sensor_gen_t
+/* General class for all gyro instances */
+class gyro_gen_t
 {
 private:
 	bool initialized = false;
-	double raw = 0.0;
-	double filtered = 0.0;
+	uint64_t time = rc_nanos_since_boot();
+	bool updated = false;
 
-	voltage_sensor_settings_t settings; //sensor settings
+	gyro_gen_settings_t settings; //settings for the gyroscope
 
-	// battery filter
-	signal_filter1D_gen_t filter{};
+	double raw[3] = { 0.0 , 0.0, 0.0 };
+	double raw_NED[3] = { 0.0 , 0.0, 0.0 };
+	double filtered_NED[3] = { 0.0 , 0.0, 0.0 };
+
+	// gyro filters
+	signal_filter3D_gen_t lp{};
 public:
+	/* Initialization */
 	char init(void);
-	char init(voltage_sensor_settings_t& new_settings);
-	char init(voltage_sensor_settings_t& new_settings, double new_in);
+	char init(gyro_gen_settings_t& new_gyro_settings);
 	bool is_initialized(void);
 
-	char march(double new_v);
+	/* Updating */
+	uint64_t get_time(void);
+	char update(double new_gyro_raw[3]);
+	char march(void); //marches filters only is was updated
 
-	double get_raw(void);
-	double get(void);
+	/* Data retrieval */
+	void get_raw(double* buff);
+	void get_raw_NED(double* buff);
+	void get(double* buff);
 
+	/* Reset and cleanup */
 	char reset(void);
-	char reset(voltage_sensor_settings_t new_settings);
 	void cleanup(void);
 };
-extern voltage_sensor_gen_t batt;
 
-/** @name Logging class for battery
+
+/** @name Logging class for gyro
 * Defines how logging should be done for this class
 */
-class voltage_sensor_log_entry_t
+class gyro_log_entry_t
 {
 private:
-	double raw;
-	double filtered;
+	uint64_t time;
+
+	double raw[3];
+	double raw_NED[3];
+	double filtered_NED[3];
 
 	char print_vec(FILE* file, double* vec_in, int size);
 	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
 public:
-	char update(voltage_sensor_gen_t& new_state, voltage_sensor_settings_t& new_settings);
-	char print_header(FILE* file, const char* prefix, voltage_sensor_settings_t& new_settings);
-	char print_entry(FILE* file, voltage_sensor_settings_t& new_settings);
+	char update(gyro_gen_t& new_state, gyro_gen_settings_t& new_settings);
+	char print_header(FILE* file, const char* prefix, gyro_gen_settings_t& new_settings);
+	char print_entry(FILE* file, gyro_gen_settings_t& new_settings);
 };
 
-
-int parse_voltage_sensor_gen_settings(json_object* in_json, const char* name, voltage_sensor_settings_t& sensor);
-
-#endif // VOLTAGE_SENSOR_GEN_HPP
+int parse_gyro_gen_settings(json_object* in_json, const char* name, gyro_gen_settings_t& sensor);
+#endif // !GYRO_GEN_HPP

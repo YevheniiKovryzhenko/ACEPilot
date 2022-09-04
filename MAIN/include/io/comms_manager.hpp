@@ -22,7 +22,7 @@
   * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
-  * Last Edit:  05/29/2022 (MM/DD/YYYY)
+  * Last Edit:  09/03/2022 (MM/DD/YYYY)
   *
   * Object that governs all the high level logic related to communications.
   */
@@ -32,11 +32,14 @@
 //#include <serial_transmit.hpp>
 #include <stdint.h>
 #include "serial_transmit.hpp"
-#include "comms_tmp_data_packet.h"
+//#include "comms_manager.hpp"
 #include "thread_gen.hpp"
 
 #define MOCAP_THREAD_TX_HZ 20
 #define MOCAP_THREAD_TX_TOUT 1
+
+#include "xbee_packet_Long_t.h"
+extern xbee_packet_t GS_RX;
 
 class comms_manager_t
 {

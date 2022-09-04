@@ -21,10 +21,11 @@
 #include "flight_mode.hpp"
 #include "rc_pilot_defs.hpp"
 #include "thrust_map.hpp"
-#include "mix_servos.hpp"
-#include "sensors_gen.hpp"
+
 #include "mocap_gen.hpp"
+#include "IMU_9DOF_gen.hpp"
 #include "voltage_sensor_gen.hpp"
+#include "mix_servos.hpp"
 
 /** @name feedback control struct */
 ///@{
@@ -58,22 +59,12 @@ typedef struct settings_t{
 	double arm_time_s;
 	rotor_layout_t layout;
 	servo_layout_t servo_layout;
-	int dof;
 	thrust_map_t thrust_map;
-	double v_nominal;
 	voltage_sensor_settings_t battery;
-	bool enable_v_gain_scaling;
-	bool enable_magnetometer; // we suggest leaving as 0 (mag OFF)
-	bool enable_mocap;	//enable mocap serial link
-	bool use_mocap_yaw;
-	bool use_mocap_pitch;
-	bool use_mocap_roll;
-	bool use_mocap_yaw_rate;
-	bool use_mocap_pitch_rate;
-	bool use_mocap_roll_rate;
+	IMU_9DOF_gen_settings_t imu;
+	mocap_settings_t mocap;
 	bool enable_encoders;
 	bool enable_gps;
-	bool enable_ext_mag;
 	///@}
 
 	/** @name physical parameters */
@@ -153,7 +144,6 @@ typedef struct settings_t{
 	bool log_only_while_armed;
 	bool log_sensors;
 	bool log_state;
-	bool log_mocap;
 	bool log_gps;
 
 	bool log_setpoints;

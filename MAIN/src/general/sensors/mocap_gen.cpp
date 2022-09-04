@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/01/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system
@@ -40,7 +40,7 @@
 mocap_gen_t mocap{};
 
  /* General class for all MOCAP instances */
-char mocap_gen_t::init(mocap_settings_t new_mocap_settings)
+char mocap_gen_t::init(mocap_settings_t& new_mocap_settings)
 {
 	if (unlikely(initialized))
 	{
@@ -69,11 +69,11 @@ char mocap_gen_t::init(void)
 	for (int i = 0; i < 3; i++) {
 		settings.att_filter[i].dt = DT;
 		settings.att_filter[i].type = Lowpass;
-		settings.att_filter[i].en_saturation = false;
+		settings.att_filter[i].enable_saturation = false;
 
 		settings.vel_filter[i].dt = DT;
 		settings.vel_filter[i].type = Lowpass;
-		settings.vel_filter[i].en_saturation = false;
+		settings.vel_filter[i].enable_saturation = false;
 	}
 	settings.att_filter[0].tc = 6.0 * DT;
 	settings.att_filter[1].tc = 6.0 * DT;
@@ -328,28 +328,40 @@ void mocap_gen_t::get_vel(double* buff)
 /** @name Logging class for IMU-9DOF
 * Defines how logging should be done for this class
 */
-char mocap_log_entry_t::update(mocap_gen_t* new_state)
+char mocap_log_entry_t::update(mocap_gen_t& new_state, mocap_settings_t& log_settings)
 {
-	time = new_state->get_time();
-	time_att = new_state->get_time_att();
-	valid = new_state->is_valid();
+	if (!log_settings.enable_logging) return 0; //return if disabled
 
-	new_state->get_quat_raw(att_quat_raw);
-	new_state->get_quat(att_quat_NED);
+	time = new_state.get_time();
+	valid = new_state.is_valid();
 
-	new_state->get_tb_raw(att_tb_raw);
-	new_state->get_tb(att_tb_NED);
+	if (log_settings.log_att)
+	{
+		time_att = new_state.get_time_att();
+
+		if (log_settings.log_raw) new_state.get_quat_raw(att_quat_raw);
+		new_state.get_quat(att_quat_NED);
+
+		if (log_settings.log_raw) new_state.get_tb_raw(att_tb_raw);
+		new_state.get_tb(att_tb_NED);
+
+		if (log_settings.log_raw) new_state.get_tb_rate_raw(att_rate_tb_raw_NED);
+		new_state.get_tb_rate(att_rate_tb_filtered_NED);
+
+		continuous_heading_NED = new_state.get_continuous_heading();
+	}
+
+	time_pos = new_state.get_time_pos();
+
+	if (log_settings.log_raw) new_state.get_pos_raw(pos_raw);
+	new_state.get_pos(pos_NED);
+
+	if (log_settings.log_vel)
+	{
+		if (log_settings.log_raw) new_state.get_vel_raw(vel_raw_NED);
+		new_state.get_vel(vel_filtered_NED);
+	}
 	
-	time_pos = new_state->get_time_pos();
-	new_state->get_tb_rate_raw(att_rate_tb_raw_NED);
-	new_state->get_tb_rate(att_rate_tb_filtered_NED);
-
-	continuous_heading_NED = new_state->get_continuous_heading();
-
-	new_state->get_pos_raw(pos_raw);
-	new_state->get_pos(pos_NED);
-	new_state->get_vel_raw(vel_raw_NED);
-	new_state->get_vel(vel_filtered_NED);
 	return 0;
 }
 char mocap_log_entry_t::print_vec(FILE* file, double* vec_in, int size)
@@ -370,59 +382,72 @@ char mocap_log_entry_t::print_header_vec(FILE* file, const char* prefix, const c
 	return 0;
 }
 
-char mocap_log_entry_t::print_header(FILE* file, const char* prefix)
+char mocap_log_entry_t::print_header(FILE* file, const char* prefix, mocap_settings_t& log_settings)
 {
-	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time));
-	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time_att));
+	if (!log_settings.enable_logging) return 0; //return if disabled
+
+	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time));	
 	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(valid));
 
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(att_quat_raw), 4);
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(att_quat_NED), 4);
+	if (log_settings.log_att)
+	{
+		fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time_att));
 
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(att_tb_raw), 3);
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(att_tb_NED), 3);
+		if (log_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(att_quat_raw), 4);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(att_quat_NED), 4);
 
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(att_rate_tb_raw_NED), 3);
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(att_rate_tb_filtered_NED), 3);
+		if (log_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(att_tb_raw), 3);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(att_tb_NED), 3);
 
-	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(continuous_heading_NED));
+		if (log_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(att_rate_tb_raw_NED), 3);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(att_rate_tb_filtered_NED), 3);
 
+		fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(continuous_heading_NED));
+	}
 	
 	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time_pos));
-
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_raw), 3);
+	if (log_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_raw), 3);
 	print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_NED), 3);
 
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(vel_raw_NED), 3);
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(vel_filtered_NED), 3);
-
+	if (log_settings.log_vel)
+	{
+		if (log_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(vel_raw_NED), 3);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(vel_filtered_NED), 3);
+	}
 	return 0;
 }
-char mocap_log_entry_t::print_entry(FILE* file)
+char mocap_log_entry_t::print_entry(FILE* file, mocap_settings_t& log_settings)
 {
-	fprintf(file, ",%" PRIu64, time);
-	fprintf(file, ",%" PRIu64, time_att);
+	if (!log_settings.enable_logging) return 0; //return if disabled
+
+	fprintf(file, ",%" PRIu64, time);	
 	fprintf(file, ",%i", valid);
 
-	print_vec(file, att_quat_raw, 4);
-	print_vec(file, att_quat_NED, 4);
+	if (log_settings.log_att)
+	{
+		fprintf(file, ",%" PRIu64, time_att);
 
-	print_vec(file, att_tb_raw, 3);
-	print_vec(file, att_tb_NED, 3);
+		if (log_settings.log_raw) print_vec(file, att_quat_raw, 4);
+		print_vec(file, att_quat_NED, 4);
 
-	print_vec(file, att_rate_tb_raw_NED, 3);
-	print_vec(file, att_rate_tb_filtered_NED, 3);
+		if (log_settings.log_raw) print_vec(file, att_tb_raw, 3);
+		print_vec(file, att_tb_NED, 3);
 
-	fprintf(file, ",%.4F", continuous_heading_NED);
+		if (log_settings.log_raw) print_vec(file, att_rate_tb_raw_NED, 3);
+		print_vec(file, att_rate_tb_filtered_NED, 3);
 
+		fprintf(file, ",%.4F", continuous_heading_NED);
+	}
 
 	fprintf(file, ",%" PRIu64, time_pos);
-
-	print_vec(file, pos_raw, 3);
+	if (log_settings.log_raw) print_vec(file, pos_raw, 3);
 	print_vec(file, pos_NED, 3);
 
-	print_vec(file, vel_raw_NED, 3);
-	print_vec(file, vel_filtered_NED, 3);
+	if (log_settings.log_vel)
+	{
+		if (log_settings.log_raw) print_vec(file, vel_raw_NED, 3);
+		print_vec(file, vel_filtered_NED, 3);
+	}
 	return 0;
 }
 
@@ -442,6 +467,45 @@ int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_setti
 	if (json_object_is_type(tmp_main_json, json_type_object) == 0)
 	{
 		fprintf(stderr, "ERROR: %s must be an object\n", name);
+		return -1;
+	}
+
+	// Parse enabled flag:
+	if (parse_bool(tmp_main_json, "enable", sensor.enable))
+	{
+		fprintf(stderr, "ERROR: failed to parse enable flag for %s\n", name);
+		return -1;
+	}
+	if (!sensor.enable)
+	{
+		/* just in case, disable all flags */
+		sensor.enable_logging = false;
+		sensor.enable_warnings = false;
+		sensor.use_roll_pitch_rate = false;
+		sensor.use_yaw_rate = false;
+		sensor.use_roll_pitch = false;
+		sensor.use_heading = false;
+		return 0; //quit parsing if disabled
+	}
+
+	if (parse_bool(tmp_main_json, "use_roll_pitch_rate", sensor.use_roll_pitch_rate))
+	{
+		fprintf(stderr, "ERROR: failed to parse use_roll_pitch_rate flag for %s\n", name);
+		return -1;
+	}
+	if (parse_bool(tmp_main_json, "use_yaw_rate", sensor.use_yaw_rate))
+	{
+		fprintf(stderr, "ERROR: failed to parse use_yaw_rate flag for %s\n", name);
+		return -1;
+	}
+	if (parse_bool(tmp_main_json, "use_roll_pitch", sensor.use_roll_pitch))
+	{
+		fprintf(stderr, "ERROR: failed to parse use_roll_pitch flag for %s\n", name);
+		return -1;
+	}
+	if (parse_bool(tmp_main_json, "use_heading", sensor.use_heading))
+	{
+		fprintf(stderr, "ERROR: failed to parse use_heading flag for %s\n", name);
 		return -1;
 	}
 
@@ -480,7 +544,28 @@ int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_setti
 		fprintf(stderr, "ERROR: failed to parse enable_warnings flag for %s\n", name);
 		return -1;
 	}
+	if (parse_bool(tmp_main_json, "enable_logging", sensor.enable_logging))
+	{
+		fprintf(stderr, "ERROR: failed to parse enable_logging flag for %s\n", name);
+		return -1;
+	}
 
+	if (!sensor.enable_logging) return 0; //done if logging is disabled
+	if (parse_bool(tmp_main_json, "log_att", sensor.log_att))
+	{
+		fprintf(stderr, "ERROR: failed to parse log_att flag for %s\n", name);
+		return -1;
+	}
+	if (parse_bool(tmp_main_json, "log_vel", sensor.log_vel))
+	{
+		fprintf(stderr, "ERROR: failed to parse log_vel flag for %s\n", name);
+		return -1;
+	}
+	if (parse_bool(tmp_main_json, "log_raw", sensor.log_raw))
+	{
+		fprintf(stderr, "ERROR: failed to parse log_raw flag for %s\n", name);
+		return -1;
+	}
 
 	return 0;
 }

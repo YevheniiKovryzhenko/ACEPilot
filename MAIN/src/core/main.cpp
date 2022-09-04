@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  08/26/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -237,7 +237,7 @@ int main(int argc, char** argv)
         if (!rc_mpu_is_accel_calibrated()) {
             FAIL("ERROR, must calibrate accelerometer with rc_calibrate_accel first\n")
         }
-        if (settings.enable_magnetometer && !rc_mpu_is_gyro_calibrated()) {
+        if (settings.imu.compass.enable && !rc_mpu_is_gyro_calibrated()) {
             FAIL("ERROR, must calibrate magnetometer with rc_calibrate_mag first\n")
         }
         if (settings.enable_dsm && !__rc_dsm_is_calibrated()) {
@@ -382,7 +382,7 @@ int main(int argc, char** argv)
         mpu_conf.dmp_interrupt_priority = IMU_PRIORITY;
 
         // optionally enbale magnetometer
-        mpu_conf.enable_magnetometer = settings.enable_magnetometer;
+        mpu_conf.enable_magnetometer = settings.imu.compass.enable;
 
         // now set up the imu for dmp interrupt operation
         printf("initializing MPU\n");

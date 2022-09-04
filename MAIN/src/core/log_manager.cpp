@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -131,15 +131,13 @@ int log_entry_t::write_header(void)
     
     if (settings.log_sensors)
     {
-        battery_entry.print_header(log_fd, "batt_");
+        battery_entry.print_header(log_fd, "batt_", settings.battery);
         bmp_entry.print_header(log_fd, "bmp_");
-        imu_entry.print_header(log_fd, "imu_");
+        imu_entry.print_header(log_fd, "imu_", settings.imu);
     }
 
-    if (settings.log_mocap)
-    {
-        mocap_entry.print_header(log_fd, "mocap_");
-    }
+
+    mocap_entry.print_header(log_fd, "mocap_",settings.mocap);
 
 	if (settings.log_gps)
     {
@@ -270,15 +268,12 @@ int log_entry_t::write_log_entry(void)
     
     if (settings.log_sensors)
     {
-        battery_entry.print_entry(log_fd);
+        battery_entry.print_entry(log_fd, settings.battery);
         bmp_entry.print_entry(log_fd);
-        imu_entry.print_entry(log_fd);
+        imu_entry.print_entry(log_fd, settings.imu);
     }
     
-    if (settings.log_mocap)
-    {
-        mocap_entry.print_entry(log_fd);
-    }
+    mocap_entry.print_entry(log_fd, settings.mocap);
 
     if (settings.log_gps)
     {
@@ -542,14 +537,14 @@ void log_entry_t::construct_new_entry(void)
 
     if (settings.log_sensors)
     {
-        battery_entry.update(&batt);
-        bmp_entry.update(&bmp);
-        imu_entry.update(&imu);
+        battery_entry.update(batt, settings.battery);
+        bmp_entry.update(bmp);
+        imu_entry.update(imu, settings.imu);
     }
 
     if (settings.log_state) state_estimator_entry.update(&state_estimate);
     
-    if (settings.log_mocap) mocap_entry.update(&mocap);
+    mocap_entry.update(mocap, settings.mocap);
 
     /*
     rev1 = state_estimate.rev[0];

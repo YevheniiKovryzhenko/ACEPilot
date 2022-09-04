@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This class defines a Kalman Filter operations.
@@ -40,6 +40,12 @@
 
 #include "tools.h"
 
+/** @name filtered data from IMU & barometer
+* Altitude estimates from kalman filter fusing IMU and BMP data.
+* Alttitude, velocity, and acceleration are in units of m, m/s, m/s^2
+* Note this is altitude so positive is upwards unlike the NED
+* coordinate frame that has Z pointing down.
+*/
 class KF_t
 {
 private:	

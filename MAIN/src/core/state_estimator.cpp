@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/01/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains all the primary functionality and framework for state estimation rountines
@@ -36,29 +36,18 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <rc/mpu.h>
-#include <rc/math/filter.h>
-#include <rc/math/kalman.h>
 #include <rc/math/quaternion.h>
-#include <rc/math/matrix.h>
-#include <rc/math/other.h>
-#include <rc/start_stop.h>
-#include <rc/led.h>
 #include <rc/adc.h>
-#include <rc/time.h>
-#include <rc/bmp.h>
 
 #include "rc_pilot_defs.hpp"
 #include "settings.hpp"
 #include "tools.h"
- //#include "input_manager.h"	
-#include "comms_tmp_data_packet.h"
-#include "gps.hpp"
-#include "benchmark.hpp" //for velocity estimation
+#include "comms_manager.hpp"
 
 #include "state_estimator.hpp"
-#include "sensors_gen.hpp"
+#include "IMU_9DOF_gen.hpp"
 #include "voltage_sensor_gen.hpp"
+#include "barometer_gen.hpp"
 #include "mocap_gen.hpp"
 #include "KF.hpp"
 #include "EKF.hpp"
@@ -68,7 +57,6 @@
 
 rc_mpu_data_t mpu_data; // extern variable in state_estimator.hpp
 state_estimate_t state_estimate{}; // extern variable in state_estimator.hpp
-//ext_mag_t ext_mag;
 
 /**
 * @brief       Updates and Marches all the sourses
@@ -113,7 +101,7 @@ char state_estimate_t::update_all_sourses(void)
 		fprintf(stderr, "ERROR in update_all_sourses: failed to fuse gyro and accel data\n");
 		return -1;
 	}
-	if (settings.enable_magnetometer) // don't update mag if mag isn't enabled
+	if (settings.imu.compass.enable) // don't update mag if mag isn't enabled
 	{
 		if (unlikely(imu.compass.update(mpu_data.accel) < 0)) //populate mag data struct
 		{
@@ -134,7 +122,7 @@ char state_estimate_t::update_all_sourses(void)
 	}
 
 	//MOCAP
-	if (settings.enable_mocap)
+	if (settings.mocap.enable)
 	{
 		mocap.update_time(GS_RX.time, GS_RX.trackingValid);
 		if (mocap.is_valid())
@@ -201,7 +189,7 @@ void state_estimate_t::fetch_internal_sourses(void)
 
 
 	/* Attitude Angles and Rates + Body Rates */
-	if (settings.enable_magnetometer) //use fused data from Gyro, Accel and Mag
+	if (settings.imu.use_compass && settings.imu.compass.enable) //use fused data from Gyro, Accel and Mag
 	{
 		imu.get_quat_fused(quat);
 		imu.get_tb_fused(att);
@@ -257,7 +245,7 @@ void state_estimate_t::fetch_external_sourses(void)
 	}
 
 	/* MOCAP */
-	if (settings.enable_mocap && mocap.is_valid()) //assumed to be the most accurate sourse, so directly update position and attitude
+	if (settings.mocap.enable && mocap.is_valid()) //assumed to be the most accurate sourse, so directly update position and attitude
 	{
 		mocap.get_pos(pos_global);
 		mocap.get_vel(vel_global);
@@ -274,7 +262,7 @@ void state_estimate_t::fetch_external_sourses(void)
 		alt_vel = -vel_global[2];
 
 		/* Attitude Angles and Rates + Body Rates */
-		if (settings.use_mocap_roll || settings.use_mocap_pitch || settings.use_mocap_yaw)
+		if (settings.mocap.use_roll_pitch || settings.mocap.use_roll_pitch_rate || settings.mocap.use_yaw_rate || settings.mocap.use_heading)
 		{
 			/* quaternians */
 			mocap.get_quat(quat); //not sure it would be wise to select certain components, so ignore settings...			
@@ -287,19 +275,22 @@ void state_estimate_t::fetch_external_sourses(void)
 			att_rates_att2omega(tmp_omega, tmp_angles, tmp_rates); //uses kinematics
 
 			/* only use those if enabled by settings */
-			if (settings.use_mocap_roll) {
+			if (settings.mocap.use_roll_pitch) {
 				att[0] = tmp_angles[0];
+				att[1] = tmp_angles[1];
+			}
+			if (settings.mocap.use_roll_pitch_rate) {
 				att_rates[0] = tmp_rates[0];
 				omega[0] = tmp_omega[0];
-			}
-			if (settings.use_mocap_pitch) {
-				att[1] = tmp_angles[1];
+
 				att_rates[1] = tmp_rates[1];
 				omega[1] = tmp_omega[1];
 			}
-			if (settings.use_mocap_yaw) {
+			if (settings.mocap.use_heading) {
 				att[2] = tmp_angles[2];
 				continuous_yaw = mocap.get_continuous_heading();
+			}
+			if (settings.mocap.use_yaw_rate) {
 				att_rates[2] = tmp_rates[2];
 				omega[2] = tmp_omega[2];
 			}
@@ -358,23 +349,6 @@ void state_estimate_t::cleanup_internal_filters(void)
 
 	return;
 }
-
-/*
-void state_estimate_t::mocap_check_timeout(void)
-{
-	if (mocap_running) {
-		uint64_t current_time = rc_nanos_since_boot();
-		// check if mocap data is > 3 steps old
-		if ((current_time - mocap_timestamp_ns) > (3 * 1E7)) {
-			mocap_running = false;
-			if (settings.warnings_en) {
-				fprintf(stderr, "WARNING, MOCAP LOST VISUAL\n");
-			}
-		}
-	}
-	return;
-}
-*/
 
 int state_estimate_t::init(void)
 {

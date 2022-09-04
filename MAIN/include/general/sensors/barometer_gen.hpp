@@ -1,5 +1,5 @@
 /*
- * voltage_sensor_gen.hpp
+ * barometer_gen.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -25,75 +25,61 @@
  * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
- * This contains the nessesary framework for operating voltage sensors
+ * This contains the nessesary framework for operating Barometer.
  */
 
-#ifndef VOLTAGE_SENSOR_GEN_HPP
-#define VOLTAGE_SENSOR_GEN_HPP
-#include <json.h>
+#ifndef BAROMETER_GEN_HPP
+#define BAROMETER_GEN_HPP
 
-#include "signal_filter_gen.hpp"
+#include <stdio.h>
 
-
- /* Voltage sensor */
-typedef struct voltage_sensor_settings_t
-{
-	signal_filter_gen_settings_t filter; //filter settings
-	bool enable_gain_scaling;
-	bool enable_warnings;// = false;
-	double nominal;// = 5.0;
-	double min_critical;// = 3.0;
-	bool enable_logging;
-	bool log_raw;
-}voltage_sensor_settings_t;
-
-/* General class for all battery instances */
-class voltage_sensor_gen_t
+ /* General class for all barometer instances */
+class barometer_gen_t
 {
 private:
 	bool initialized = false;
-	double raw = 0.0;
-	double filtered = 0.0;
+	double pressure_raw = 0.0; // (Pa)
+	double altitude_raw = 0.0; // (m)
+	double temperature_raw = 0.0; // (c)
 
-	voltage_sensor_settings_t settings; //sensor settings
-
-	// battery filter
-	signal_filter1D_gen_t filter{};
+	bool first_run = true;
+	double initial_alt = 0.0;
+	double alt_ground = 0.0; // (m) altitude from the initialization point
 public:
 	char init(void);
-	char init(voltage_sensor_settings_t& new_settings);
-	char init(voltage_sensor_settings_t& new_settings, double new_in);
 	bool is_initialized(void);
 
-	char march(double new_v);
+	char march(double new_pr, double new_alt, double new_temp);
 
-	double get_raw(void);
-	double get(void);
+	double get_alt(void);
+	double get_alt_ground(void);
+	double get_pr(void);
+	double get_temp(void);
 
 	char reset(void);
-	char reset(voltage_sensor_settings_t new_settings);
 	void cleanup(void);
 };
-extern voltage_sensor_gen_t batt;
+extern barometer_gen_t bmp;
 
-/** @name Logging class for battery
+
+/** @name Logging class for barometer
 * Defines how logging should be done for this class
 */
-class voltage_sensor_log_entry_t
+class barometer_log_entry_t
 {
 private:
-	double raw;
-	double filtered;
+	double pressure_raw; // (Pa)
+	double altitude_raw; // (m)
+	double temperature_raw; // (c)
+
+	double alt_ground; // (m) altitude from the initialization point
 
 	char print_vec(FILE* file, double* vec_in, int size);
 	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
 public:
-	char update(voltage_sensor_gen_t& new_state, voltage_sensor_settings_t& new_settings);
-	char print_header(FILE* file, const char* prefix, voltage_sensor_settings_t& new_settings);
-	char print_entry(FILE* file, voltage_sensor_settings_t& new_settings);
+	char update(barometer_gen_t& new_state);
+	char print_header(FILE* file, const char* prefix);
+	char print_entry(FILE* file);
 };
 
-
-int parse_voltage_sensor_gen_settings(json_object* in_json, const char* name, voltage_sensor_settings_t& sensor);
-
-#endif // VOLTAGE_SENSOR_GEN_HPP
+#endif // !BAROMETER_GEN_HPP

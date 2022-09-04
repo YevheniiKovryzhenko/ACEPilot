@@ -147,6 +147,17 @@ if(parse_voltage_sensor_gen_settings(jobj, #name, settings.name)){\
 	return -1;\
 }\
 
+#define PARSE_MOCAP(name)\
+if(parse_mocap_gen_settings(jobj, #name, settings.name)){\
+	fprintf(stderr,"ERROR: could not parse " #name "\n");\
+	return -1;\
+}\
+
+#define PARSE_IMU_9DOF(name)\
+if(parse_IMU_9DOF_gen_settings(jobj, #name, settings.name)){\
+	fprintf(stderr,"ERROR: could not parse " #name "\n");\
+	return -1;\
+}\
 
 #define PARSE_DOUBLE_MIN_MAX_CTRL(name,subname,min,max)\
 if(json_object_object_get_ex(ctrl_json, #subname, &tmp)==0){\
@@ -836,23 +847,14 @@ int settings_load_from_file(char* path)
 #ifdef DEBUG
 	fprintf(stderr,"thrust_map: %d\n",settings.thrust_map);
 #endif
-	PARSE_DOUBLE_MIN_MAX(v_nominal,7.0,18.0)
 	PARSE_BATTERY(battery)
 #ifdef DEBUG
 	fprintf(stderr,"v_nominal: %f\n",settings.v_nominal);
 #endif
-	PARSE_BOOL(enable_v_gain_scaling);
-	PARSE_BOOL(enable_magnetometer);
-	PARSE_BOOL(enable_mocap);
-	PARSE_BOOL(use_mocap_yaw);
-	PARSE_BOOL(use_mocap_pitch);
-	PARSE_BOOL(use_mocap_roll);
-	PARSE_BOOL(use_mocap_yaw_rate);
-	PARSE_BOOL(use_mocap_pitch_rate);
-	PARSE_BOOL(use_mocap_roll_rate);
+	PARSE_IMU_9DOF(imu);
+	PARSE_MOCAP(mocap);
 	PARSE_BOOL(enable_encoders);
 	PARSE_BOOL(enable_gps);
-	PARSE_BOOL(enable_ext_mag);
 
 	//Servo settings
 	PARSE_BOOL(enable_servos);
@@ -956,7 +958,6 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(log_only_while_armed);
 	PARSE_BOOL(log_sensors);
 	PARSE_BOOL(log_state);
-	PARSE_BOOL(log_mocap);
 	PARSE_BOOL(log_gps);
 
 	PARSE_BOOL(log_setpoints);

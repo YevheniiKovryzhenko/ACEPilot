@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/01/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Object that governs all the logic related to communications.
  */
@@ -145,7 +145,7 @@ char comms_manager_t::update_main_thread(void)
 {
 	
 	// MOCAP:
-	if (settings.enable_mocap) 
+	if (settings.mocap.enable) 
 	{
 		if (!mocap_thread_terminate_fl && !mocap_thread_active_fl && !mocap_thread.is_started())
 		{
@@ -474,7 +474,7 @@ char comms_manager_t::update(void)
 */
 char comms_manager_t::cleanup(void)
 {
-	if (settings.enable_mocap)
+	if (settings.mocap.enable)
 	{
 		mocap_thread_terminate_fl = true;		
 		if (mocap_thread.stop(MOCAP_TOUT) < 0)

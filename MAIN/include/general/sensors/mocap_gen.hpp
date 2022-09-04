@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/02/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system 
@@ -34,15 +34,24 @@
 #include <stdint.h> // for uint64_t
 #include <json.h>
 
-#include "settings.hpp"
+#include "coordinate_frames_gen.hpp"
 #include "signal_filter_gen.hpp"
 
 typedef struct mocap_settings_t
 {
+	bool enable;
+	bool use_roll_pitch_rate;
+	bool use_yaw_rate;
+	bool use_roll_pitch;
+	bool use_heading;
 	coordinate_frames_gen_t frame_type;// = NWU;
 	signal_filter_gen_settings_t att_filter[3]; //filter settings for attitude
 	signal_filter_gen_settings_t vel_filter[3]; //filter settings for velocity
 	bool enable_warnings;
+	bool enable_logging;
+	bool log_att;
+	bool log_vel;
+	bool log_raw;
 }mocap_settings_t;
 
 
@@ -52,11 +61,11 @@ class mocap_gen_t
 private:
 	uint64_t time = 0;
 
-	uint64_t time_att = rc_nanos_since_boot();
-
 	bool initialized = false;
 	bool valid = false;
 	int no_new_updates = 0; //counts the number of updates
+
+	uint64_t time_att = rc_nanos_since_boot();
 
 	bool att_updated = false; //has to be true before marching
 	bool pos_updated = false; //has to be true before marching
@@ -93,7 +102,7 @@ public:
 
 	/* Initialization */
 	char init(void);
-	char init(mocap_settings_t new_mocap_settings);
+	char init(mocap_settings_t& new_mocap_settings);
 	bool is_initialized(void);
 	bool is_valid(void);
 
@@ -135,8 +144,9 @@ class mocap_log_entry_t
 {
 private:
 	uint64_t time;
-	uint64_t time_att;
 	bool valid;
+
+	uint64_t time_att;
 
 	double att_quat_raw[4];
 	double att_quat_NED[4];
@@ -162,9 +172,9 @@ private:
 	char print_vec(FILE* file, double* vec_in, int size);
 	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
 public:
-	char update(mocap_gen_t* new_state);
-	char print_header(FILE* file, const char* prefix);
-	char print_entry(FILE* file);
+	char update(mocap_gen_t& new_state, mocap_settings_t& log_settings);
+	char print_header(FILE* file, const char* prefix, mocap_settings_t& log_settings);
+	char print_entry(FILE* file, mocap_settings_t& log_settings);
 };
 
 

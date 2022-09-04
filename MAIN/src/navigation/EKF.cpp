@@ -55,7 +55,7 @@ char EKF_t::march(double omega[3], double accel[3], double mag[3])
 {
     if (!initialized)
     {
-        enable_mag = settings.enable_magnetometer;
+        enable_mag = settings.imu.compass.enable;
     }
     /* from NED to ENU */
     double om[3] = { omega[1], omega[0], -omega[2] };

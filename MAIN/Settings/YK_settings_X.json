@@ -8,7 +8,7 @@
 	"layout": "LAYOUT_4X",
 	"thrust_map": "RS2212_920_4S",
 	"orientation": "ORIENTATION_X_FORWARD",
-	"v_nominal": 16.5,
+	
 	"battery": {
 		"filter": {
 			"type": "Moving_Avg",
@@ -19,20 +19,112 @@
 			"min": -1.0,
 			"max": 1.0
 		},
-		"en_warnings": true,
+		"enable_gain_scaling": false,
+		"enable_warnings": true,
 		"nominal": 16.5,
-		"min_critical": 4.8
+		"min_critical": 4.8,
+		"enable_logging": true,
+		"log_raw": true
 	},
-	"enable_v_gain_scaling": false,
 
-	"enable_magnetometer": true,
-	"enable_mocap": true,
-	"use_mocap_roll": false,
-	"use_mocap_pitch": false,
-	"use_mocap_yaw": true,
-	"use_mocap_roll_rate": false,
-	"use_mocap_pitch_rate": false,
-	"use_mocap_yaw_rate": false,
+	"imu": {
+		"frame_type": "ENU",
+		"gyro": {
+			"frame_type": "ENU",
+			"filter[0]": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.030
+			},
+			"filter[1]": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.030
+			},
+			"filter[2]": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.035
+			},
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"accel": {
+			"frame_type": "ENU",
+			"filter[0]": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.100
+			},
+			"filter[1]": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.100
+			},
+			"filter[2]": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.100
+			},
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"use_compass": true,
+		"compass": {
+			"enable": true,
+			"frame_type": "ENU",
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"enable_logging": true,
+		"log_raw": true,
+		"log_dmp": true,
+		"log_fused": true
+	},
+
+	"mocap": {
+		"enable": true,
+		"use_roll_pitch_rate": false,
+		"use_yaw_rate": false,
+		"use_roll_pitch": false,
+		"use_heading": true,
+		"frame_type": "NWU",
+		"att_filter[0]": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.030
+		},
+		"att_filter[1]": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.030
+		},
+		"att_filter[2]": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.050
+		},
+		"vel_filter[0]": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.100
+		},
+		"vel_filter[1]": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.100
+		},
+		"vel_filter[2]": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.020
+		},
+		"enable_warnings": true,
+		"enable_logging": true,
+		"log_att": true,
+		"log_vel": true,
+		"log_raw": true
+	},
 	"enable_encoders": false,
 	"enable_gps": false,
 	"enable_ext_mag": false,
@@ -105,7 +197,6 @@
 	"log_only_while_armed": true,
 	"log_sensors": true,
 	"log_state": true,
-	"log_mocap": true,
 	"log_gps": false,
 	"log_setpoints": true,
 	"log_throttles": true,

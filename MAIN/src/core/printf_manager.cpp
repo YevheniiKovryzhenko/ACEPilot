@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/01/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  */
 #include "printf_manager.hpp"
@@ -45,7 +45,7 @@
 #include "state_estimator.hpp"
 #include "thread_defs.hpp"
 #include "settings.hpp"
-#include "comms_tmp_data_packet.h"
+#include "comms_manager.hpp"
 #include "gps.hpp"
 
 #include "mocap_gen.hpp"

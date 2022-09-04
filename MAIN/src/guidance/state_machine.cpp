@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Data structures and functions related to using a state machine to manage waypoints and
@@ -44,8 +44,7 @@
 #include "settings.hpp"
 #include "setpoint_guidance.hpp"
 #include "input_manager.hpp"
-//#include "state_estimator.h"
-#include "comms_tmp_data_packet.h"
+#include "comms_manager.hpp"
 #include "benchmark.hpp"
 
 #include "state_machine.hpp"

@@ -1,5 +1,5 @@
 /*
- * sensors_gen.hpp
+ * IMU_9DOF_gen.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -22,186 +22,31 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/02/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
- * This contains the nessesary framework for operating sensors. Currently supports:
- *		- Voltage sensor
- *		- Gyroscope
- *		- Accelerometer
- *		- Magnetometer (Compass)
+ * This contains the nessesary framework for operating IMU:
  *		- IMU-9DOF: combination of gyro + accel + mag
  */
 
 #ifndef SENSORS_GEN_HPP
 #define SENSORS_GEN_HPP
-#include <stdint.h> // for uint64_t
-#include <rc/time.h>
+#include "gyro_gen.hpp"
+#include "accel_gen.hpp"
+#include "compass_gen.hpp"
 
-//#include "settings.hpp"
-#include "coordinate_frames_gen.hpp"
-#include "signal_filter_gen.hpp"
-
-
-/* Gyroscope */
-typedef struct gyro_settings_t
-{
-	coordinate_frames_gen_t frame_type;// = ENU; //physical placemet of the sensor
-	signal_filter_gen_settings_t filter[3]; //filter settings
-}gyro_settings_t;
-
-typedef struct gyro_settings_t accel_settings_t; //same as gyro for now
-
-typedef struct compass_settings_t
-{
-	coordinate_frames_gen_t frame_type;// = ENU; //physical placemet of the sensor		
-}compass_settings_t;
-
-typedef struct IMU_9DOF_settings_t
+typedef struct IMU_9DOF_gen_settings_t
 {
 	coordinate_frames_gen_t frame_type;// = ENU;
-	gyro_settings_t gyro;
+	gyro_gen_settings_t gyro;
 	accel_settings_t accel;
-	bool en_compass;// = false;
-	compass_settings_t compass;
-}IMU_9DOF_settings_t;
-
-/* General class for all barometer instances */
-class barometer_gen_t
-{
-private:
-	bool initialized = false;
-	double pressure_raw = 0.0; // (Pa)
-	double altitude_raw = 0.0; // (m)
-	double temperature_raw = 0.0; // (c)
-
-	bool first_run = true;
-	double initial_alt = 0.0;
-	double alt_ground = 0.0; // (m) altitude from the initialization point
-public:
-	char init(void);
-	bool is_initialized(void);
-
-	char march(double new_pr, double new_alt, double new_temp);
-
-	double get_alt(void);
-	double get_alt_ground(void);
-	double get_pr(void);
-	double get_temp(void);
-
-	char reset(void);
-	void cleanup(void);
-};
-extern barometer_gen_t bmp;
-
- /* General class for all gyro instances */
-class gyro_gen_t
-{
-private:
-	bool initialized = false;
-	uint64_t time = rc_nanos_since_boot();
-	bool updated = false;
-
-	gyro_settings_t settings; //settings for the gyroscope
-
-	double raw[3] = { 0.0 , 0.0, 0.0 };
-	double raw_NED[3] = { 0.0 , 0.0, 0.0 };
-	double filtered_NED[3] = { 0.0 , 0.0, 0.0 };
-
-	// gyro filters
-	signal_filter3D_gen_t lp{};
-public:
-	/* Initialization */
-	char init(void);
-	char init(gyro_settings_t new_gyro_settings);
-	bool is_initialized(void);
-
-	/* Updating */
-	uint64_t get_time(void);
-	char update(double new_gyro_raw[3]);
-	char march(void); //marches filters only is was updated
-
-	/* Data retrieval */
-	void get_raw(double* buff);
-	void get_raw_NED(double* buff);
-	void get(double* buff);
-
-	/* Reset and cleanup */
-	char reset(void);
-	void cleanup(void);
-};
-
-
-
-/* General class for all accelerometer instances */
-class accel_gen_t
-{
-private:
-	bool initialized = false;
-	uint64_t time = rc_nanos_since_boot();
-	bool updated = false;
-
-	accel_settings_t settings;  //settings for the accelerometer
-
-	double raw[3] = { 0.0 , 0.0, 0.0 };
-	double raw_NED[3] = { 0.0 , 0.0, 0.0 };
-	double filtered_NED[3] = { 0.0 , 0.0, 0.0 };
-
-	// accelerometer filters
-	signal_filter3D_gen_t lp{};
-public:
-	/* Initialization */
-	char init(void);
-	char init(accel_settings_t new_acc_settings);
-	bool is_initialized(void);
-
-	/* Updating */
-	char update(double new_acc_raw[3]);
-	char march(void); //marches filters only is was updated
-
-	/* Data retrieval */
-	uint64_t get_time(void);
-	void get_raw(double* buff);
-	void get_raw_NED(double* buff);
-	void get(double* buff);
-
-	/* Reset and cleanup */
-	char reset(void);
-	void cleanup(void);
-};
-
-/* General class for all compass instances */
-class compass_gen_t
-{
-private:
-	bool initialized = false;
-	uint64_t time = rc_nanos_since_boot();
-	bool updated = false;
-
-	compass_settings_t settings;  //settings for the accelerometer
-
-	double raw[3] = { 0.0 , 0.0, 0.0 };
-	double raw_NED[3] = { 0.0 , 0.0, 0.0 };
-
-public:
-	/* Initialization */
-	char init(void);
-	char init(compass_settings_t new_compass_settings);
-	bool is_initialized(void);
-
-	/* Updating */
-	char update(double new_compass_raw[3]);
-	char march(void); //marches filters only is was updated
-
-	/* Data retrieval */
-	uint64_t get_time(void);
-	void get_raw(double* buff);
-	void get(double* buff);
-
-	/* Reset and cleanup */
-	char reset(void);
-	void cleanup(void);
-};
+	bool use_compass;
+	compass_gen_settings_t compass;
+	bool enable_logging;
+	bool log_raw;
+	bool log_dmp;
+	bool log_fused;
+}IMU_9DOF_gen_settings_t;
 
 /* General class for all IMU-9DOF instances */
 class IMU_9DOF_gen_t
@@ -210,7 +55,7 @@ private:
 	bool initialized = false;
 	uint64_t time = rc_nanos_since_boot();
 
-	IMU_9DOF_settings_t settings;
+	IMU_9DOF_gen_settings_t settings;
 
 	/*
 					DMP based attitude
@@ -248,7 +93,7 @@ public:
 
 	/* Initialization */
 	char init(void);
-	char init(IMU_9DOF_settings_t new_settings);
+	char init(IMU_9DOF_gen_settings_t& new_settings);
 	bool is_initialized(void);
 
 	/* Updating */
@@ -275,89 +120,6 @@ public:
 	void cleanup(void);	
 };
 extern IMU_9DOF_gen_t imu;
-
-/** @name Logging class for barometer
-* Defines how logging should be done for this class
-*/
-class barometer_log_entry_t
-{
-private:
-	double pressure_raw; // (Pa)
-	double altitude_raw; // (m)
-	double temperature_raw; // (c)
-
-	double alt_ground; // (m) altitude from the initialization point
-
-	char print_vec(FILE* file, double* vec_in, int size);
-	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
-public:
-	char update(barometer_gen_t* new_state);
-	char print_header(FILE* file, const char* prefix);
-	char print_entry(FILE* file);
-};
-
-
-/** @name Logging class for gyro
-* Defines how logging should be done for this class
-*/
-class gyro_log_entry_t
-{
-private:
-	uint64_t time;
-	
-	double raw[3];
-	double raw_NED[3];
-	double filtered_NED[3];
-
-	char print_vec(FILE* file, double* vec_in, int size);
-	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
-public:
-	char update(gyro_gen_t* new_state);
-	char print_header(FILE* file, const char* prefix);
-	char print_entry(FILE* file);
-};
-
-
-/** @name Logging class for accel
-* Defines how logging should be done for this class
-*/
-class accel_log_entry_t
-{
-private:
-	uint64_t time;
-
-	double raw[3];
-	double raw_NED[3];
-	double filtered_NED[3];
-
-	char print_vec(FILE* file, double* vec_in, int size);
-	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
-public:
-	char update(accel_gen_t* new_state);
-	char print_header(FILE* file, const char* prefix);
-	char print_entry(FILE* file);
-};
-
-
-/** @name Logging class for compass
-* Defines how logging should be done for this class
-*/
-class compass_log_entry_t
-{
-private:
-	uint64_t time;
-
-	double raw[3];
-	double raw_NED[3];
-
-	char print_vec(FILE* file, double* vec_in, int size);
-	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
-public:
-	char update(compass_gen_t* new_state);
-	char print_header(FILE* file, const char* prefix);
-	char print_entry(FILE* file);
-};
-
 
 
 /** @name Logging class for IMU-9DOF
@@ -399,9 +161,10 @@ private:
 	char print_vec(FILE* file, double* vec_in, int size);
 	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
 public:
-	char update(IMU_9DOF_gen_t* new_state);
-	char print_header(FILE* file, const char* prefix);
-	char print_entry(FILE* file);
+	char update(IMU_9DOF_gen_t& new_state, IMU_9DOF_gen_settings_t& new_settings);
+	char print_header(FILE* file, const char* prefix, IMU_9DOF_gen_settings_t& new_settings);
+	char print_entry(FILE* file, IMU_9DOF_gen_settings_t& new_settings);
 };
 
+int parse_IMU_9DOF_gen_settings(json_object* in_json, const char* name, IMU_9DOF_gen_settings_t& sensor);
 #endif // !SENSORS_GEN_HPP

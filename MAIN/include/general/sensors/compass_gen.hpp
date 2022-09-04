@@ -1,5 +1,5 @@
 /*
- * voltage_sensor_gen.hpp
+ * compass_gen.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -25,75 +25,77 @@
  * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
- * This contains the nessesary framework for operating voltage sensors
+ * This contains the nessesary framework for operating Compass (magnetometer).
  */
 
-#ifndef VOLTAGE_SENSOR_GEN_HPP
-#define VOLTAGE_SENSOR_GEN_HPP
+#ifndef COMPASS_GEN_HPP
+#define COMPASS_GEN_HPP
+#include <rc/time.h>
+#include <stdlib.h>
 #include <json.h>
 
+#include "coordinate_frames_gen.hpp"
 #include "signal_filter_gen.hpp"
 
-
- /* Voltage sensor */
-typedef struct voltage_sensor_settings_t
+typedef struct compass_gen_settings_t
 {
-	signal_filter_gen_settings_t filter; //filter settings
-	bool enable_gain_scaling;
-	bool enable_warnings;// = false;
-	double nominal;// = 5.0;
-	double min_critical;// = 3.0;
+	bool enable;
+	coordinate_frames_gen_t frame_type;// = ENU; //physical placemet of the sensor
 	bool enable_logging;
 	bool log_raw;
-}voltage_sensor_settings_t;
+}compass_gen_settings_t;
 
-/* General class for all battery instances */
-class voltage_sensor_gen_t
+/* General class for all compass instances */
+class compass_gen_t
 {
 private:
 	bool initialized = false;
-	double raw = 0.0;
-	double filtered = 0.0;
+	uint64_t time = rc_nanos_since_boot();
+	bool updated = false;
 
-	voltage_sensor_settings_t settings; //sensor settings
+	compass_gen_settings_t settings;  //settings for the accelerometer
 
-	// battery filter
-	signal_filter1D_gen_t filter{};
+	double raw[3] = { 0.0 , 0.0, 0.0 };
+	double raw_NED[3] = { 0.0 , 0.0, 0.0 };
+
 public:
+	/* Initialization */
 	char init(void);
-	char init(voltage_sensor_settings_t& new_settings);
-	char init(voltage_sensor_settings_t& new_settings, double new_in);
+	char init(compass_gen_settings_t& new_compass_settings);
 	bool is_initialized(void);
 
-	char march(double new_v);
+	/* Updating */
+	char update(double new_compass_raw[3]);
+	char march(void); //marches filters only is was updated
 
-	double get_raw(void);
-	double get(void);
+	/* Data retrieval */
+	uint64_t get_time(void);
+	void get_raw(double* buff);
+	void get(double* buff);
 
+	/* Reset and cleanup */
 	char reset(void);
-	char reset(voltage_sensor_settings_t new_settings);
 	void cleanup(void);
 };
-extern voltage_sensor_gen_t batt;
 
-/** @name Logging class for battery
-* Defines how logging should be done for this class
-*/
-class voltage_sensor_log_entry_t
+ /** @name Logging class for compass
+ * Defines how logging should be done for this class
+ */
+class compass_log_entry_t
 {
 private:
-	double raw;
-	double filtered;
+	uint64_t time;
+
+	double raw[3];
+	double raw_NED[3];
 
 	char print_vec(FILE* file, double* vec_in, int size);
 	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
 public:
-	char update(voltage_sensor_gen_t& new_state, voltage_sensor_settings_t& new_settings);
-	char print_header(FILE* file, const char* prefix, voltage_sensor_settings_t& new_settings);
-	char print_entry(FILE* file, voltage_sensor_settings_t& new_settings);
+	char update(compass_gen_t& new_state, compass_gen_settings_t& new_settings);
+	char print_header(FILE* file, const char* prefix, compass_gen_settings_t& new_settings);
+	char print_entry(FILE* file, compass_gen_settings_t& new_settings);
 };
 
-
-int parse_voltage_sensor_gen_settings(json_object* in_json, const char* name, voltage_sensor_settings_t& sensor);
-
-#endif // VOLTAGE_SENSOR_GEN_HPP
+int parse_compass_gen_settings(json_object* in_json, const char* name, compass_gen_settings_t& sensor);
+#endif // !COMPASS_GEN_HPP

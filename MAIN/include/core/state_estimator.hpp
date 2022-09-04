@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/02/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains all the primary functionality and framework for state estimation rountines
@@ -44,18 +44,6 @@
 //#include "coordinate_frames_gen.hpp"
 #include "signal_filter_gen.hpp"
 #include "settings.hpp"
-	
-	/*
-	typedef struct ext_mag_t
-	{
-		double x;
-		double y;
-		double z;
-		double norm;
-	}ext_mag_t;
-	*/
-	//extern ext_mag_t ext_mag;
-
 	/**
 	 * This is the output from the state estimator. It contains raw sensor values
 	 * and the outputs of filters. Everything is in NED coordinates defined as:
@@ -115,110 +103,6 @@
 
 		//int counter;
 		//int rev[4]; //for encoders
-
-		//EOL{
-		
-
-		/** @name IMU (accel gyro)
-		 * Normalized Quaternion is straight from the DMP but converted to NED
-		 * coordinates. Tait-Bryan angles roll pitch and yaw angles are then
-		 * converted from the quaternion.
-		 * the roll_pitch_yaw values in the taid bryan angles tb_imu are bounded
-		 * by +-pi since they come straight from the quaternion. the state estimator
-		 * keeps track of these rotations and generates continuous_yaw which is
-		 * unbounded and keeps track of multiple rotations. This provides a continuously
-		 * differentiable variable with no jumps between +-pi
-		 */
-		 ///@{
-		//double gyro[3];		///< gyro roll pitch yaw (rad/s)
-		//double accel[3];	///< accel XYZ NED coordinates (m/s^2)
-		//double quat_imu[4];	///< DMP normalized quaternion
-		//double tb_imu[3];	///< tait bryan roll pitch yaw angle (rad)
-		//double imu_continuous_yaw; ///< continuous yaw from imu only (multiple turns)
-		//double accel_ground_frame[3]; ///< imu accel rotated with gravity subtracted off
-		///@}
-
-		/** @name IMU (magnetometer)
-		 * these values are only set when magnetometer is enabled in settings.
-		 * right now these aren't used and we don't suggest turning the magnetometer on
-		 */
-		 ///@{
-		/*
-		double mag[3];		///< magnetometer XYZ NED coordinates ()
-		double mag_heading_raw;	///< raw compass heading
-		double mag_heading;	///< compass heading filtered with IMU
-		double mag_heading_continuous;
-		double quat_mag[4];	///< quaterion filtered
-		double tb_mag[3];	///< roll pitch yaw with magetometer heading fixed (rad)
-		*/
-		///@}
-
-		/** @name selected values for feedback
-		* these are copoies of other values in this state estimate used for feedback
-		* this is done so we can easily chose which source to get feedback from (mag or no mag)
-		*/
-		///@{
-		//double roll;
-		//double pitch;
-		//double yaw;
-		//double continuous_yaw;	///<  keeps increasing/decreasing above +-2pi
-		//double roll_dot;
-		//double pitch_dot;
-		//double yaw_dot;
-		/*
-		double roll_dot_raw;
-		double pitch_dot_raw;
-		double yaw_dot_raw;
-		double X; //Inertial
-		double Y; //Inertial
-		double Z; //Inertial
-		double X_dot;
-		double Y_dot;
-		double Z_dot;
-		double X_dot_raw;	// d/dt position based estimate of velocity 
-		double Y_dot_raw;	// d/dt position based estimate of velocity 
-		double Z_dot_raw;	// d/dt position based estimate of velocity 
-		double Z_ddot; // transformed z accel
-		*/
-		///@}
-
-
-		/** @name filtered data from IMU & barometer
-		 * Altitude estimates from kalman filter fusing IMU and BMP data.
-		 * Alttitude, velocity, and acceleration are in units of m, m/s, m/s^2
-		 * Note this is altitude so positive is upwards unlike the NED
-		 * coordinate frame that has Z pointing down.
-		 */
-		 ///@{
-		/*
-		double bmp_pressure_raw;///< raw barometer pressure in Pascals
-		double alt_bmp_raw;	///< altitude estimate using only bmp from sea level (m)
-		double alt_bmp;		///< altitude estimate using kalman filter (IMU & bmp)
-		double alt_bmp_vel;	///< z velocity estimate using kalman filter (IMU & bmp)
-		double alt_bmp_accel;	///< z accel estimate using kalman filter (IMU & bmp)
-		*/
-		///@}
-
-		/** @name Motion Capture data
-		 * As mocap drop in and out the mocap_running flag will turn on and off.
-		 * Old values will remain readable after mocap drops out.
-		 */
-		 ///@{		
-		//bool mocap_running = false;	///< true if motion capture data is recent and valid
-		//uint64_t mocap_timestamp_ns; ///< timestamp of last received packet in nanoseconds since boot
-		//uint32_t mocap_time;	///< time receved from mocap
-		/*
-		double pos_mocap[3];	///< position in mocap frame, converted to NED if necessary
-		double quat_mocap[4];	///< UAV orientation according to mocap
-		double tb_mocap[3];	///< Tait-Bryan angles according to mocap
-		int is_active;  ///< TODO used by mavlink manager, purpose unclear... (pg)
-		double mocap_continuous_yaw;
-		*/
-		///@}
-
-		//EOL}
-
-		//void mocap_check_timeout(void);
 
 		/**
 		* @brief       Updates and Marches all the sourses
@@ -291,16 +175,6 @@
 		void cleanup_internal_filters(void);
 
 	public:
-		/* Define all the sensors and external input sources */
-		// Assume these are primary:
-		//battery_gen_t batt{};	//battery voltage sensor
-		//barometer_gen_t bmp{};	//barometer
-		//IMU_9DOF_gen_t imu{};	//IMU-9DOF with Gyro + Accel + Mag
-		//mocap_gen_t mocap{};	//mocap system
-
-		//EKF_t EKF{};			//EKF for attitude estimation V-1
-		//EKF2_t EKF2{};			//EKF for attitude estimation V-2
-
 
 		/**
 		* @brief      Initial setup of the state estimator
