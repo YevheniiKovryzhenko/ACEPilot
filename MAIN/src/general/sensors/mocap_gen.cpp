@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/04/2022 (MM/DD/YYYY)
+ * Last Edit:  09/06/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system
@@ -42,7 +42,11 @@ mocap_gen_t mocap{};
  /* General class for all MOCAP instances */
 char mocap_gen_t::init(mocap_settings_t& new_mocap_settings)
 {
-	if (!new_mocap_settings.enable) settings.enable = false; return 0; //return if disabled
+	if (!new_mocap_settings.enable)
+	{
+		settings.enable = false;
+		return 0; //return if disabled
+	}
 	if (unlikely(initialized))
 	{
 		fprintf(stderr, "ERROR in init: mocap already initialized.\n");
