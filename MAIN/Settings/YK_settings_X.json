@@ -116,7 +116,7 @@
 	},
 
 	"mocap": {
-		"enable": false,
+		"enable": true,
 		"use_roll_pitch_rate": false,
 		"use_yaw_rate": false,
 		"use_roll_pitch": false,
@@ -186,7 +186,7 @@
 	"flight_mode_2": "MANUAL_AAxxxx",
 	"flight_mode_3": "POS_CTRL_FFFAAA",
 
-	"enable_dsm": false,
+	"enable_dsm": true,
 	"dsm_thr_ch": 1,
 	"dsm_thr_pol": 1,
 	"dsm_roll_ch": 2,
@@ -225,7 +225,7 @@
 
 	"enable_logging": true,
 	"log_every_n_entry": 1,
-	"log_only_while_armed": false,
+	"log_only_while_armed": true,
 	"log_sensors": true,
 	"log_state": true,
 	"log_gps": false,
