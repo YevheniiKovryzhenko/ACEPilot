@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating sensors. Currently supports:
@@ -43,11 +43,16 @@
 #define GET_VARIABLE_NAME(Variable) (#Variable)
 #endif // !GET_VARIABLE_NAME
 
-IMU_9DOF_gen_t imu{};	//IMU-9DOF with Gyro + Accel + Mag
+IMU_9DOF_gen_t IMU0{};	//IMU-9DOF with Gyro + Accel + Mag
 
 /* General class for all IMU-9DOF instances */
 char IMU_9DOF_gen_t::init(IMU_9DOF_gen_settings_t& new_settings)
 {
+	if (!new_settings.enable) 
+	{
+		settings.enable = false;
+		return 0;
+	}
 	if (unlikely(initialized))
 	{
 		fprintf(stderr, "ERROR in init: IMU-9DOF is already initialized.\n");
@@ -112,7 +117,7 @@ char IMU_9DOF_gen_t::init(void)
 	//compass
 	settings.compass.frame_type = ENU;
 
-	
+	printf("IMU test settings\n");
 	return init(settings);
 }
 
@@ -185,8 +190,74 @@ char IMU_9DOF_gen_t::update_att_from_quat_fused(double new_att_quat_fused_raw[4]
 	return 0;
 }
 
+
+char IMU_9DOF_gen_t::update_att_from_quat_est(double new_att_quat_est_raw[4])
+{
+	/* save new raw data internally */
+	for (int i = 0; i < 4; i++)	att_quat_est_raw[i] = new_att_quat_est_raw[i];
+
+	/* transform from sensor frame to NED */
+	att_quat_est_NED[0] = att_quat_est_raw[0];
+	rotate2NED(settings.frame_type, &att_quat_est_NED[1], &att_quat_est_raw[1]);
+
+	/* normalize quaternians just in case, but do not touch "raw" data */
+	rc_normalize_quaternion_array(att_quat_est_NED);
+	rc_normalize_quaternion_array(new_att_quat_est_raw);
+
+	/* calculate roll pitch and yaw from quaternians */
+	rc_quaternion_to_tb_array(new_att_quat_est_raw, att_tb_est_raw); //use normalized raw quaternians
+	rc_quaternion_to_tb_array(att_quat_est_NED, att_tb_est_NED);
+
+	/*	Heading
+	continuous heading is more annoying since we have to detect spins
+	also make sign negative since NED coordinates has Z point down
+	*/
+	double diff_yaw = att_tb_est_NED[2] + (num_heading_spins_est_NED * TWO_PI) - continuous_heading_est_NED;
+	// detect the crossover point at +-PI and update num yaw spins
+	if (diff_yaw < -M_PI) num_heading_spins_est_NED++;
+	else if (diff_yaw > M_PI) num_heading_spins_est_NED--;
+
+	// finally the new value can be written
+	continuous_heading_est_NED = att_tb_est_NED[2] + (num_heading_spins_est_NED * TWO_PI);
+	return 0;
+}
+
+char IMU_9DOF_gen_t::update_accel_grav_est(double new_accel_grav_est_raw[3])
+{
+	/* save new raw data internally */
+	for (int i = 0; i < 3; i++)	accel_grav_est_raw[i] = new_accel_grav_est_raw[i];
+
+	/* transform from sensor frame to NED */
+	rotate2NED(settings.frame_type, accel_grav_est_NED, accel_grav_est_raw);
+	return 0;
+}
+
+char IMU_9DOF_gen_t::update_accel_lin_est(double new_accel_lin_est_raw[3])
+{
+	/* save new raw data internally */
+	for (int i = 0; i < 3; i++)	accel_lin_est_raw[i] = new_accel_lin_est_raw[i];
+
+	/* transform from sensor frame to NED */
+	rotate2NED(settings.frame_type, accel_lin_est_NED, accel_lin_est_raw);
+	return 0;
+}
+
+char IMU_9DOF_gen_t::update_Temp_est(double new_Temp)
+{
+	
+	Temp = new_Temp;
+	return 0;
+}
+char IMU_9DOF_gen_t::update_calibration(uint8_t new_calibration[4])
+{
+	/* save new raw data internally */
+	for (int i = 0; i < 3; i++)	calibration[i] = new_calibration[i];
+	return 0;
+}
+
 char IMU_9DOF_gen_t::march(void)
 {
+	if (!settings.enable) return 0;
 	if (unlikely(!initialized))
 	{
 		fprintf(stderr, "ERROR in march: IMU_9DOF not initialized.\n");
@@ -252,11 +323,67 @@ double IMU_9DOF_gen_t::get_continuous_yaw_fused(void)
 	return continuous_heading_fused_NED;
 }
 
+void IMU_9DOF_gen_t::get_calibration(uint8_t* buff)
+{
+	for (int i = 0; i < 4; i++) buff[i] = calibration[i];
+	return;
+}
+double IMU_9DOF_gen_t::get_Temp(void)
+{
+	return Temp;
+}
+void IMU_9DOF_gen_t::get_tb_est_raw(double* buff)
+{
+	for (int i = 0; i < 3; i++) buff[i] = att_tb_est_raw[i];
+	return;
+}
+void IMU_9DOF_gen_t::get_tb_est(double* buff)
+{
+	for (int i = 0; i < 3; i++) buff[i] = att_tb_est_NED[i];
+	return;
+}
+void IMU_9DOF_gen_t::get_quat_est_raw(double* buff)
+{
+	for (int i = 0; i < 4; i++) buff[i] = att_quat_est_raw[i];
+	return;
+}
+void IMU_9DOF_gen_t::get_quat_est(double* buff)
+{
+	for (int i = 0; i < 4; i++) buff[i] = att_quat_est_NED[i];
+	return;
+}
+double IMU_9DOF_gen_t::get_continuous_yaw_est(void)
+{
+	return continuous_heading_est_NED;
+}
+
+void IMU_9DOF_gen_t::get_accel_lin_est_raw(double* buff)
+{
+	for (int i = 0; i < 3; i++) buff[i] = accel_lin_est_raw[i];
+	return;
+}
+void IMU_9DOF_gen_t::get_accel_lin_est(double* buff)
+{
+	for (int i = 0; i < 3; i++) buff[i] = accel_lin_est_NED[i];
+	return;
+}
+void IMU_9DOF_gen_t::get_accel_grav_est_raw(double* buff)
+{
+	for (int i = 0; i < 3; i++) buff[i] = accel_grav_est_raw[i];
+	return;
+}
+void IMU_9DOF_gen_t::get_accel_grav_est(double* buff)
+{
+	for (int i = 0; i < 3; i++) buff[i] = accel_grav_est_NED[i];
+	return;
+}
+
 char IMU_9DOF_gen_t::reset(void)
 {
+	if (!settings.enable) return 0;
 	if (unlikely(!initialized))
 	{
-		fprintf(stderr, "ERROR in reset: compass not initialized.\n");
+		fprintf(stderr, "ERROR in reset: IMU_9DOF not initialized.\n");
 		return -1;
 	}
 	char tmp = gyro.reset();
@@ -268,6 +395,7 @@ char IMU_9DOF_gen_t::reset(void)
 
 void IMU_9DOF_gen_t::cleanup(void)
 {
+	if (!settings.enable) return;
 	if (!initialized) return;
 	gyro.cleanup();
 	accel.cleanup();
@@ -281,6 +409,7 @@ void IMU_9DOF_gen_t::cleanup(void)
 */
 char IMU_9DOF_log_entry_t::update(IMU_9DOF_gen_t& new_state, IMU_9DOF_gen_settings_t& new_settings)
 {
+	if (!new_settings.enable) return 0;
 	if (!new_settings.enable_logging) return 0;//return if disabled
 
 	time = new_state.get_time();
@@ -303,6 +432,24 @@ char IMU_9DOF_log_entry_t::update(IMU_9DOF_gen_t& new_state, IMU_9DOF_gen_settin
 		continuous_heading_fused_NED = new_state.get_continuous_yaw_fused();
 	}
 
+	if (new_settings.log_est)
+	{
+		new_state.get_calibration(calibration);
+		Temp = new_state.get_Temp();
+
+		if (new_settings.log_raw) new_state.get_tb_est_raw(att_tb_est_raw);
+		new_state.get_tb_est(att_tb_est_NED);
+
+		if (new_settings.log_raw) new_state.get_quat_est_raw(att_quat_est_raw);
+		new_state.get_quat_est(att_quat_est_NED);
+
+		if (new_settings.log_raw) new_state.get_accel_lin_est_raw(accel_lin_est_raw);
+		new_state.get_accel_lin_est(accel_lin_est_NED);
+		if (new_settings.log_raw) new_state.get_accel_grav_est_raw(accel_grav_est_raw);
+		new_state.get_accel_grav_est(accel_grav_est_NED);
+		continuous_heading_est_NED = new_state.get_continuous_yaw_est();
+	}
+
 	gyro.update(new_state.gyro, new_settings.gyro);
 	accel.update(new_state.accel, new_settings.accel);
 	compass.update(new_state.compass, new_settings.compass);
@@ -314,6 +461,14 @@ char IMU_9DOF_log_entry_t::print_vec(FILE* file, double* vec_in, int size)
 	for (int i = 0; i < size; i++)
 	{
 		fprintf(file, ",%.4F", vec_in[i]);
+	}
+	return 0;
+}
+char IMU_9DOF_log_entry_t::print_vec(FILE* file, uint8_t* vec_in, int size)
+{
+	for (int i = 0; i < size; i++)
+	{
+		fprintf(file, ",%i", vec_in[i]);
 	}
 	return 0;
 }
@@ -329,6 +484,7 @@ char IMU_9DOF_log_entry_t::print_header_vec(FILE* file, const char* prefix, cons
 
 char IMU_9DOF_log_entry_t::print_header(FILE* file, const char* prefix, IMU_9DOF_gen_settings_t& new_settings)
 {
+	if (!new_settings.enable) return 0;
 	if (!new_settings.enable_logging) return 0;//return if disabled
 
 	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time));
@@ -351,6 +507,23 @@ char IMU_9DOF_log_entry_t::print_header(FILE* file, const char* prefix, IMU_9DOF
 		fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(continuous_heading_fused_NED));
 	}
 
+	if (new_settings.log_est)
+	{
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(calibration), 4);
+		fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(Temp));
+		if (new_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(att_tb_est_raw), 3);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(att_tb_est_NED), 3);
+		if (new_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(att_quat_est_raw), 4);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(att_quat_est_NED), 4);
+
+		if (new_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(accel_lin_est_raw), 3);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(accel_lin_est_NED), 3);
+
+		if (new_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(accel_grav_est_raw), 3);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(accel_grav_est_NED), 3);
+		fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(continuous_heading_est_NED));
+	}
+
 	char buffer[100]; // <- danger, only storage for 100 characters.
 	const char* buff_pt = buffer;
 	strncpy(buffer, prefix, 50);
@@ -369,6 +542,7 @@ char IMU_9DOF_log_entry_t::print_header(FILE* file, const char* prefix, IMU_9DOF
 }
 char IMU_9DOF_log_entry_t::print_entry(FILE* file, IMU_9DOF_gen_settings_t& new_settings)
 {
+	if (!new_settings.enable) return 0;
 	if (!new_settings.enable_logging) return 0;//return if disabled
 
 	fprintf(file, ",%" PRIu64, time);
@@ -389,6 +563,23 @@ char IMU_9DOF_log_entry_t::print_entry(FILE* file, IMU_9DOF_gen_settings_t& new_
 		if (new_settings.log_raw) print_vec(file, att_tb_fused_raw, 3);
 		print_vec(file, att_tb_fused_NED, 3);
 		fprintf(file, ",%.4F", continuous_heading_fused_NED);
+	}
+
+	if (new_settings.log_est)
+	{
+		print_vec(file, calibration, 4);
+		fprintf(file, ",%.4F", Temp);
+		if (new_settings.log_raw) print_vec(file, att_tb_est_raw, 3);
+		print_vec(file, att_tb_est_NED, 3);
+		if (new_settings.log_raw) print_vec(file, att_quat_est_raw, 4);
+		print_vec(file, att_quat_est_NED, 4);
+
+		if (new_settings.log_raw) print_vec(file, accel_lin_est_raw, 3);
+		print_vec(file, accel_lin_est_NED, 3);
+
+		if (new_settings.log_raw) print_vec(file, accel_grav_est_raw, 3);
+		print_vec(file, accel_grav_est_NED, 3);
+		fprintf(file, ",%.4F", continuous_heading_est_NED);
 	}
 
 	gyro.print_entry(file, new_settings.gyro);
@@ -414,6 +605,13 @@ int parse_IMU_9DOF_gen_settings(json_object* in_json, const char* name, IMU_9DOF
 		fprintf(stderr, "ERROR: %s must be an object\n", name);
 		return -1;
 	}
+
+	if (parse_bool(tmp_main_json, "enable", sensor.enable))
+	{
+		fprintf(stderr, "ERROR: failed to parse enable flag for %s\n", name);
+		return -1;
+	}
+	if (!sensor.enable) return 0;
 
 	// Parse coordinate frame type:
 	if (parse_coordinate_frame_gen_type(tmp_main_json, "frame_type", sensor.frame_type))
@@ -467,6 +665,11 @@ int parse_IMU_9DOF_gen_settings(json_object* in_json, const char* name, IMU_9DOF
 	if (parse_bool(tmp_main_json, "log_fused", sensor.log_fused))
 	{
 		fprintf(stderr, "ERROR: failed to parse log_fused flag for %s\n", name);
+		return -1;
+	}
+	if (parse_bool(tmp_main_json, "log_est", sensor.log_est))
+	{
+		fprintf(stderr, "ERROR: failed to parse log_est flag for %s\n", name);
 		return -1;
 	}
 

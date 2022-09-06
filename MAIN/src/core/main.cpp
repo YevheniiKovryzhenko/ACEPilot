@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -113,9 +113,9 @@ void on_pause_press()
 }
 
 /**
- * @brief      Interrupt service routine for IMU
+ * @brief      Interrupt service routine for IMU0
  *
- * This is called every time the Invensense IMU has new data
+ * This is called every time the Invensense IMU0 has new data
  *
  * __imu_isr should be running at 200 Hz
  */
@@ -161,7 +161,7 @@ static void __imu_isr(void)
 
 
 /**
- * Initialize the IMU, start all the threads, and wait until something triggers
+ * Initialize the IMU0, start all the threads, and wait until something triggers
  * a shut down by setting the RC state to EXITING.
  *
  * @return     0 on success, -1 on failure
@@ -230,14 +230,14 @@ int main(int argc, char** argv)
             return -1;
         }
 
-        // make sure IMU is calibrated
+        // make sure IMU0 is calibrated
         if (!rc_mpu_is_gyro_calibrated()) {
             FAIL("ERROR, must calibrate gyroscope with rc_calibrate_gyro first\n")
         }
         if (!rc_mpu_is_accel_calibrated()) {
             FAIL("ERROR, must calibrate accelerometer with rc_calibrate_accel first\n")
         }
-        if (settings.imu.compass.enable && !rc_mpu_is_gyro_calibrated()) {
+        if (settings.IMU0.compass.enable && !rc_mpu_is_gyro_calibrated()) {
             FAIL("ERROR, must calibrate magnetometer with rc_calibrate_mag first\n")
         }
         if (settings.enable_dsm && !__rc_dsm_is_calibrated()) {
@@ -245,7 +245,7 @@ int main(int argc, char** argv)
         }
 
         // turn cpu freq to max for most consistent performance and lowest
-        // latency servicing the IMU's interrupt service routine
+        // latency servicing the IMU0's interrupt service routine
         // this also serves as an initial check for root access which is needed
         // by the PRU later. PRU root acces might get resolved in the future.
         if (rc_cpu_set_governor(RC_GOV_PERFORMANCE) < 0) {
@@ -370,7 +370,7 @@ int main(int argc, char** argv)
             FAIL("ERROR: failed to init feedback controller\n")
         }
 
-        // start the IMU
+        // start the IMU0
         rc_mpu_config_t mpu_conf = rc_mpu_default_config();
         mpu_conf.i2c_bus = I2C_BUS;
         mpu_conf.gpio_interrupt_pin_chip = GPIO_INT_PIN_CHIP;
@@ -382,9 +382,9 @@ int main(int argc, char** argv)
         mpu_conf.dmp_interrupt_priority = IMU_PRIORITY;
 
         // optionally enbale magnetometer
-        mpu_conf.enable_magnetometer = settings.imu.compass.enable;
+        mpu_conf.enable_magnetometer = settings.IMU0.compass.enable;
 
-        // now set up the imu for dmp interrupt operation
+        // now set up the IMU0 for dmp interrupt operation
         printf("initializing MPU\n");
         if (rc_mpu_initialize_dmp(&mpu_data, mpu_conf)) {
             fprintf(stderr, "ERROR: failed to start MPU DMP\n");

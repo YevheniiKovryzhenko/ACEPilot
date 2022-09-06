@@ -1,5 +1,5 @@
 /*
- * coordinate_frames_gen.hpp
+ * extra_sensors.hpp
  *
  * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
  * Contact: yzk0058@auburn.edu
@@ -22,14 +22,41 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/02/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  *
  * Summary :
- * Here are defined general coordinate frames and related functionality
+ * Contains functionality for additional sensors, like external IMU
  */
 
-#include "coordinate_frames_gen.hpp"
-#include "settings_gen.hpp"
+#ifndef EXTRA_SENSORS_HPP
+#define EXTRA_SENSORS_HPP
+#include "Adafruit_BNO055.hpp"
+#include "thread_gen.hpp"
+#include <rc/time.h>
+#include "IMU_9DOF_gen.hpp"
 
+class extra_sensors_t
+{
+private:
+	bool initialized = false;
+	uint64_t time;
+	uint64_t time_mag;
+	uint64_t time_temp;
 
-int parse_coordinate_frame_gen_type(json_object* in_json, const char* name, coordinate_frames_gen_t& type);
+	thread_gen_t thread{};
+
+	char bno_march(void);
+
+public:
+	char init(void);
+
+	char update_main_thread(void);
+
+	void cleanup(void);
+
+};
+
+extern extra_sensors_t extra_sensors;
+extern IMU_9DOF_gen_t IMU1;
+
+#endif // !EXTERNAL_SENSORS_HPP

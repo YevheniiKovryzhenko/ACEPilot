@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/06/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating Gyroscope.
@@ -41,6 +41,7 @@
 typedef struct gyro_gen_settings_t
 {
 	coordinate_frames_gen_t frame_type;// = ENU; //physical placemet of the sensor
+	bool enable_filters;
 	signal_filter_gen_settings_t filter[3]; //filter settings
 	bool enable_logging;
 	bool log_raw;

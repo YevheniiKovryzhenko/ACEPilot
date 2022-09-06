@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating IMU:
@@ -37,6 +37,7 @@
 
 typedef struct IMU_9DOF_gen_settings_t
 {
+	bool enable;
 	coordinate_frames_gen_t frame_type;// = ENU;
 	gyro_gen_settings_t gyro;
 	accel_settings_t accel;
@@ -46,12 +47,14 @@ typedef struct IMU_9DOF_gen_settings_t
 	bool log_raw;
 	bool log_dmp;
 	bool log_fused;
+	bool log_est;
 }IMU_9DOF_gen_settings_t;
 
 /* General class for all IMU-9DOF instances */
 class IMU_9DOF_gen_t
 {
 private:
+	
 	bool initialized = false;
 	uint64_t time = rc_nanos_since_boot();
 
@@ -83,6 +86,24 @@ private:
 	int num_heading_spins_fused_NED = 0;
 	double continuous_heading_fused_NED = 0.0;
 
+	/* Estimated values */
+	/* Estimated values */
+	/* Each value should be a uint8_t
+	 * pointer and it will be set to 0 if not calibrated and 3 if
+	 * fully calibrated.*/
+	uint8_t calibration[4];			///< Current system calibration status, depends on status of all sensors,
+	double Temp;
+	double att_tb_est_raw[3];
+	double att_tb_est_NED[3];
+	double att_quat_est_raw[4];
+	double att_quat_est_NED[4];
+	int num_heading_spins_est_NED = 0;
+	double continuous_heading_est_NED = 0.0;
+
+	double accel_lin_est_raw[3];
+	double accel_lin_est_NED[3];
+	double accel_grav_est_raw[3];
+	double accel_grav_est_NED[3];
 
 
 public:
@@ -99,6 +120,11 @@ public:
 	/* Updating */
 	char update_att_from_quat_dmp(double new_att_quat_dmp_raw[4]);
 	char update_att_from_quat_fused(double new_att_quat_fused_raw[4]);
+	char update_att_from_quat_est(double new_att_quat_est_raw[4]);
+	char update_accel_grav_est(double new_accel_grav_est_raw[3]);
+	char update_accel_lin_est(double new_accel_lin_est_raw[3]);
+	char update_Temp_est(double new_Temp);
+	char update_calibration(uint8_t new_calibration[4]);
 	char march(void); //marches all sensors
 
 	/* Data retrieval */
@@ -115,11 +141,24 @@ public:
 	void get_tb_fused(double* buff);
 	double get_continuous_yaw_fused(void);
 
+	void get_calibration(uint8_t* buff); //needs vector of 4
+	double get_Temp(void);
+	void get_quat_est_raw(double* buff);
+	void get_quat_est(double* buff);
+	void get_tb_est_raw(double* buff);
+	void get_tb_est(double* buff);
+	double get_continuous_yaw_est(void);
+
+	void get_accel_lin_est_raw(double* buff);
+	void get_accel_lin_est(double* buff);
+	void get_accel_grav_est_raw(double* buff);
+	void get_accel_grav_est(double* buff);
+
 	/* Reset and cleanup */
 	char reset(void);
 	void cleanup(void);	
 };
-extern IMU_9DOF_gen_t imu;
+extern IMU_9DOF_gen_t IMU0;
 
 
 /** @name Logging class for IMU-9DOF
@@ -154,11 +193,31 @@ private:
 	double att_tb_fused_NED[3];		///< Tait-Bryan angles (roll pitch yaw) in radians from DMP based on Accel + Gyro + Mag in NED
 	double continuous_heading_fused_NED;
 
+	
+	/* Estimated values */ 
+	/* Each value should be a uint8_t
+	 * pointer and it will be set to 0 if not calibrated and 3 if
+	 * fully calibrated.*/
+	uint8_t calibration[4];			///< Current system calibration status, depends on status of all sensors,
+	
+	double Temp;
+	double att_tb_est_raw[3];
+	double att_tb_est_NED[3];
+	double att_quat_est_raw[4];
+	double att_quat_est_NED[4];
+	double continuous_heading_est_NED;
+
+	double accel_lin_est_raw[3];
+	double accel_lin_est_NED[3];
+	double accel_grav_est_raw[3];
+	double accel_grav_est_NED[3];
+
 	gyro_log_entry_t gyro{};
 	accel_log_entry_t accel{};
 	compass_log_entry_t compass{};
 
 	char print_vec(FILE* file, double* vec_in, int size);
+	char print_vec(FILE* file, uint8_t* vec_in, int size);
 	char print_header_vec(FILE* file, const char* prefix, const char* var_name, int size);
 public:
 	char update(IMU_9DOF_gen_t& new_state, IMU_9DOF_gen_settings_t& new_settings);

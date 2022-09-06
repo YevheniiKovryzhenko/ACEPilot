@@ -1,9 +1,33 @@
-/**
-* @file settings.c
-*
-* contains all the functions for io to the settings file, including default
-* values that can be written to disk if no file is present.
- **/
+/*
+ * settings.cpp
+ *
+ * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
+ * Contact: yzk0058@auburn.edu
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL I
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
+ *
+ * Summary :
+ * Functions to read the json settings file
+ */
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>	// FOR str_cmp()
@@ -851,7 +875,8 @@ int settings_load_from_file(char* path)
 #ifdef DEBUG
 	fprintf(stderr,"v_nominal: %f\n",settings.v_nominal);
 #endif
-	PARSE_IMU_9DOF(imu);
+	PARSE_IMU_9DOF(IMU0);
+	PARSE_IMU_9DOF(IMU1);
 	PARSE_MOCAP(mocap);
 	PARSE_BOOL(enable_encoders);
 	PARSE_BOOL(enable_gps);
@@ -946,8 +971,6 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(printf_gain_tunning);
 	PARSE_BOOL(printf_tracking);
 	PARSE_BOOL(printf_gps);
-	PARSE_BOOL(printf_ext_mag);
-	PARSE_BOOL(printf_int_mag);
 	PARSE_BOOL(printf_rev);
 	PARSE_BOOL(printf_counter);
 

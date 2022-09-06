@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating Compass (magnetometer).
@@ -78,11 +78,13 @@ bool compass_gen_t::is_initialized(void)
 
 char compass_gen_t::update(double new_compass_raw[3])
 {
+	/*
 	if (updated)
 	{
 		printf("WARNING in update: already updated compass data.\n");
 		return 0; //skip if already updated
 	}
+	*/
 	/* save new mocap data internally */
 	raw[0] = new_compass_raw[0];
 	raw[1] = new_compass_raw[1];

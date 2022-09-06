@@ -22,11 +22,11 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/04/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This class defines an Extended Kalman Filter V-1 operations.
- * Currently estimates attitude from IMU.
+ * Currently estimates attitude from IMU0.
  *
  * this code is based on the following thread:
  *	https://github.com/beagleboard/librobotcontrol/issues/74#issuecomment-331214723
@@ -54,7 +54,13 @@ char EKF_t::march(double omega[3], double accel[3], double mag[3])
 {
     if (!initialized)
     {
-        enable_mag = settings.imu.compass.enable;
+        enable_mag = settings.IMU0.compass.enable;
+        num_heading_spins = 0;
+        continuous_heading_NED = 0.0;
+        quat_raw[0] = 1.0;
+        quat_raw[1] = 0.0;
+        quat_raw[2] = 0.0;
+        quat_raw[3] = 0.0;
     }
     /* from NED to ENU */
     double om[3] = { omega[1], omega[0], -omega[2] };
@@ -64,6 +70,14 @@ char EKF_t::march(double omega[3], double accel[3], double mag[3])
     /* march EKF */
     IMU_EKF(Pcov, quat_raw, Cov_info, om, acc, magn, finddt_s(time), initialized, enable_mag);
     time = rc_nanos_since_boot(); //log new timestamp
+
+    /* check for NaNs*/
+    if (isnan(quat_raw[0]))
+    {
+        printf("WARNING in EKF1: NaN output detected, resetting...\n");
+        initialized = false;
+        return -1;
+    }
 
     quat_NED[0] = quat_raw[0];
     rotate2NED(ENU, &quat_NED[1], &quat_raw[1]);
@@ -126,14 +140,14 @@ double EKF_t::get_continuous_heading(void)
 /** @name Logging class for EKF
 * Defines how logging should be done for this class
 */
-char EKF_log_entry_t::update(EKF_t* new_state)
+char EKF_log_entry_t::update(EKF_t& new_state)
 {
-    time = new_state->get_time();
+    time = new_state.get_time();
 
-    new_state->get_quat_raw(quat_raw);
-    new_state->get_quat(quat_NED);
-    new_state->get_tb(att_tb_NED);
-    continuous_heading_NED = new_state->get_continuous_heading();
+    new_state.get_quat_raw(quat_raw);
+    new_state.get_quat(quat_NED);
+    new_state.get_tb(att_tb_NED);
+    continuous_heading_NED = new_state.get_continuous_heading();
     return 0;
 }
 char EKF_log_entry_t::print_vec(FILE* file, double* vec_in, int size)

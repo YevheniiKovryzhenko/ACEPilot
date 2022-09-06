@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -79,7 +79,8 @@ private:
 	///@{
 	voltage_sensor_log_entry_t battery_entry{};
 	barometer_log_entry_t bmp_entry{};
-	IMU_9DOF_log_entry_t imu_entry{};
+	IMU_9DOF_log_entry_t IMU0_entry{};
+	IMU_9DOF_log_entry_t IMU1_entry{};
 	///@}
 
 	/*** @name mocap data */

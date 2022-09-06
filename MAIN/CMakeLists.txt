@@ -62,6 +62,9 @@ target_link_libraries(rc_pilot PRIVATE robotics_cape)
 target_link_libraries(rc_pilot PRIVATE lwrb_lib)
 target_link_libraries(rc_pilot PRIVATE json-c)
 target_link_libraries(rc_pilot PRIVATE Serial_Tools_lib)
+target_link_libraries(rc_pilot PRIVATE i2c_driver_lib)
+#target_link_libraries(rc_pilot PRIVATE Adafruit_Sensor_lib)
+target_link_libraries(rc_pilot PRIVATE Adafruit_BNO055_lib)
 
 # This forces to use threads library:
 set(THREADS_PREFER_PTHREAD_FLAG ON)

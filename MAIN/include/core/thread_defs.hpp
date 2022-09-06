@@ -36,4 +36,9 @@
 #define MOCAP_TOUT 1.0
 
 
+#define EXTRA_SENSORS_HZ 100
+#define EXTRA_SENSORS_PRI 45
+#define EXTRA_SENSORS_TOUT 1.0
+
+
 #endif

@@ -22,14 +22,14 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/04/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains all the primary functionality and framework for state estimation rountines
  *
  * This runs at the same rate as the feedback controller.
  * state_estimator_march() is called immediately before  feedback_march() in the
- * IMU interrupt service routine.
+ * IMU0 interrupt service routine.
  */
 
 #include <stdint.h> // for uint64_t
@@ -52,12 +52,12 @@
 #include "KF.hpp"
 #include "EKF.hpp"
 #include "EKF2.hpp"
+#include "extra_sensors.hpp"
 
 #define TWO_PI (M_PI*2.0)
 
 rc_mpu_data_t mpu_data; // extern variable in state_estimator.hpp
 state_estimate_t state_estimate{}; // extern variable in state_estimator.hpp
-
 
 char state_estimate_t::init_internal_filters(void)
 {
@@ -117,9 +117,9 @@ int state_estimate_t::init(void)
 		}
 
 	}
-	if (unlikely(imu.init(settings.imu) < 0))
+	if (unlikely(IMU0.init(settings.IMU0) < 0))
 	{
-		fprintf(stderr, "ERROR in init: failed to initialize IMU\n");
+		fprintf(stderr, "ERROR in init: failed to initialize IMU0\n");
 		return -1;
 	}
 	if (unlikely(mocap.init(settings.mocap) < 0))
@@ -134,6 +134,13 @@ int state_estimate_t::init(void)
 		fprintf(stderr, "ERROR in init: failed to initialize internal filters\n");
 		return -1;
 	}
+
+	if (unlikely(extra_sensors.init() < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize extra sensors\n");
+		return -1;
+	}
+	
 
 	initialized = true;
 	first_run = true;
@@ -170,41 +177,41 @@ char state_estimate_t::update_all_sourses(void)
 		return -1;
 	}
 
-	//IMU:
+	//IMU0:
 	double tmp[3];
 	for (int i = 0; i < 3; i++) tmp[i] = mpu_data.gyro[i] * DEG_TO_RAD; //convert to radians
-	if (unlikely(imu.gyro.update(tmp) < 0)) //populate gyro data struct
+	if (unlikely(IMU0.gyro.update(tmp) < 0)) //populate gyro data struct
 	{
 		fprintf(stderr, "ERROR in update_all_sourses: failed to update gyro data\n");
 		return -1;
 	}
-	if (unlikely(imu.accel.update(mpu_data.accel) < 0)) //populate accel data struct
+	if (unlikely(IMU0.accel.update(mpu_data.accel) < 0)) //populate accel data struct
 	{
 		fprintf(stderr, "ERROR in update_all_sourses: failed to update accel data\n");
 		return -1;
 	}
-	if (unlikely(imu.update_att_from_quat_dmp(mpu_data.dmp_quat) < 0)) //populate dmp data struct
+	if (unlikely(IMU0.update_att_from_quat_dmp(mpu_data.dmp_quat) < 0)) //populate dmp data struct
 	{
 		fprintf(stderr, "ERROR in update_all_sourses: failed to fuse gyro and accel data\n");
 		return -1;
 	}
-	if (settings.imu.compass.enable) // don't update mag if mag isn't enabled
+	if (settings.IMU0.compass.enable) // don't update mag if mag isn't enabled
 	{
-		if (unlikely(imu.compass.update(mpu_data.accel) < 0)) //populate mag data struct
+		if (unlikely(IMU0.compass.update(mpu_data.accel) < 0)) //populate mag data struct
 		{
 			fprintf(stderr, "ERROR in update_all_sourses: failed to update compass data\n");
 			return -1;
 		}
 
-		if (unlikely(imu.update_att_from_quat_fused(mpu_data.fused_quat) < 0)) //populate fused data struct
+		if (unlikely(IMU0.update_att_from_quat_fused(mpu_data.fused_quat) < 0)) //populate fused data struct
 		{
 			fprintf(stderr, "ERROR in update_all_sourses: failed to fuse gyro, accel and compass data\n");
 			return -1;
 		}
 	}
-	if (unlikely(imu.march() < 0)) //march all gyro accel and mag filters
+	if (unlikely(IMU0.march() < 0)) //march all gyro accel and mag filters
 	{
-		fprintf(stderr, "ERROR in update_all_sourses: failed to march IMU\n");
+		fprintf(stderr, "ERROR in update_all_sourses: failed to march IMU0\n");
 		return -1;
 	}
 
@@ -221,7 +228,7 @@ char state_estimate_t::update_all_sourses(void)
 			tmp[3] = GS_RX.qz;
 			if (unlikely(mocap.update_att_from_quat(tmp) < 0))
 			{
-				fprintf(stderr, "ERROR in march: failed to update mocap attitude\n");
+				fprintf(stderr, "ERROR in update_all_sourses: failed to update mocap attitude\n");
 				return -1;
 			}
 			tmp[0] = GS_RX.x;
@@ -230,27 +237,25 @@ char state_estimate_t::update_all_sourses(void)
 
 			if (unlikely(mocap.update_pos_vel_from_pos(tmp) < 0))
 			{
-				fprintf(stderr, "ERROR in march: failed to update mocap position\n");
+				fprintf(stderr, "ERROR in update_all_sourses: failed to update mocap position\n");
 				return -1;
 			}
 
 			if (unlikely(mocap.march() < 0))
 			{
-				fprintf(stderr, "ERROR in march: failed to march mocap\n");
+				fprintf(stderr, "ERROR in update_all_sourses: failed to march mocap\n");
 				return -1;
 			}
-		}		
-
-		//mocap_check_timeout();
+		}
 	}
 	return 0;
 }
 
 
 /**
-* @brief       Fetches data from IMU and internal sensors
+* @brief       Fetches data from IMU0 and internal sensors
 *
-* Updates estimator from IMU and on-board sensors,
+* Updates estimator from IMU0 and on-board sensors,
 * also selects proper sourses.
 * Since this is the first update, it assumed to be the least accurate,
 * so the subsequent ones might overwrite these.
@@ -276,24 +281,24 @@ void state_estimate_t::fetch_internal_sourses(void)
 
 
 	/* Attitude Angles and Rates + Body Rates */
-	if (settings.imu.use_compass && settings.imu.compass.enable) //use fused data from Gyro, Accel and Mag
+	if (settings.IMU0.use_compass && settings.IMU0.compass.enable) //use fused data from Gyro, Accel and Mag
 	{
-		imu.get_quat_fused(quat);
-		imu.get_tb_fused(att);
-		continuous_yaw = imu.get_continuous_yaw_fused();
+		IMU0.get_quat_fused(quat);
+		IMU0.get_tb_fused(att);
+		continuous_yaw = IMU0.get_continuous_yaw_fused();
 	}
 	else //use fused data from Gyro and Accel
 	{
-		imu.get_quat_dmp(quat);
-		imu.get_tb_dmp(att);
-		continuous_yaw = imu.get_continuous_yaw_dmp();
+		IMU0.get_quat_dmp(quat);
+		IMU0.get_tb_dmp(att);
+		continuous_yaw = IMU0.get_continuous_yaw_dmp();
 	}
-	imu.gyro.get(omega);
+	IMU0.gyro.get(omega);
 	// need to also calculate omega -> att_rates
 	omega_att2att_rates(att_rates, att, omega); //uses kinematics
 
 	/* Acceleration */
-	imu.accel.get(accel_relative);
+	IMU0.accel.get(accel_relative);
 	for (int i = 0; i < 3; i++) accel_global[i] = accel_relative[i];
 	rc_quaternion_rotate_vector_array(accel_global, quat);
 	accel_global[2] = accel_global[2] + GRAVITY;
@@ -400,7 +405,7 @@ void state_estimate_t::update_internal_filters(void)
 
 	/* Update Attitude EKF */
 	double tmp[3];
-	imu.compass.get(tmp);
+	IMU0.compass.get(tmp);
 	EKF1.march(omega, accel_relative, tmp);
 	EKF2.march(omega, accel_relative, tmp);
 
@@ -461,7 +466,8 @@ int state_estimate_t::cleanup(void)
 {
 	batt.cleanup();
 	bmp.cleanup();
-	imu.cleanup();
+	IMU0.cleanup();
+	IMU1.cleanup();
 	mocap.cleanup();
 
 	cleanup_internal_filters();

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/06/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating Gyroscope.
@@ -45,12 +45,15 @@ char gyro_gen_t::init(gyro_gen_settings_t& new_gyro_settings)
 		fprintf(stderr, "ERROR in init: gyro is already initialized.\n");
 		return -1;
 	}
-
-	if (unlikely(lp.set(new_gyro_settings.filter) < 0))
+	if (new_gyro_settings.enable_filters)
 	{
-		fprintf(stderr, "ERROR in init: failed to initialize gyro filters\n");
-		return -1;
+		if (unlikely(lp.set(new_gyro_settings.filter) < 0))
+		{
+			fprintf(stderr, "ERROR in init: failed to initialize gyro filters\n");
+			return -1;
+		}
 	}
+	
 	settings = new_gyro_settings;
 
 	updated = false;
@@ -80,7 +83,7 @@ bool gyro_gen_t::is_initialized(void)
 
 char gyro_gen_t::update(double new_gyro_raw[3])
 {
-	if (updated)
+	if (settings.enable_filters && updated)
 	{
 		printf("WARNING in update: already updated gyro data.\n");
 		return 0; //skip if already updated
@@ -105,7 +108,7 @@ char gyro_gen_t::march(void)
 		fprintf(stderr, "ERROR in march: gyro is not initialized.\n");
 		return -1;
 	}
-	if (updated)
+	if (settings.enable_filters && updated)
 	{
 		lp.march(filtered_NED, raw_NED);
 		updated = false;
@@ -137,9 +140,16 @@ void gyro_gen_t::get_raw_NED(double* buff)
 
 void gyro_gen_t::get(double* buff)
 {
-	for (int i = 0.0; i < 3; i++)
+	if (settings.enable_filters)
 	{
-		buff[i] = filtered_NED[i];
+		for (int i = 0.0; i < 3; i++)
+		{
+			buff[i] = filtered_NED[i];
+		}
+	}
+	else
+	{
+		get_raw_NED(buff);
 	}
 	return;
 }
@@ -177,7 +187,7 @@ char gyro_log_entry_t::update(gyro_gen_t& new_state, gyro_gen_settings_t& new_se
 		new_state.get_raw(raw);
 		new_state.get_raw_NED(raw_NED);
 	}
-	new_state.get(filtered_NED);
+	if (new_settings.enable_filters) new_state.get(filtered_NED);
 
 	return 0;
 }
@@ -208,7 +218,7 @@ char gyro_log_entry_t::print_header(FILE* file, const char* prefix, gyro_gen_set
 		print_header_vec(file, prefix, GET_VARIABLE_NAME(raw), 3);
 		print_header_vec(file, prefix, GET_VARIABLE_NAME(raw_NED), 3);
 	}
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(filtered_NED), 3);
+	if (new_settings.enable_filters) print_header_vec(file, prefix, GET_VARIABLE_NAME(filtered_NED), 3);
 	return 0;
 }
 char gyro_log_entry_t::print_entry(FILE* file, gyro_gen_settings_t& new_settings)
@@ -221,7 +231,7 @@ char gyro_log_entry_t::print_entry(FILE* file, gyro_gen_settings_t& new_settings
 		print_vec(file, raw, 3);
 		print_vec(file, raw_NED, 3);
 	}
-	print_vec(file, filtered_NED, 3);
+	if (new_settings.enable_filters) print_vec(file, filtered_NED, 3);
 	return 0;
 }
 
@@ -250,16 +260,24 @@ int parse_gyro_gen_settings(json_object* in_json, const char* name, gyro_gen_set
 	}
 
 	// Parse filter
-	char buf[8 + 3];
-	for (int i = 0; i < 3; i++)
+	if (parse_bool(tmp_main_json, "enable_filters", sensor.enable_filters))
 	{
-		snprintf(buf, 11, "filter[%i]", i); // puts string into buffer
-		if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.filter[i]) < 0)
-		{
-			fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);
-			return -1;
-		}
+		fprintf(stderr, "ERROR: failed to parse enable_filters flag for %s\n", name);
+		return -1;
 	}
+	if (sensor.enable_filters)
+	{
+		char buf[8 + 3];
+		for (int i = 0; i < 3; i++)
+		{
+			snprintf(buf, 11, "filter[%i]", i); // puts string into buffer
+			if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.filter[i]) < 0)
+			{
+				fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);
+				return -1;
+			}
+		}
+	}	
 
 	// Parse other entries
 	if (parse_bool(tmp_main_json, "enable_logging", sensor.enable_logging))

@@ -8,7 +8,7 @@
 	"layout": "LAYOUT_4X",
 	"thrust_map": "RS2212_920_4S",
 	"orientation": "ORIENTATION_X_FORWARD",
-	
+
 	"battery": {
 		"filter": {
 			"type": "Moving_Avg",
@@ -27,10 +27,12 @@
 		"log_raw": true
 	},
 
-	"imu": {
+	"IMU0": {
+		"enable": true,
 		"frame_type": "ENU",
 		"gyro": {
 			"frame_type": "ENU",
+			"enable_filters": true,
 			"filter[0]": {
 				"type": "Lowpass",
 				"dt": 0.005,
@@ -51,6 +53,7 @@
 		},
 		"accel": {
 			"frame_type": "ENU",
+			"enable_filters": true,
 			"filter[0]": {
 				"type": "Lowpass",
 				"dt": 0.005,
@@ -79,11 +82,41 @@
 		"enable_logging": true,
 		"log_raw": true,
 		"log_dmp": true,
-		"log_fused": true
+		"log_fused": true,
+		"log_est": false
+	},
+
+	"IMU1": {
+		"enable": true,
+		"frame_type": "ENU",
+		"gyro": {
+			"frame_type": "ENU",
+			"enable_filters": false,
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"accel": {
+			"frame_type": "ENU",
+			"enable_filters": false,
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"use_compass": true,
+		"compass": {
+			"enable": true,
+			"frame_type": "ENU",
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"enable_logging": true,
+		"log_raw": true,
+		"log_dmp": false,
+		"log_fused": false,
+		"log_est": true
 	},
 
 	"mocap": {
-		"enable": true,
+		"enable": false,
 		"use_roll_pitch_rate": false,
 		"use_yaw_rate": false,
 		"use_roll_pitch": false,
@@ -153,7 +186,7 @@
 	"flight_mode_2": "MANUAL_AAxxxx",
 	"flight_mode_3": "POS_CTRL_FFFAAA",
 
-	"enable_dsm": true,
+	"enable_dsm": false,
 	"dsm_thr_ch": 1,
 	"dsm_thr_pol": 1,
 	"dsm_roll_ch": 2,
@@ -187,14 +220,12 @@
 	"printf_gain_tunning": true,
 	"printf_tracking": false,
 	"printf_gps": false,
-	"printf_int_mag": false,
-	"printf_ext_mag": false,
 	"printf_rev": false,
 	"printf_counter": false,
 
 	"enable_logging": true,
 	"log_every_n_entry": 1,
-	"log_only_while_armed": true,
+	"log_only_while_armed": false,
 	"log_sensors": true,
 	"log_state": true,
 	"log_gps": false,
@@ -214,7 +245,6 @@
 	"log_dsm": true,
 	"log_flight_mode": true,
 	"log_benchmark": true,
-	"log_ext_mag": false,
 	"log_control_u": false,
 	"log_motor_signals": false,
 	"log_encoders": false,

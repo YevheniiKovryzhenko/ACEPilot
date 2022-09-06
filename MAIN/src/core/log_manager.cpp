@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/06/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -58,6 +58,7 @@
 #include "EKF.hpp"
 #include "EKF2.hpp"
 #include "voltage_sensor_gen.hpp"
+#include "extra_sensors.hpp"
  
 // preposessor macros
 #ifndef unlikely
@@ -133,7 +134,8 @@ int log_entry_t::write_header(void)
     {
         battery_entry.print_header(log_fd, "batt_", settings.battery);
         bmp_entry.print_header(log_fd, "bmp_");
-        imu_entry.print_header(log_fd, "imu_", settings.imu);
+        IMU0_entry.print_header(log_fd, "IMU0_", settings.IMU0);
+        IMU1_entry.print_header(log_fd, "IMU1_", settings.IMU1);
     }
 
 
@@ -270,7 +272,8 @@ int log_entry_t::write_log_entry(void)
     {
         battery_entry.print_entry(log_fd, settings.battery);
         bmp_entry.print_entry(log_fd);
-        imu_entry.print_entry(log_fd, settings.imu);
+        IMU0_entry.print_entry(log_fd, settings.IMU0);
+        IMU1_entry.print_entry(log_fd, settings.IMU1);
     }
     
     if (settings.mocap.enable) mocap_entry.print_entry(log_fd, settings.mocap);
@@ -539,7 +542,8 @@ void log_entry_t::construct_new_entry(void)
     {
         battery_entry.update(batt, settings.battery);
         bmp_entry.update(bmp);
-        imu_entry.update(imu, settings.imu);
+        IMU0_entry.update(IMU0, settings.IMU0);
+        IMU1_entry.update(IMU1, settings.IMU1);
     }
 
     if (settings.log_state) state_estimator_entry.update(&state_estimate);
@@ -577,8 +581,8 @@ void log_entry_t::construct_new_entry(void)
 
     /* Filters */
     KF_altitude_entry.update(&KF_altitude);
-    EKF1_entry.update(&EKF1);
-    EKF2_entry.update(&EKF2);
+    EKF1_entry.update(EKF1);
+    EKF2_entry.update(EKF2);
 
 
     X_throttle 	    = setpoint.POS_throttle.x.value.get();//setpoint.X_throttle;

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/05/2022 (MM/DD/YYYY)
  *
  */
 #include "printf_manager.hpp"
@@ -154,10 +154,6 @@ static int __print_header()
 	if (settings.printf_gps)
 	{
 		printf("%sgps_lat|gps_lon|gps_ele|", __next_colour());
-	}
-	if (settings.printf_ext_mag)
-	{
-		printf("%ext_mag_x|ext_mag_y|ext_mag_z|vec_norm|", __next_colour());
 	}
 	if (settings.printf_motors)
 	{
