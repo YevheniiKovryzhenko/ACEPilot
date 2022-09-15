@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/06/2022 (MM/DD/YYYY)
+ * Last Edit:  09/15/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system
@@ -117,7 +117,7 @@ char mocap_gen_t::update_time(uint64_t new_time, uint8_t new_valid_fl)
 	}
 	else
 	{
-		if (no_new_updates > 8)
+		if (no_new_updates > 9)
 		{
 			valid = false;
 			if (settings.enable_warnings) printf("WARNING: mocap lost visual\n");

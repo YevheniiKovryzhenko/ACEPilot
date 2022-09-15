@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:   05/29/2022 (MM/DD/YYYY)
+ * Last Edit:   09/15/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -37,7 +37,7 @@
 #ifndef FEEDBACK_H
 #define FEEDBACK_H
 #include <stdbool.h>
-
+#include "thread_gen.hpp"
 #include "controller.hpp"
 
 /**
@@ -60,11 +60,19 @@ private:
 
 	feedback_controller_t controller;
 
-	int send_motor_stop_pulse(void);
+	thread_gen_t thread{};
+	uint64_t arm_thread_time;
+
+	char start_arm_tread(void);
+
+	char send_motor_stop_pulse(void);
 
 public:
 	/* externally resets arming flags */
 	int reset_arming_fl(void); //does not disarm 
+
+	/* updates arming thread (internal) */
+	char update_arm_thread(void);
 
 	/* Externally used functions to get information about the current feedback state */
 	double get_m(int i);
