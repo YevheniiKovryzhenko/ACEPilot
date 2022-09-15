@@ -126,6 +126,9 @@ int feedback_controller_t::rpy_march(void)
 	if (!last_en_rpy_ctrl)
 	{
 		setpoint.ATT.reset();
+		setpoint.ATT.x.set(state_estimate.get_roll());
+		setpoint.ATT.y.set(state_estimate.get_pitch());
+		setpoint.ATT.z.set(state_estimate.get_continuous_heading());
 		rpy_reset();
 
 		last_en_rpy_ctrl = true;
@@ -244,6 +247,9 @@ int feedback_controller_t::rpy_rate_march(void)
 	if (!last_en_rpy_rate_ctrl)
 	{
 		setpoint.ATT_dot.reset();
+		setpoint.ATT_dot.x.set(state_estimate.get_roll_dot());
+		setpoint.ATT_dot.y.set(state_estimate.get_pitch_dot());
+		setpoint.ATT_dot.z.set(state_estimate.get_yaw_dot());
 		rpy_rate_reset();
 
 		last_en_rpy_rate_ctrl = true;
@@ -354,6 +360,8 @@ int feedback_controller_t::xy_march(void)
 	if (!last_en_XY_ctrl)
 	{
 		setpoint.XY.reset();
+		setpoint.XY.x.set(state_estimate.get_X());
+		setpoint.XY.y.set(state_estimate.get_Y());
 		xy_reset();
 
 		last_en_XY_ctrl = true;
@@ -450,6 +458,8 @@ int feedback_controller_t::xy_rate_march(void)
 	if (!last_en_XYdot_ctrl)
 	{
 		setpoint.XY_dot.reset();
+		setpoint.XY_dot.x.set(state_estimate.get_X_vel());
+		setpoint.XY_dot.y.set(state_estimate.get_Y_vel());
 		xy_rate_reset();
 		last_en_XYdot_ctrl = true;
 	}
@@ -649,6 +659,7 @@ int feedback_controller_t::z_rate_march(void)
 	if (!last_en_Zdot_ctrl)
 	{
 		setpoint.Z_dot.reset();
+		setpoint.Z_dot.set(state_estimate.get_Z_vel());
 		z_rate_reset();
 
 		if (!last_en_Z_ctrl)

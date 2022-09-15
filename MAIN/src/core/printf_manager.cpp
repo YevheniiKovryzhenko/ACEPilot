@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/05/2022 (MM/DD/YYYY)
+ * Last Edit:  09/015/2022 (MM/DD/YYYY)
  *
  */
 #include "printf_manager.hpp"
@@ -109,7 +109,9 @@ static int __print_header()
 	}
 	if(settings.printf_sticks)
 	{
-		printf("%s  kill  | thr |roll |pitch| yaw |", __next_colour());
+		printf("%s  kill  ", KNRM);
+		printf(KGRN);
+		printf("%s| thr |roll |pitch| yaw |", __next_colour());
 	}
 	if (settings.printf_setpoint)
 	{
@@ -127,7 +129,8 @@ static int __print_header()
 		}
 		if (settings.printf_setpoint_z_dot)
 		{
-			printf("%s sp_zd|", __next_colour());
+			if (settings.printf_setpoint_xy_dot) printf(" sp_zd|");
+			else printf("%s sp_zd|", __next_colour());			
 		}
 		if (settings.printf_setpoint_att)
 		{
@@ -163,15 +166,6 @@ static int __print_header()
 			printf("  M%d |", i + 1);
 		}
 	}
-	/*
-	if (settings.printf_int_mag)
-	{
-		printf("%s mag_x | mag_y | mag_z |mag_nrm|", __next_colour());
-	}
- 	if(settings.printf_rev){
- 		printf("%s rev1 | rev2 | rev3 | rev4 ", __next_colour());
- 	}
-	*/
 	printf(KNRM);
 	if(settings.printf_mode){
 		printf("   MODE ");
@@ -349,8 +343,8 @@ static void* __printf_manager_func(__attribute__ ((unused)) void* ptr)
 			}
 			if (settings.printf_setpoint_z_dot)
 			{
-				printf("%s%+6.2f|", __next_colour(),
-					setpoint.Z_dot.value.get());
+				if (settings.printf_setpoint_xy_dot) printf("%+6.2f|", setpoint.Z_dot.value.get());
+				else printf("%s%+6.2f|", __next_colour(), setpoint.Z_dot.value.get());
 			}
 			if (settings.printf_setpoint_att)
 			{

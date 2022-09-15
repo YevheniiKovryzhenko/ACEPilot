@@ -24,7 +24,7 @@
 		"nominal": 16.5,
 		"min_critical": 4.8,
 		"enable_logging": true,
-		"log_raw": true
+		"log_raw": false
 	},
 
 	"IMU0": {
@@ -49,7 +49,7 @@
 				"tc": 0.035
 			},
 			"enable_logging": true,
-			"log_raw": true
+			"log_raw": false
 		},
 		"accel": {
 			"frame_type": "ENU",
@@ -70,24 +70,24 @@
 				"tc": 0.100
 			},
 			"enable_logging": true,
-			"log_raw": true
+			"log_raw": false
 		},
 		"use_compass": true,
 		"compass": {
 			"enable": true,
 			"frame_type": "ENU",
 			"enable_logging": true,
-			"log_raw": true
+			"log_raw": false
 		},
 		"enable_logging": true,
-		"log_raw": true,
+		"log_raw": false,
 		"log_dmp": true,
 		"log_fused": true,
 		"log_est": false
 	},
 
 	"IMU1": {
-		"enable": true,
+		"enable": false,
 		"frame_type": "ENU",
 		"gyro": {
 			"frame_type": "ENU",
@@ -206,12 +206,12 @@
 	"printf_battery": true,
 	"printf_rpy": true,
 	"printf_sticks": true,
-	"printf_setpoint": true,
-	"printf_setpoint_xy": false,
-	"printf_setpoint_xy_dot": false,
-	"printf_setpoint_z": false,
+	"printf_setpoint": false,
+	"printf_setpoint_xy": true,
+	"printf_setpoint_xy_dot": true,
+	"printf_setpoint_z": true,
 	"printf_setpoint_z_dot": true,
-	"printf_setpoint_att": false,
+	"printf_setpoint_att": true,
 	"printf_setpoint_att_dot": true,
 	"printf_u": false,
 	"printf_motors": false,
@@ -223,7 +223,7 @@
 	"printf_rev": false,
 	"printf_counter": false,
 
-	"enable_logging": true,
+	"enable_logging": false,
 	"log_every_n_entry": 1,
 	"log_only_while_armed": true,
 	"log_sensors": true,

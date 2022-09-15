@@ -404,10 +404,10 @@ void state_estimate_t::update_internal_filters(void)
 	alt_acc = KF_altitude.get_alt_acc();
 
 	/* Update Attitude EKF */
-	double tmp[3];
-	IMU0.compass.get(tmp);
-	EKF1.march(omega, accel_relative, tmp);
-	EKF2.march(omega, accel_relative, tmp);
+	//double tmp[3];
+	//IMU0.compass.get(tmp);
+	//EKF1.march(omega, accel_relative, tmp);
+	//EKF2.march(omega, accel_relative, tmp);
 
 	//EKF2.get_tb(att);
 	//continuous_yaw = EKF2.get_continuous_heading();

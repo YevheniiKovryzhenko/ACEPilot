@@ -388,24 +388,24 @@ int setpoint_t::update_stick_filter_hp(void)
 /* Functions which should be called internally to update setpoints based on radio input:*/
 void setpoint_t::update_yaw(void)
 {
-	// if throttle stick is down all the way, probably landed, so
-	// keep the yaw setpoint at current yaw so it takes off straight
-	double tmp_yaw = user_input.yaw.get();
+	//don't move the setpoint if on the ground
+	//need a flag for this...
 
-	/*	
-	double  vel_mag = sqrt(\
-		state_estimate.get_X_vel() * state_estimate.get_X_vel()\
-		+ state_estimate.get_Y_vel() * state_estimate.get_Y_vel()\
-		+ state_estimate.get_Z_vel() * state_estimate.get_Z_vel());
-
-	if(user_input.throttle.get() < 0.05 && fabs(tmp_yaw) < 0.05){
-		ATT.z.value.set(state_estimate.get_continuous_heading());
-		return;
+	/* Apply manual stick setpoint */
+	double tmp_yaw = state_estimate.get_continuous_heading();
+	double tmp_yaw_new = ATT.z.value.get() + __deadzone(user_input.yaw.get(), 0.05) * MAX_YAW_RATE * DT;
+	if (tmp_yaw_new - tmp_yaw > MAX_YAW_ERROR)
+	{
+		ATT.z.value.set(tmp_yaw + MAX_YAW_ERROR);
 	}
-	*/
-	// otherwise, scale yaw by max yaw rate in rad/s
-	// and move yaw setpoint
-	ATT.z.value.increment(__deadzone(tmp_yaw, 0.05) * MAX_YAW_RATE * DT);
+	else if (tmp_yaw_new - tmp_yaw < -MAX_YAW_ERROR)
+	{
+		ATT.z.value.set(tmp_yaw - MAX_YAW_ERROR);
+	}
+	else
+	{
+		ATT.z.value.set(tmp_yaw_new);
+	}
 	return;
 }
 
@@ -428,17 +428,7 @@ void setpoint_t::update_rpy_rate(void)
 {
 	ATT_dot.x.value.set(__deadzone(user_input.roll.get(), 0.05) * MAX_ROLL_RATE);
 	ATT_dot.y.value.set(__deadzone(user_input.pitch.get(), 0.05) * MAX_PITCH_RATE);
-
-	
-	double tmp_yaw = user_input.yaw.get();
-	/*
-	if (user_input.throttle.get() < 0.05 && fabs(tmp_yaw) < 0.05) {
-		ATT_dot.z.value.set(state_estimate.get_yaw_dot());
-		return;
-	}
-	*/
-
-	ATT_dot.z.value.set(__deadzone(tmp_yaw, 0.05) * MAX_YAW_RATE);
+	ATT_dot.z.value.set(__deadzone(user_input.yaw.get(), 0.05) * MAX_YAW_RATE);
 	return;
 }
 
@@ -581,31 +571,49 @@ void setpoint_t::update_XY_pos(void)
 	double tmp_roll = __deadzone(user_input.roll.get(), 0.05);
 	double tmp_pitch = __deadzone(user_input.pitch.get(), 0.05);
 	if (tmp_roll == 0.0 && tmp_pitch == 0.0) return; //return if no change requested
+	double tmp_yaw = state_estimate.get_continuous_heading();
+
+	double tmp_x = XY.x.value.get() + \
+		(-tmp_pitch * cos(tmp_yaw)\
+		- tmp_roll * sin(tmp_yaw))\
+		* MAX_XY_VELOCITY * DT;
 	
+	double tmp_y = XY.y.value.get() + \
+		(tmp_roll * cos(tmp_yaw)\
+		- tmp_pitch * sin(tmp_yaw))\
+		* MAX_XY_VELOCITY * DT;
+
 	// make sure setpoint doesn't go too far from state in case touching something
-	double tmp_x = XY.x.value.get() - state_estimate.get_X();
-	double tmp_y = XY.y.value.get() - state_estimate.get_X();
-	double tmp_norm = sqrt(tmp_x * tmp_x + tmp_y * tmp_y);
-	if (tmp_norm >= XY_MAX_ERROR_NORM)
+	double tmp_X = state_estimate.get_X();
+	double tmp_Y = state_estimate.get_Y();
+	double tmp_x_error = tmp_x - tmp_X;
+	double tmp_y_error = tmp_y - tmp_Y;
+	double tmp_error_norm = sqrt(tmp_x_error * tmp_x_error + tmp_y_error * tmp_y_error);
+	if (tmp_error_norm >= XY_MAX_ERROR_NORM)
 	{
 		//maintain the same dirrection of error, but bound the magnitude
-		XY.x.value.set(state_estimate.get_X() + tmp_x / tmp_norm * XY_MAX_ERROR_NORM);
-		XY.y.value.set(state_estimate.get_Y() + tmp_y / tmp_norm * XY_MAX_ERROR_NORM);
+		XY.x.value.set(tmp_X + tmp_x_error / tmp_error_norm * XY_MAX_ERROR_NORM);
+		XY.y.value.set(tmp_Y + tmp_y_error / tmp_error_norm * XY_MAX_ERROR_NORM);
 		return;
+	}
+	else
+	{
+		XY.x.value.set(tmp_x);
+		XY.y.value.set(tmp_y);
 	}
 
 	//double tmp_X_dot, tmp_Y_dot;
-	double tmp_yaw = state_estimate.get_continuous_heading();
+	
 	
 	// X in the body frame (forward flight)
 	//apply as a velocity command integrated by the timestep 
-	XY.x.value.increment((-tmp_pitch * cos(tmp_yaw)\
+	//XY.x.value.increment((-tmp_pitch * cos(tmp_yaw)\
 		- tmp_roll * sin(tmp_yaw))\
 		* MAX_XY_VELOCITY * DT);
 
 	// Y in the body frame (lateral translation)
 	//apply velocity command 
-	XY.y.value.increment((user_input.roll.get() * cos(tmp_yaw)\
+	//XY.y.value.increment((user_input.roll.get() * cos(tmp_yaw)\
 		- user_input.pitch.get() * sin(tmp_yaw))\
 		* MAX_XY_VELOCITY * DT); //Y is defined positive to the left 
 
