@@ -33,17 +33,17 @@
 		"gyro": {
 			"frame_type": "ENU",
 			"enable_filters": true,
-			"filter[0]": {
+			"filter_0": {
 				"type": "Lowpass",
 				"dt": 0.005,
 				"tc": 0.030
 			},
-			"filter[1]": {
+			"filter_1": {
 				"type": "Lowpass",
 				"dt": 0.005,
 				"tc": 0.030
 			},
-			"filter[2]": {
+			"filter_2": {
 				"type": "Lowpass",
 				"dt": 0.005,
 				"tc": 0.035
@@ -54,17 +54,17 @@
 		"accel": {
 			"frame_type": "ENU",
 			"enable_filters": true,
-			"filter[0]": {
+			"filter_0": {
 				"type": "Lowpass",
 				"dt": 0.005,
 				"tc": 0.100
 			},
-			"filter[1]": {
+			"filter_1": {
 				"type": "Lowpass",
 				"dt": 0.005,
 				"tc": 0.100
 			},
-			"filter[2]": {
+			"filter_2": {
 				"type": "Lowpass",
 				"dt": 0.005,
 				"tc": 0.100
@@ -122,32 +122,32 @@
 		"use_roll_pitch": false,
 		"use_heading": true,
 		"frame_type": "NWU",
-		"att_filter[0]": {
+		"att_filter_0": {
 			"type": "Lowpass",
 			"dt": 0.005,
 			"tc": 0.030
 		},
-		"att_filter[1]": {
+		"att_filter_1": {
 			"type": "Lowpass",
 			"dt": 0.005,
 			"tc": 0.030
 		},
-		"att_filter[2]": {
+		"att_filter_2": {
 			"type": "Lowpass",
 			"dt": 0.005,
 			"tc": 0.050
 		},
-		"vel_filter[0]": {
+		"vel_filter_0": {
 			"type": "Lowpass",
 			"dt": 0.005,
 			"tc": 0.100
 		},
-		"vel_filter[1]": {
+		"vel_filter_1": {
 			"type": "Lowpass",
 			"dt": 0.005,
 			"tc": 0.100
 		},
-		"vel_filter[2]": {
+		"vel_filter_2": {
 			"type": "Lowpass",
 			"dt": 0.005,
 			"tc": 0.020
@@ -182,9 +182,9 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "ACRO_Axxxxx",
-	"flight_mode_2": "MANUAL_AAxxxx",
-	"flight_mode_3": "ALT_HOLD_AAAxxx",
+	"flight_mode_1": "MANUAL_AAxxxx",
+	"flight_mode_2": "ALT_HOLD_AAAxxx",
+	"flight_mode_3": "ALT_HOLD_AAAAxx",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -206,7 +206,7 @@
 	"printf_battery": true,
 	"printf_rpy": true,
 	"printf_sticks": true,
-	"printf_setpoint": false,
+	"printf_setpoint": true,
 	"printf_setpoint_xy": true,
 	"printf_setpoint_xy_dot": true,
 	"printf_setpoint_z": true,
@@ -435,7 +435,7 @@
 			"ki": 0.152426937111458,
 			"imax": 0.10
 		},
-		"K": 3.811203,
+		"K": 1.1378064527477998,
 		"FF": 0.0
 	},
 

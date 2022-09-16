@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/06/2022 (MM/DD/YYYY)
+ * Last Edit:  09/16/2022 (MM/DD/YYYY)
  *
  * Summary :
  * This contains the nessesary framework for operating Accelerometer.
@@ -281,7 +281,7 @@ int parse_accel_gen_settings(json_object* in_json, const char* name, accel_setti
 		char buf[8 + 3];
 		for (int i = 0; i < 3; i++)
 		{
-			snprintf(buf, 11, "filter[%i]", i); // puts string into buffer
+			snprintf(buf, 11, "filter_%i", i); // puts string into buffer
 			if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.filter[i]) < 0)
 			{
 				fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);

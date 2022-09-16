@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/15/2022 (MM/DD/YYYY)
+ * Last Edit:  09/16/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system
@@ -531,7 +531,7 @@ int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_setti
 	char buf[12+3];
 	for (int i = 0; i < 3; i++)
 	{
-		snprintf(buf, 15, "att_filter[%i]", i); // puts string into buffer
+		snprintf(buf, 15, "att_filter_%i", i); // puts string into buffer
 		if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.att_filter[i]) < 0)
 		{
 			fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);
@@ -540,7 +540,7 @@ int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_setti
 	}
 	for (int i = 0; i < 3; i++)
 	{
-		snprintf(buf, 15, "vel_filter[%i]", i); // puts string into buffer
+		snprintf(buf, 15, "vel_filter_%i", i); // puts string into buffer
 		if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.vel_filter[i]) < 0)
 		{
 			fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);

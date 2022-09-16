@@ -56,7 +56,7 @@ template <typename T> int sgn(T val) {
 
 
 /* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
-inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
+void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	double x_sp, double y_sp, double x, double y, double max_norm)
 {
 	double tmp_x_err = x_sp - x;
@@ -83,7 +83,7 @@ inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 }
 
 /* Brief: shortcut for 1D normalized bound on setpoint */
-inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
+double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
 {
 	double tmp_err = (x_sp - x) / max_err;
 	if (tmp_err > 1.0) tmp_err = 1.0;
@@ -690,20 +690,6 @@ int feedback_controller_t::z_rate_march(void)
 	z_dot.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY), tmp_z / MAX_Z_VELOCITY);
 	setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_Z_VELOCITY);
 
-	/*
-	setpoint.Z_dot.value.saturate(-MAX_Z_VELOCITY, MAX_Z_VELOCITY);
-
-	// Vertical velocity error -> Vertical acceleration error
-	if (setpoint.Z_dot.FF.is_en())
-	{
-		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.get_Z_vel(), setpoint.Z_dot.FF.get());
-	}
-	else
-	{
-		z_dot.march(setpoint.XYZ_ddot.z.value.get_pt(), setpoint.Z_dot.value.get() - state_estimate.get_Z_vel());
-	}
-	*/
-
 	last_en_Zdot_ctrl = true;
 	return 0;
 }
@@ -713,7 +699,7 @@ int feedback_controller_t::z_rate_reset(void)
 	z_dot.reset();
 
 	// prefill filters with current error (only those with D terms)
-	z_dot.prefill_pd_input(-state_estimate.get_Z_vel());
+	//z_dot.prefill_pd_input(-state_estimate.get_Z_vel()); //not needed as far as I can see
 	return 0;
 }
 
@@ -794,7 +780,6 @@ int feedback_controller_t::Z_accel_2_throttle(void)
 	double tmp_z = setpoint.XYZ_ddot.z.value.get() / MAX_Z_ACCELERATION;
 	if (tmp_z > 1.0) tmp_z = 1.0;
 	else if (tmp_z < -1.0) tmp_z = -1.0;
-	//setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
 
 	// Vertical acceleration error -> throttle	
 	setpoint.POS_throttle.z.value.set((tmp_z - setpoint.Z_throttle_0)\

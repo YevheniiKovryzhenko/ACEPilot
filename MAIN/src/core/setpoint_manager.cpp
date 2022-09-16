@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/31/2022 (MM/DD/YYYY)
+ * Last Edit:  09/16/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -445,32 +445,18 @@ void setpoint_t::update_rpy_servo(void)
 // make sure setpoint doesn't go below or above controller limits
 void setpoint_t::update_Z(void)
 {
-	double tmp_Z_dot;
-	double tmp_throtle = user_input.throttle.get();
+	double tmp_Z_sp = Z.value.get() -\
+		__deadzone(user_input.throttle.get() - Z_throttle_0, 0.05) * MAX_Z_VELOCITY * DT; //negative since Z positive is defined to be down	
 
-	if (tmp_throtle > Z_throttle_0 + 0.1)
+	double tmp_z = state_estimate.get_Z();
+	if (tmp_Z_sp - tmp_z > XYZ_MAX_ERROR)
 	{
-		tmp_Z_dot = (tmp_throtle - Z_throttle_0 - 0.1) * MAX_Z_VELOCITY;
-	}
-	else if (tmp_throtle < Z_throttle_0 - 0.1)
-	{
-		tmp_Z_dot = (tmp_throtle - Z_throttle_0 + 0.1) * MAX_Z_VELOCITY;
-	}
-	else
-	{
-		tmp_Z_dot = 0;
+		Z.value.set(tmp_z + XYZ_MAX_ERROR);
 		return;
 	}
-	double tmp_Z_sp = Z.value.get() - tmp_Z_dot * DT; //negative since Z positive is defined to be down	
-
-	if (tmp_Z_sp > state_estimate.get_Z() + XYZ_MAX_ERROR)
+	else if (tmp_Z_sp - tmp_z < -XYZ_MAX_ERROR)
 	{
-		Z.value.set(state_estimate.get_Z() + XYZ_MAX_ERROR);
-		return;
-	}
-	else if (tmp_Z_sp < state_estimate.get_Z() - XYZ_MAX_ERROR)
-	{
-		Z.value.set(state_estimate.get_Z() - XYZ_MAX_ERROR);
+		Z.value.set(tmp_z - XYZ_MAX_ERROR);
 		return;
 	}
 	else
@@ -487,23 +473,7 @@ void setpoint_t::update_Z(void)
 // make sure setpoint doesn't go below or above controller limits
 void setpoint_t::update_Z_dot(void)
 {
-	double tmp_Zdot_sp;
-	double tmp_throtle = user_input.throttle.get();
-
-	if (tmp_throtle > Z_throttle_0 + 0.1)
-	{
-		tmp_Zdot_sp = (tmp_throtle - Z_throttle_0 - 0.1) * MAX_Z_VELOCITY;
-	}
-	else if (tmp_throtle < Z_throttle_0 - 0.1)
-	{
-		tmp_Zdot_sp = (tmp_throtle - Z_throttle_0 + 0.1) * MAX_Z_VELOCITY;
-	}
-	else
-	{
-		tmp_Zdot_sp = 0;
-		return;
-	}
-	
+	double tmp_Zdot_sp = __deadzone(user_input.throttle.get() - Z_throttle_0, 0.05) * MAX_Z_VELOCITY;
 	tmp_Zdot_sp = -tmp_Zdot_sp; //negative since Z positive is defined to be down	
 	
 	if (tmp_Zdot_sp > MAX_Z_VELOCITY)
@@ -511,7 +481,7 @@ void setpoint_t::update_Z_dot(void)
 		Z_dot.value.set(MAX_Z_VELOCITY);
 		return;
 	}
-	else if (tmp_Zdot_sp < -XYZ_MAX_ERROR)
+	else if (tmp_Zdot_sp < -MAX_Z_VELOCITY)
 	{
 		Z_dot.value.set(-MAX_Z_VELOCITY);
 		return;
