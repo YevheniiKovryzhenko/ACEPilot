@@ -184,7 +184,7 @@
 	"num_dsm_modes": 3,
 	"flight_mode_1": "ACRO_Axxxxx",
 	"flight_mode_2": "MANUAL_AAxxxx",
-	"flight_mode_3": "POS_CTRL_FFFAAA",
+	"flight_mode_3": "ALT_HOLD_AAAxxx",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -399,7 +399,7 @@
 			"ki": 0.005211231544658,
 			"imax": 0.10
 		},
-		"K": 0.7052,
+		"K": 6.178234912023986,
 		"FF": 0.0
 	},
 
@@ -417,7 +417,7 @@
 			"ki": 0.005211231544658,
 			"imax": 0.10
 		},
-		"K": 0.7052,
+		"K": 6.178234912023986,
 		"FF": 0.0
 	},
 
@@ -435,7 +435,7 @@
 			"ki": 0.152426937111458,
 			"imax": 0.10
 		},
-		"K": 0.7622,
+		"K": 3.811203,
 		"FF": 0.0
 	},
 

@@ -76,8 +76,8 @@ inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	}
 	else
 	{
-		new_x_sp = tmp_x_err / max_norm + x / max_norm;
-		new_y_sp = tmp_y_err / max_norm + y / max_norm;
+		new_x_sp = x_sp / max_norm;
+		new_y_sp = y_sp / max_norm;
 	}
 	return;
 }
@@ -85,10 +85,9 @@ inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 /* Brief: shortcut for 1D normalized bound on setpoint */
 inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
 {
-	double tmp_err = x_sp - x;
-	if (tmp_err >= max_err) tmp_err = 1.0;
-	else if (tmp_err <= -max_err) tmp_err = -1.0;
-	else tmp_err = tmp_err / max_err;
+	double tmp_err = (x_sp - x) / max_err;
+	if (tmp_err > 1.0) tmp_err = 1.0;
+	else if (tmp_err < -1.0) tmp_err = -1.0;
 	return tmp_err + x / max_err;
 }
 
@@ -779,22 +778,26 @@ int feedback_controller_t::XY_accel_2_attitude(void)
 		- (cos(tmp_yaw) * tmp_x\
 			+ sin(tmp_yaw) * tmp_y));
 	
+	/*
 	setpoint.ATT.x.value.set(\
 		(-sin(tmp_yaw) * setpoint.XYZ_ddot.x.value.get()\
 			+ cos(tmp_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
 	setpoint.ATT.y.set(\
 		- (cos(tmp_yaw) * setpoint.XYZ_ddot.x.value.get()\
 			+ sin(tmp_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-	
+	*/
 	return 0;
 }
 
 int feedback_controller_t::Z_accel_2_throttle(void)
 {
-	setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
+	double tmp_z = setpoint.XYZ_ddot.z.value.get() / MAX_Z_ACCELERATION;
+	if (tmp_z > 1.0) tmp_z = 1.0;
+	else if (tmp_z < -1.0) tmp_z = -1.0;
+	//setpoint.XYZ_ddot.z.value.saturate(-MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
 
 	// Vertical acceleration error -> throttle	
-	setpoint.POS_throttle.z.value.set((setpoint.XYZ_ddot.z.value.get() - setpoint.Z_throttle_0)\
+	setpoint.POS_throttle.z.value.set((tmp_z - setpoint.Z_throttle_0)\
 		/ (cos(state_estimate.get_roll()) * cos(state_estimate.get_pitch())));
 
 	return 0;
