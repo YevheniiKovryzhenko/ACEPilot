@@ -220,8 +220,6 @@
 	"printf_gain_tunning": true,
 	"printf_tracking": false,
 	"printf_gps": false,
-	"printf_rev": false,
-	"printf_counter": false,
 
 	"enable_logging": false,
 	"log_every_n_entry": 1,

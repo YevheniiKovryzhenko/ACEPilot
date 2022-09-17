@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/06/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
@@ -77,10 +77,15 @@ log_entry_t log_entry{};
 static void* __log_manager_func(__attribute__((unused)) void* ptr)
 {
     while (rc_get_state() != EXITING)
-    {        
-        if (log_entry.update() < 0)
+    {
+        int tmp = log_entry.update();
+        if (tmp < 0)
         {
             printf("ERROR in __log_manager_func: failed to update log_mannager\n");
+            return NULL;
+        }
+        else if (tmp > 0) //done, so exit
+        {            
             return NULL;
         }
     }
@@ -89,6 +94,20 @@ static void* __log_manager_func(__attribute__((unused)) void* ptr)
 
 int log_entry_t::update(void)
 {
+    if (request_shutdown_fl)
+    {
+        // if the logging is running, stop before starting a new log file
+        if (logging_enabled)
+        {
+            logging_enabled = false;
+            if (file_open)
+            {
+                fclose(log_fd);
+                file_open = false;
+            }
+        }
+        return 1;
+    }
     if (request_reset_fl)
     {
         if (reset() < 0)
@@ -438,16 +457,24 @@ int log_entry_t::init(void)
         initialized = false;
         return -1;
     }
-    request_reset_fl = false;
-    new_data_available = false;
-    file_open = false;
 
+    initialized = true;
+	return 0;
+}
 
+int log_entry_t::start(void)
+{
+    if (unlikely(!initialized))
+    {
+        printf("\nERROR in add_new: not initialized");
+        return -1;
+    }
+    request_shutdown_fl = false;
 
     if (unlikely((request_reset() < 0)))
     {
         printf("ERROR in init: failed to reset\n");
-        initialized = false;
+        request_shutdown_fl = true;
         logging_enabled = false;
         return -1;
     }
@@ -456,18 +483,22 @@ int log_entry_t::init(void)
     {
         printf("ERROR in init: failed to start the thread.\n");
         logging_enabled = false;
-        initialized = false;
+        request_shutdown_fl = true;
         return -1;
     }
-
-    initialized = true;
-	return 0;
+    return 0;
 }
 
 int log_entry_t::request_reset(void)
 {
     if (file_open && num_entries < 1) return 0;
     request_reset_fl = true;
+    return 0;
+}
+
+int log_entry_t::request_shutdown(void)
+{
+    request_shutdown_fl = true;
     return 0;
 }
 
@@ -721,6 +752,7 @@ int log_entry_t::cleanup(void)
 
     logging_enabled = false;
     initialized = false;
+    request_shutdown_fl = true;
     fclose(log_fd);
 
     return 0;

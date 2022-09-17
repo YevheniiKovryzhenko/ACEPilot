@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/05/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -58,9 +58,10 @@ private:
 	uint64_t num_entries;	// number of entries logged so far
 	FILE* log_fd;          ///< file descriptor for the log file
 
-	bool logging_enabled;
-	bool new_data_available;
-	bool request_reset_fl;
+	bool logging_enabled = false;
+	bool new_data_available = false;
+	bool request_reset_fl = false;
+	bool request_shutdown_fl = true;
 	thread_gen_t thread;
 
 	/** @name index, always printed */
@@ -255,6 +256,22 @@ public:
 	 * @return     0 on success, -1 on failure
 	 */
 	int request_reset(void);
+
+	/**
+	* @brief      starts logging thread (and logging)
+	*
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int start(void);
+
+	/**
+	* @brief      asks the thread to shutdown on its own
+	*
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int request_shutdown(void);
 
 	/**
 	 * @brief      main update loop of the thread

@@ -314,16 +314,16 @@ int setpoint_guidance_t::march_land(void)
     }
 
     //-----Landing Detection----//
-    if (setpoint.Z.value.get() < (state_estimate.get_Z() - XYZ_MAX_ERROR))
+    if (setpoint.Z.value.get() < (state_estimate.get_Z() - MAX_XYZ_ERROR))
     {
-        printf("\n WARNING: Flying too far up! Exceeding XYZ_MAX_ERROR, can't keep up \n");
+        printf("\n WARNING: Flying too far up! Exceeding MAX_XYZ_ERROR, can't keep up \n");
         reset_Z();                              //terminante any Z guidance
         land_finished = true;                   //flag landing as finished to prevent restart
         en_land = false;                        //disable landing
         return -2;                              //failed to land (velocity can be too high)
     }
 
-    if (setpoint.Z.value.get() > (state_estimate.get_Z() + XYZ_MAX_ERROR))
+    if (setpoint.Z.value.get() > (state_estimate.get_Z() + MAX_XYZ_ERROR))
     {
         st_Z = true;                            // landed - let the Z guidance algorithm finish on it's own
         land_finished = true;                   //flag landing as finished to prevent restart

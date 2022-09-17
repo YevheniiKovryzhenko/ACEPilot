@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/13/2022 (MM/DD/YYYY)
+ * Last Edit:  08/17/2022 (MM/DD/YYYY)
  */
 
 
@@ -163,6 +163,9 @@ public:
 	*/
 	int set_tune_gains(PID_vars_set_t& new_input);
 };
+
+/* function for parsing controller settings from JSON file */
+char parse_feedback_filter_gen(json_object* in_json, const char* name, controller_settings_t& controller_settings);
 
 
 #endif // !FILTER_GEN_HPP

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/05/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Functions to read the json settings file
@@ -38,12 +38,12 @@
 #include <rc/math/filter.h>
 #include <rc/mpu.h>
 
-//#include "input_manager.h"
 #include "flight_mode.hpp"
 #include "thrust_map.hpp"
 #include "mix.hpp"
 #include "rc_pilot_defs.hpp"
-
+#include "feedback_filter_gen.hpp"
+#include "settings_gen.hpp"
 #include "settings.hpp"
 
 
@@ -122,15 +122,10 @@ if(settings.name!=-1 && settings.name!=1){\
 
 // macro for reading a floating point number
 #define PARSE_DOUBLE_MIN_MAX(name,min,max)\
-if(json_object_object_get_ex(jobj, #name, &tmp)==0){\
-	fprintf(stderr,"ERROR can't find " #name " in settings file\n");\
+if(parse_double(jobj, #name, settings.name) < 0){\
+	fprintf(stderr,"ERROR: could not parse " #name "\n");\
 	return -1;\
 }\
-if(json_object_is_type(tmp, json_type_double)==0){\
-	fprintf(stderr,"ERROR " #name " should be a double\n");\
-	return -1;\
-}\
-settings.name = json_object_get_double(tmp);\
 if(settings.name<min || settings.name>max){\
 	fprintf(stderr,"ERROR " #name " should be between min and max\n");\
 	return -1;\
@@ -150,75 +145,29 @@ if(json_object_is_type(tmp, json_type_string)==0){\
 strcpy(settings.name, json_object_get_string(tmp));
 
 // macro for reading feedback controller
-#define PARSE_CONTROLLER_GAINS(name, subname) \
-if(json_object_object_get_ex(ctrl_json, #subname, &tmp)==0){\
-	fprintf(stderr,"ERROR: can't find " #name "." #subname " in settings file\n");\
-	return -1;\
-}\
-if (json_object_is_type(tmp, json_type_object) == 0)\
-{\
-	fprintf(stderr, "ERROR: " #name "." #subname " should be an object\n");\
-	return -1;\
-}\
-if(__parse_controller_gains(tmp, &settings.name.subname)){\
-	fprintf(stderr,"ERROR: could not parse " #name "." #subname "\n");\
+#define PARSE_CONTROLLER(name) \
+if(parse_feedback_filter_gen(jobj, #name, settings.name) < 0){\
+	fprintf(stderr,"ERROR: could not parse " #name "\n");\
 	return -1;\
 }\
 
 #define PARSE_BATTERY(name)\
-if(parse_voltage_sensor_gen_settings(jobj, #name, settings.name)){\
+if(parse_voltage_sensor_gen_settings(jobj, #name, settings.name) < 0){\
 	fprintf(stderr,"ERROR: could not parse " #name "\n");\
 	return -1;\
 }\
 
 #define PARSE_MOCAP(name)\
-if(parse_mocap_gen_settings(jobj, #name, settings.name)){\
+if(parse_mocap_gen_settings(jobj, #name, settings.name) < 0){\
 	fprintf(stderr,"ERROR: could not parse " #name "\n");\
 	return -1;\
 }\
 
 #define PARSE_IMU_9DOF(name)\
-if(parse_IMU_9DOF_gen_settings(jobj, #name, settings.name)){\
+if(parse_IMU_9DOF_gen_settings(jobj, #name, settings.name) < 0){\
 	fprintf(stderr,"ERROR: could not parse " #name "\n");\
 	return -1;\
 }\
-
-#define PARSE_DOUBLE_MIN_MAX_CTRL(name,subname,min,max)\
-if(json_object_object_get_ex(ctrl_json, #subname, &tmp)==0){\
-	fprintf(stderr,"ERROR can't find " #name "." #subname " in settings file\n");\
-	return -1;\
-}\
-if(json_object_is_type(tmp, json_type_double)==0){\
-	fprintf(stderr,"ERROR " #name "." #subname " should be a double\n");\
-	return -1;\
-}\
-settings.name.subname = json_object_get_double(tmp);\
-if(settings.name.subname < min || settings.name.subname > max){\
-	fprintf(stderr,"ERROR " #name "." #subname " should be between min and max\n");\
-	return -1;\
-}\
-
-#define PARSE_CONTROLLER(name) \
-if(json_object_object_get_ex(jobj, #name, &ctrl_json)==0){\
-	fprintf(stderr,"ERROR: can't find " #name " in settings file\n");\
-	return -1;\
-}\
-if (json_object_is_type(ctrl_json, json_type_object) == 0)\
-{\
-	fprintf(stderr, "ERROR: " #name " should be an object\n");\
-	return -1;\
-}\
-PARSE_DOUBLE_MIN_MAX_CTRL(name, FF, 0, 10000);\
-PARSE_DOUBLE_MIN_MAX_CTRL(name, K, 0, 10000);\
-PARSE_CONTROLLER_GAINS(name,pd);\
-PARSE_CONTROLLER_GAINS(name,i);\
-
-/*
-if(__parse_controller(tmp, &settings.name)){\
-	fprintf(stderr,"ERROR: could not parse " #name "\n");\
-	return -1;\
-}\
-*/
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -232,47 +181,47 @@ if(__parse_controller(tmp, &settings.name)){\
  */
 static int __parse_layout(void)
 {
-	struct json_object *tmp = NULL;
+	struct json_object* tmp = NULL;
 	char* tmp_str = NULL;
-	if(json_object_object_get_ex(jobj, "layout", &tmp)==0){
-		fprintf(stderr,"ERROR: can't find layout in settings file\n");
+	if (json_object_object_get_ex(jobj, "layout", &tmp) == 0) {
+		fprintf(stderr, "ERROR: can't find layout in settings file\n");
 		return -1;
 	}
-	if(json_object_is_type(tmp, json_type_string)==0){
-		fprintf(stderr,"ERROR: layout should be a string\n");
+	if (json_object_is_type(tmp, json_type_string) == 0) {
+		fprintf(stderr, "ERROR: layout should be a string\n");
 		return -1;
 	}
 	tmp_str = (char*)json_object_get_string(tmp);
-	if(strcmp(tmp_str, "LAYOUT_6DOF_ROTORBITS")==0){
+	if (strcmp(tmp_str, "LAYOUT_6DOF_ROTORBITS") == 0) {
 		settings.num_rotors = 6;
 		settings.layout = LAYOUT_6DOF_ROTORBITS;
 	}
-	else if(strcmp(tmp_str, "LAYOUT_4X")==0){
+	else if (strcmp(tmp_str, "LAYOUT_4X") == 0) {
 		settings.num_rotors = 4;
 		settings.layout = LAYOUT_4X;
 	}
-	else if(strcmp(tmp_str, "LAYOUT_4PLUS")==0){
+	else if (strcmp(tmp_str, "LAYOUT_4PLUS") == 0) {
 		settings.num_rotors = 4;
 		settings.layout = LAYOUT_4PLUS;
 	}
-	else if(strcmp(tmp_str, "LAYOUT_4H")==0){
+	else if (strcmp(tmp_str, "LAYOUT_4H") == 0) {
 		settings.num_rotors = 4;
 		settings.layout = LAYOUT_4H;
 	}
-	else if(strcmp(tmp_str, "LAYOUT_6X")==0){
+	else if (strcmp(tmp_str, "LAYOUT_6X") == 0) {
 		settings.num_rotors = 6;
 		settings.layout = LAYOUT_6X;
 	}
-	else if(strcmp(tmp_str, "LAYOUT_8X")==0){
+	else if (strcmp(tmp_str, "LAYOUT_8X") == 0) {
 		settings.num_rotors = 8;
 		settings.layout = LAYOUT_8X;
-		}
+	}
 	else if (strcmp(tmp_str, "LAYOUT_4X_ZEPPELIN") == 0) {
 		settings.num_rotors = 4;
 		settings.layout = LAYOUT_4X_ZEPPELIN;
 	}
-	else{
-		fprintf(stderr,"ERROR: invalid layout string\n");
+	else {
+		fprintf(stderr, "ERROR: invalid layout string\n");
 		return -1;
 	}
 	return 0;
@@ -314,45 +263,45 @@ static int __parse_servo_layout(void)
 
 static int __parse_thrust_map(void)
 {
-	struct json_object *tmp = NULL;
+	struct json_object* tmp = NULL;
 	char* tmp_str = NULL;
-	if(json_object_object_get_ex(jobj, "thrust_map", &tmp)==0){
-		fprintf(stderr,"ERROR: can't find thrust_map in settings file\n");
+	if (json_object_object_get_ex(jobj, "thrust_map", &tmp) == 0) {
+		fprintf(stderr, "ERROR: can't find thrust_map in settings file\n");
 		return -1;
 	}
-	if(json_object_is_type(tmp, json_type_string)==0){
-		fprintf(stderr,"ERROR: thrust map should be a string\n");
+	if (json_object_is_type(tmp, json_type_string) == 0) {
+		fprintf(stderr, "ERROR: thrust map should be a string\n");
 		return -1;
 	}
 	tmp_str = (char*)json_object_get_string(tmp);
-	if(strcmp(tmp_str, "LINEAR_MAP")==0){
+	if (strcmp(tmp_str, "LINEAR_MAP") == 0) {
 		settings.thrust_map = LINEAR_MAP;
 	}
-	else if(strcmp(tmp_str, "MN1806_1400KV_4S")==0){
+	else if (strcmp(tmp_str, "MN1806_1400KV_4S") == 0) {
 		settings.thrust_map = MN1806_1400KV_4S;
 	}
-	else if(strcmp(tmp_str, "RS2205_2600KV_3S")==0){
+	else if (strcmp(tmp_str, "RS2205_2600KV_3S") == 0) {
 		settings.thrust_map = RS2205_2600KV_3S;
 	}
-    else if (strcmp(tmp_str, "RS2212_920_4S") == 0)
-    {
-        settings.thrust_map = RS2212_920_4S;
-    }
-    else if (strcmp(tmp_str, "RS2212_920_3S") == 0)
-    {
-        settings.thrust_map = RS2212_920_3S;
-    }
-	else if(strcmp(tmp_str, "TEAM2_PROP")==0){
+	else if (strcmp(tmp_str, "RS2212_920_4S") == 0)
+	{
+		settings.thrust_map = RS2212_920_4S;
+	}
+	else if (strcmp(tmp_str, "RS2212_920_3S") == 0)
+	{
+		settings.thrust_map = RS2212_920_3S;
+	}
+	else if (strcmp(tmp_str, "TEAM2_PROP") == 0) {
 		settings.thrust_map = TEAM2_PROP;
 	}
-	else if(strcmp(tmp_str, "F20_2300KV_2S")==0){
+	else if (strcmp(tmp_str, "F20_2300KV_2S") == 0) {
 		settings.thrust_map = F20_2300KV_2S;
 	}
-	else if(strcmp(tmp_str, "RX2206_4S")==0){
+	else if (strcmp(tmp_str, "RX2206_4S") == 0) {
 		settings.thrust_map = RX2206_4S;
 	}
-	else{
-		fprintf(stderr,"ERROR: invalid thrust_map string\n");
+	else {
+		fprintf(stderr, "ERROR: invalid thrust_map string\n");
 		return -1;
 	}
 	return 0;
@@ -369,15 +318,15 @@ static int __parse_thrust_map(void)
 static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 {
 	char* tmp_str = NULL;
-	if(json_object_is_type(jobj_str, json_type_string)==0){
-		fprintf(stderr,"ERROR: flight_mode should be a string\n");
+	if (json_object_is_type(jobj_str, json_type_string) == 0) {
+		fprintf(stderr, "ERROR: flight_mode should be a string\n");
 		return -1;
 	}
 	tmp_str = (char*)json_object_get_string(jobj_str);
-	if(strcmp(tmp_str, "TEST_BENCH_4DOF")==0){
+	if (strcmp(tmp_str, "TEST_BENCH_4DOF") == 0) {
 		*mode = TEST_BENCH_4DOF;
 	}
-	else if(strcmp(tmp_str, "TEST_BENCH_6DOF")==0){
+	else if (strcmp(tmp_str, "TEST_BENCH_6DOF") == 0) {
 		*mode = TEST_BENCH_6DOF;
 	}
 	else if (strcmp(tmp_str, "TEST_6xSERVOS_DIRECT") == 0) {
@@ -392,7 +341,7 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	else if (strcmp(tmp_str, "ACRO_Fxxxxx") == 0) {
 		*mode = ACRO_Fxxxxx;
 	}
-	else if(strcmp(tmp_str, "MANUAL_xAxxxx")==0){
+	else if (strcmp(tmp_str, "MANUAL_xAxxxx") == 0) {
 		*mode = MANUAL_xAxxxx;
 	}
 	else if (strcmp(tmp_str, "MANUAL_xFxxxx") == 0) {
@@ -406,7 +355,7 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	}
 	else if (strcmp(tmp_str, "MANUAL_FFxxxx") == 0) {
 		*mode = MANUAL_FFxxxx;
-	}	
+	}
 	else if (strcmp(tmp_str, "ALT_HOLD_AxAxxx") == 0) {
 		*mode = ALT_HOLD_AxAxxx;
 	}
@@ -437,7 +386,7 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 	else if (strcmp(tmp_str, "ALT_HOLD_FxFFxx") == 0) {
 		*mode = ALT_HOLD_FxFFxx;
 	}
-	else if(strcmp(tmp_str, "ALT_HOLD_AAAxxx")==0){
+	else if (strcmp(tmp_str, "ALT_HOLD_AAAxxx") == 0) {
 		*mode = ALT_HOLD_AAAxxx;
 	}
 	else if (strcmp(tmp_str, "ALT_HOLD_FAAxxx") == 0) {
@@ -477,40 +426,40 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 		*mode = ALT_HOLD_FFFFxx;
 	}
 	else if (strcmp(tmp_str, "POS_CTRL_AAAAAA") == 0) {
-	*mode = POS_CTRL_AAAAAA;
+		*mode = POS_CTRL_AAAAAA;
 	}
 	else if (strcmp(tmp_str, "POS_CTRL_FFFAAx") == 0) {
-	*mode = POS_CTRL_FFFAAx;
+		*mode = POS_CTRL_FFFAAx;
 	}
 	else if (strcmp(tmp_str, "POS_CTRL_FFFAFx") == 0) {
-	*mode = POS_CTRL_FFFAFx;
+		*mode = POS_CTRL_FFFAFx;
 	}
 	else if (strcmp(tmp_str, "POS_CTRL_FFFFAx") == 0) {
-	*mode = POS_CTRL_FFFFAx;
+		*mode = POS_CTRL_FFFFAx;
 	}
 	else if (strcmp(tmp_str, "POS_CTRL_FFFAAA") == 0) {
 		*mode = POS_CTRL_FFFAAA;
 	}
 	else if (strcmp(tmp_str, "POS_CTRL_FFFAFA") == 0) {
-	*mode = POS_CTRL_FFFAFA;
+		*mode = POS_CTRL_FFFAFA;
 	}
 	else if (strcmp(tmp_str, "POS_CTRL_FFFAFF") == 0) {
-	*mode = POS_CTRL_FFFAFF;
+		*mode = POS_CTRL_FFFAFF;
 	}
 	else if (strcmp(tmp_str, "POS_CTRL_FFFFFF") == 0) {
-	*mode = POS_CTRL_FFFFFF;
+		*mode = POS_CTRL_FFFFFF;
 	}
 	else if (strcmp(tmp_str, "EMERGENCY_LAND") == 0) {
 		*mode = EMERGENCY_LAND;
 	}
-	else if(strcmp(tmp_str, "AUTO_FFFAFA")==0){
+	else if (strcmp(tmp_str, "AUTO_FFFAFA") == 0) {
 		*mode = AUTO_FFFAFA;
 	}
 	else if (strcmp(tmp_str, "ZEPPELIN") == 0) {
 		*mode = ZEPPELIN;
 	}
-	else{
-		fprintf(stderr,"ERROR: invalid flight mode\n");
+	else {
+		fprintf(stderr, "ERROR: invalid flight mode\n");
 		return -1;
 	}
 	return 0;
@@ -520,324 +469,55 @@ static int __parse_flight_mode(json_object* jobj_str, flight_mode_t* mode)
 
 static int __parse_kill_mode(void)
 {
-	struct json_object *tmp = NULL;
+	struct json_object* tmp = NULL;
 	char* tmp_str = NULL;
-	if(json_object_object_get_ex(jobj, "dsm_kill_mode", &tmp)==0){
-		fprintf(stderr,"ERROR: can't find dsm_kill_mode in settings file\n");
+	if (json_object_object_get_ex(jobj, "dsm_kill_mode", &tmp) == 0) {
+		fprintf(stderr, "ERROR: can't find dsm_kill_mode in settings file\n");
 		return -1;
 	}
-	if(json_object_is_type(tmp, json_type_string)==0){
-		fprintf(stderr,"ERROR: dsm_kill_mode should be a string\n");
+	if (json_object_is_type(tmp, json_type_string) == 0) {
+		fprintf(stderr, "ERROR: dsm_kill_mode should be a string\n");
 		return -1;
 	}
 	tmp_str = (char*)json_object_get_string(tmp);
-	if(strcmp(tmp_str, "DSM_KILL_DEDICATED_SWITCH")==0){
+	if (strcmp(tmp_str, "DSM_KILL_DEDICATED_SWITCH") == 0) {
 		settings.dsm_kill_mode = DSM_KILL_DEDICATED_SWITCH;
 	}
-	else if(strcmp(tmp_str, "DSM_KILL_NEGATIVE_THROTTLE")==0){
+	else if (strcmp(tmp_str, "DSM_KILL_NEGATIVE_THROTTLE") == 0) {
 		settings.dsm_kill_mode = DSM_KILL_NEGATIVE_THROTTLE;
 	}
-	else{
-		fprintf(stderr,"ERROR: invalid dsm_kill_mode string\n");
+	else {
+		fprintf(stderr, "ERROR: invalid dsm_kill_mode string\n");
 		return -1;
 	}
 	return 0;
 }
-
-/**
- * @ brief     parses a json_object and sets up a new controller
- *
- * @param      jobj         The jobj to parse
- * @param      filter       pointer to write the new filter to
- *
- * @return     0 on success, -1 on failure
- */
-static int __parse_controller_gains(json_object* jobj_ctl, rc_filter_t* filter)
-{
-	struct json_object* array = NULL;  // to hold num & den arrays
-	struct json_object* tmp = NULL;    // temp object
-	char* tmp_str = NULL;
-	double tmp_flt, tmp_kp, tmp_ki, tmp_kd, tmp_imax;
-	int i, num_len, den_len;
-	rc_vector_t num_vec = RC_VECTOR_INITIALIZER;
-	rc_vector_t den_vec = RC_VECTOR_INITIALIZER;
-
-	// destroy old memory in case the order changes
-	rc_filter_free(filter);
-
-	// check if PID gains or transfer function coefficients
-	if (json_object_object_get_ex(jobj_ctl, "TF_or_PID", &tmp) == 0)
-	{
-		fprintf(stderr, "ERROR: can't find TF_or_PID in settings file\n");
-		return -1;
-	}
-	if (json_object_is_type(tmp, json_type_string) == 0)
-	{
-		fprintf(stderr, "ERROR: TF_or_PID should be a string\n");
-		return -1;
-	}
-	tmp_str = (char*)json_object_get_string(tmp);
-
-	if (strcmp(tmp_str, "TF") == 0)
-	{
-		// pull out gain
-		if (json_object_object_get_ex(jobj_ctl, "gain", &tmp) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find controller gain in settings file\n");
-			return -1;
-		}
-		if (json_object_is_type(tmp, json_type_double) == 0)
-		{
-			fprintf(stderr, "ERROR: controller gain should be a double\n");
-			return -1;
-		}
-		tmp_flt = json_object_get_double(tmp);
-
-		// pull out numerator
-		if (json_object_object_get_ex(jobj_ctl, "numerator", &array) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find controller numerator in settings file\n");
-			return -1;
-		}
-		if (json_object_is_type(array, json_type_array) == 0)
-		{
-			fprintf(stderr, "ERROR: controller numerator should be an array\n");
-			return -1;
-		}
-		num_len = json_object_array_length(array);
-		if (num_len < 1)
-		{
-			fprintf(stderr, "ERROR, numerator must have at least 1 entry\n");
-			return -1;
-		}
-		rc_vector_alloc(&num_vec, num_len);
-		for (i = 0; i < num_len; i++)
-		{
-			tmp = json_object_array_get_idx(array, i);
-			if (json_object_is_type(tmp, json_type_double) == 0)
-			{
-				fprintf(stderr, "ERROR: numerator array entries should be a doubles\n");
-				return -1;
-			}
-			tmp_flt = json_object_get_double(tmp);
-			num_vec.d[i] = tmp_flt;
-		}
-
-		// pull out denominator
-		if (json_object_object_get_ex(jobj_ctl, "denominator", &array) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find controller denominator in settings file\n");
-			return -1;
-		}
-		if (json_object_is_type(array, json_type_array) == 0)
-		{
-			fprintf(stderr, "ERROR: controller denominator should be an array\n");
-			return -1;
-		}
-		den_len = json_object_array_length(array);
-		if (den_len < 1)
-		{
-			fprintf(stderr, "ERROR, denominator must have at least 1 entry\n");
-			return -1;
-		}
-		rc_vector_alloc(&den_vec, den_len);
-		for (i = 0; i < den_len; i++)
-		{
-			tmp = json_object_array_get_idx(array, i);
-			if (json_object_is_type(tmp, json_type_double) == 0)
-			{
-				fprintf(stderr, "ERROR: denominator array entries should be a doubles\n");
-				return -1;
-			}
-			tmp_flt = json_object_get_double(tmp);
-			den_vec.d[i] = tmp_flt;
-		}
-
-		// check for improper TF
-		if (num_len > den_len)
-		{
-			fprintf(stderr, "ERROR: improper transfer function\n");
-			rc_vector_free(&num_vec);
-			rc_vector_free(&den_vec);
-			return -1;
-		}
-
-		// check CT continuous time or DT discrete time
-		if (json_object_object_get_ex(jobj_ctl, "CT_or_DT", &tmp) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find CT_or_DT in settings file\n");
-			return -1;
-		}
-		if (json_object_is_type(tmp, json_type_string) == 0)
-		{
-			fprintf(stderr, "ERROR: CT_or_DT should be a string\n");
-			return -1;
-		}
-		tmp_str = (char*)json_object_get_string(tmp);
-
-		// if CT, use tustin's approx to get to DT
-		if (strcmp(tmp_str, "CT") == 0)
-		{
-			// get the crossover frequency
-			if (json_object_object_get_ex(jobj_ctl, "crossover_freq_rad_per_sec", &tmp) == 0)
-			{
-				fprintf(stderr, "ERROR: can't find crossover frequency in settings file\n");
-				return -1;
-			}
-			if (json_object_is_type(tmp, json_type_double) == 0)
-			{
-				fprintf(stderr, "ERROR: crossover frequency should be a double\n");
-				return -1;
-			}
-			tmp_flt = json_object_get_double(tmp);
-			if (rc_filter_c2d_tustin(filter, DT, num_vec, den_vec, tmp_flt))
-			{
-				fprintf(stderr, "ERROR: failed to c2dtustin while parsing json\n");
-				return -1;
-			}
-		}
-
-		// if DT, much easier, just construct filter
-		else if (strcmp(tmp_str, "DT") == 0)
-		{
-			if (rc_filter_alloc(filter, num_vec, den_vec, DT))
-			{
-				fprintf(stderr, "ERROR: failed to alloc filter in __parse_controller()");
-				return -1;
-			}
-		}
-
-		// wrong value for CT_or_DT
-		else
-		{
-			fprintf(stderr, "ERROR: CT_or_DT must be 'CT' or 'DT'\n");
-			printf("instead got :%s\n", tmp_str);
-			return -1;
-		}
-	}
-
-	else if (strcmp(tmp_str, "P") == 0)
-	{
-		// pull out gains
-		if (json_object_object_get_ex(jobj_ctl, "kp", &tmp) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find kp in settings file\n");
-			return -1;
-		}
-		tmp_kp = json_object_get_double(tmp);
-		tmp_ki = 0.0;
-		tmp_kd = 0.0;
-
-		// Not used in rc_filter_pid for pure P, but (1/tmp_flt) must be >2*DT
-		tmp_flt = 62.83;
-
-		if (rc_filter_pid(filter, tmp_kp, tmp_ki, tmp_kd, 1.0 / tmp_flt, DT))
-		{
-			fprintf(stderr, "ERROR: failed to alloc pid filter in __parse_controller()");
-			return -1;
-		}
-	}
-
-	else if (strcmp(tmp_str, "PD") == 0)
-	{
-		// pull out gains
-		if (json_object_object_get_ex(jobj_ctl, "kp", &tmp) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find kp in settings file\n");
-			return -1;
-		}
-		tmp_kp = json_object_get_double(tmp);
-		tmp_ki = 0.0;
-		if (json_object_object_get_ex(jobj_ctl, "kd", &tmp) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find ki in settings file\n");
-			return -1;
-		}
-		tmp_kd = json_object_get_double(tmp);
-		// get the crossover frequency
-		if (json_object_object_get_ex(jobj_ctl, "crossover_freq_rad_per_sec", &tmp) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find crossover frequency in settings file\n");
-			return -1;
-		}
-		if (json_object_is_type(tmp, json_type_double) == 0)
-		{
-			fprintf(stderr, "ERROR: crossover frequency should be a double\n");
-			return -1;
-		}
-		tmp_flt = json_object_get_double(tmp);
-		if (rc_filter_pid(filter, tmp_kp, tmp_ki, tmp_kd, 1.0 / tmp_flt, DT))
-		{
-			fprintf(stderr, "ERROR: failed to alloc pid filter in __parse_controller()");
-			return -1;
-		}
-	}
-
-	else if (strcmp(tmp_str, "I") == 0)
-	{
-		if (json_object_object_get_ex(jobj_ctl, "ki", &tmp) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find ki in settings file\n");
-			return -1;
-		}
-		tmp_ki = json_object_get_double(tmp);
-
-		if (json_object_object_get_ex(jobj_ctl, "imax", &tmp) == 0)
-		{
-			fprintf(stderr, "ERROR: can't find imax in settings file\n");
-			return -1;
-		}
-		tmp_imax = json_object_get_double(tmp);
-
-		if (rc_filter_integrator(filter, DT))
-		{
-			fprintf(stderr, "ERROR: failed to alloc i filter in __parse_controller()");
-			return -1;
-		}
-
-		rc_filter_enable_saturation(filter, -tmp_imax, tmp_imax);
-		filter->gain = tmp_ki;
-	}
-
-#ifdef DEBUG
-	rc_filter_print(*filter);
-#endif
-
-	rc_vector_free(&num_vec);
-	rc_vector_free(&den_vec);
-
-	return 0;
-}
-
-
-/* Parsing _gen settings */
-
 
 int settings_load_from_file(char* path)
 {
-	struct json_object *tmp = NULL; // temp object
+	struct json_object* tmp = NULL; // temp object
 	struct json_object* ctrl_json = NULL; // for parsing controllers
 	//struct json_object* subctrl_json = NULL; //for parsing controllers (sublevel)
 
 	was_load_successful = 0;
 
 #ifdef DEBUG
-	fprintf(stderr,"beginning of load_settings_from_file\n");
-	fprintf(stderr,"about to check access of fly settings file\n");
+	fprintf(stderr, "beginning of load_settings_from_file\n");
+	fprintf(stderr, "about to check access of fly settings file\n");
 #endif
 
 	// read in file contents
-	if(access(path, F_OK)!=0){
-		fprintf(stderr,"ERROR: settings file missing\n");
+	if (access(path, F_OK) != 0) {
+		fprintf(stderr, "ERROR: settings file missing\n");
 		return -1;
 	}
-	else{
+	else {
 #ifdef DEBUG
-	printf("about to read json from file\n");
+		printf("about to read json from file\n");
 #endif
 		jobj = json_object_from_file(path);
-		if(jobj==NULL){
-			fprintf(stderr,"ERROR, failed to read settings from disk\n");
+		if (jobj == NULL) {
+			fprintf(stderr, "ERROR, failed to read settings from disk\n");
 			return -1;
 		}
 	}
@@ -850,11 +530,11 @@ int settings_load_from_file(char* path)
 
 	PARSE_STRING(name);
 #ifdef DEBUG
-	fprintf(stderr,"name: %s\n",settings.name);
+	fprintf(stderr, "name: %s\n", settings.name);
 #endif
 	PARSE_BOOL(warnings_en);
 #ifdef DEBUG
-	fprintf(stderr,"warnings: %d\n",settings.warnings_en);
+	fprintf(stderr, "warnings: %d\n", settings.warnings_en);
 #endif
 	PARSE_BOOL(delay_warnings_en);
 	PARSE_BOOL(telem_warnings_en);
@@ -862,18 +542,18 @@ int settings_load_from_file(char* path)
 
 	// PHYSICAL PARAMETERS
 	// layout populates num_rotors, layout, and dof
-	if(__parse_layout()==-1) return -1; // parse_layout also fill in num_rotors and dof
+	if (__parse_layout() == -1) return -1; // parse_layout also fill in num_rotors and dof
 #ifdef DEBUG
-	fprintf(stderr,"layout:%d,%d\n",settings.layout,settings.num_rotors);
+	fprintf(stderr, "layout:%d,%d\n", settings.layout, settings.num_rotors);
 #endif
 	if (__parse_servo_layout() == -1) return -1;
-	if(__parse_thrust_map()==-1) return -1;
+	if (__parse_thrust_map() == -1) return -1;
 #ifdef DEBUG
-	fprintf(stderr,"thrust_map: %d\n",settings.thrust_map);
+	fprintf(stderr, "thrust_map: %d\n", settings.thrust_map);
 #endif
 	PARSE_BATTERY(battery)
 #ifdef DEBUG
-	fprintf(stderr,"v_nominal: %f\n",settings.v_nominal);
+		fprintf(stderr, "v_nominal: %f\n", settings.v_nominal);
 #endif
 	PARSE_IMU_9DOF(IMU0);
 	PARSE_IMU_9DOF(IMU1);
@@ -904,29 +584,29 @@ int settings_load_from_file(char* path)
 
 	// FLIGHT MODES
 	PARSE_INT_MIN_MAX(num_dsm_modes, 1, 3);
-	if(json_object_object_get_ex(jobj, "flight_mode_1", &tmp)==0){
-		fprintf(stderr,"ERROR: can't find flight_mode_1 in settings file\n");
+	if (json_object_object_get_ex(jobj, "flight_mode_1", &tmp) == 0) {
+		fprintf(stderr, "ERROR: can't find flight_mode_1 in settings file\n");
 		return -1;
 	}
-	if(__parse_flight_mode(tmp, &settings.flight_mode_1)) return -1;
+	if (__parse_flight_mode(tmp, &settings.flight_mode_1)) return -1;
 #ifdef DEBUG
-	fprintf(stderr,"flight_mode_1: %d\n",settings.flight_mode_1);
+	fprintf(stderr, "flight_mode_1: %d\n", settings.flight_mode_1);
 #endif
-	if(json_object_object_get_ex(jobj, "flight_mode_2", &tmp)==0){
-		fprintf(stderr,"ERROR: can't find flight_mode_2 in settings file\n");
+	if (json_object_object_get_ex(jobj, "flight_mode_2", &tmp) == 0) {
+		fprintf(stderr, "ERROR: can't find flight_mode_2 in settings file\n");
 		return -1;
 	}
-	if(__parse_flight_mode(tmp, &settings.flight_mode_2)) return -1;
+	if (__parse_flight_mode(tmp, &settings.flight_mode_2)) return -1;
 #ifdef DEBUG
-	fprintf(stderr,"flight_mode_2: %d\n",settings.flight_mode_2);
+	fprintf(stderr, "flight_mode_2: %d\n", settings.flight_mode_2);
 #endif
-	if(json_object_object_get_ex(jobj, "flight_mode_3", &tmp)==0){
-		fprintf(stderr,"ERROR: can't find flight_mode_3 in settings file\n");
+	if (json_object_object_get_ex(jobj, "flight_mode_3", &tmp) == 0) {
+		fprintf(stderr, "ERROR: can't find flight_mode_3 in settings file\n");
 		return -1;
 	}
-	if(__parse_flight_mode(tmp, &settings.flight_mode_3)) return -1;
+	if (__parse_flight_mode(tmp, &settings.flight_mode_3)) return -1;
 #ifdef DEBUG
-	fprintf(stderr,"flight_mode_3: %d\n",settings.flight_mode_3);
+	fprintf(stderr, "flight_mode_3: %d\n", settings.flight_mode_3);
 #endif
 	printf("---\n"); // Just a visual break between above settings and the ones below
 
@@ -942,9 +622,9 @@ int settings_load_from_file(char* path)
 	PARSE_POLARITY(dsm_yaw_pol);
 	PARSE_INT_MIN_MAX(dsm_mode_ch, 1, 9);
 	PARSE_POLARITY(dsm_mode_pol);
-	if(__parse_kill_mode()==-1) return -1;
+	if (__parse_kill_mode() == -1) return -1;
 #ifdef DEBUG
-	fprintf(stderr,"kill_mode: %d\n",settings.dsm_kill_mode);
+	fprintf(stderr, "kill_mode: %d\n", settings.dsm_kill_mode);
 #endif
 	PARSE_INT_MIN_MAX(dsm_kill_ch, 1, 9);
 	PARSE_POLARITY(dsm_kill_pol);
@@ -955,7 +635,7 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(printf_battery);
 	PARSE_BOOL(printf_rpy);
 	PARSE_BOOL(printf_sticks);
-	
+
 	PARSE_BOOL(printf_setpoint);
 	PARSE_BOOL(printf_setpoint_xy);
 	PARSE_BOOL(printf_setpoint_xy_dot);
@@ -971,8 +651,6 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(printf_gain_tunning);
 	PARSE_BOOL(printf_tracking);
 	PARSE_BOOL(printf_gps);
-	PARSE_BOOL(printf_rev);
-	PARSE_BOOL(printf_counter);
 
 
 	// LOGGING
@@ -996,7 +674,7 @@ int settings_load_from_file(char* path)
 	PARSE_BOOL(log_velocity_setpoint_ff);
 	PARSE_BOOL(log_position_setpoint);
 	PARSE_BOOL(log_position_setpoint_ff);
-	
+
 	PARSE_BOOL(log_dsm);
 	PARSE_BOOL(log_flight_mode);
 	PARSE_BOOL(log_benchmark);
@@ -1012,8 +690,8 @@ int settings_load_from_file(char* path)
 	// DSM CONNECTION TIMER
 	PARSE_INT(dsm_timeout_ms)
 
-	// WAYPOINT FILES
-	PARSE_STRING(wp_folder);
+		// WAYPOINT FILES
+		PARSE_STRING(wp_folder);
 	PARSE_STRING(wp_takeoff_filename);
 	PARSE_STRING(wp_guided_filename);
 	PARSE_STRING(wp_landing_filename);

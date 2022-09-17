@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/15/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -176,9 +176,16 @@ int feedback_state_t::disarm(void)
 		}
 	}
 
-	if (settings.log_only_while_armed && settings.enable_logging)
+	if (settings.enable_logging)
 	{
-		log_entry.request_reset();
+		if (settings.log_only_while_armed)
+		{
+			log_entry.request_shutdown();
+		}
+		else
+		{
+			log_entry.request_reset();
+		}		
 	}
 	return 0;
 }
@@ -213,11 +220,22 @@ int feedback_state_t::arm(void)
 		// time so do it before touching anything else
 		if (settings.enable_logging)
 		{
-			if (unlikely(log_entry.request_reset() == -1))
+			if (settings.log_only_while_armed)
 			{
-				printf("ERROR in arm: failed to request reset for log manager\n");
-				return -1;
+				if (unlikely(log_entry.start() == -1))
+				{
+					printf("ERROR in arm: failed to start log manager thread\n");
+					return -1;
+				}
 			}
+			else
+			{
+				if (unlikely(log_entry.request_reset() == -1))
+				{
+					printf("ERROR in arm: failed to request reset for log manager\n");
+					return -1;
+				}
+			}			
 		}
 
 

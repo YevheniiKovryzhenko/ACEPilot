@@ -446,17 +446,17 @@ void setpoint_t::update_rpy_servo(void)
 void setpoint_t::update_Z(void)
 {
 	double tmp_Z_sp = Z.value.get() -\
-		__deadzone(user_input.throttle.get() - Z_throttle_0, 0.05) * MAX_Z_VELOCITY * DT; //negative since Z positive is defined to be down	
+		__deadzone(user_input.throttle.get() - Z_throttle_0, 0.05) * MAX_Z_VELOCITY_ERROR * DT; //negative since Z positive is defined to be down	
 
 	double tmp_z = state_estimate.get_Z();
-	if (tmp_Z_sp - tmp_z > XYZ_MAX_ERROR)
+	if (tmp_Z_sp - tmp_z > MAX_XYZ_ERROR)
 	{
-		Z.value.set(tmp_z + XYZ_MAX_ERROR);
+		Z.value.set(tmp_z + MAX_XYZ_ERROR);
 		return;
 	}
-	else if (tmp_Z_sp - tmp_z < -XYZ_MAX_ERROR)
+	else if (tmp_Z_sp - tmp_z < -MAX_XYZ_ERROR)
 	{
-		Z.value.set(tmp_z - XYZ_MAX_ERROR);
+		Z.value.set(tmp_z - MAX_XYZ_ERROR);
 		return;
 	}
 	else
@@ -473,17 +473,17 @@ void setpoint_t::update_Z(void)
 // make sure setpoint doesn't go below or above controller limits
 void setpoint_t::update_Z_dot(void)
 {
-	double tmp_Zdot_sp = __deadzone(user_input.throttle.get() - Z_throttle_0, 0.05) * MAX_Z_VELOCITY;
+	double tmp_Zdot_sp = __deadzone(user_input.throttle.get() - Z_throttle_0, 0.05) * MAX_Z_VELOCITY_ERROR;
 	tmp_Zdot_sp = -tmp_Zdot_sp; //negative since Z positive is defined to be down	
 	
-	if (tmp_Zdot_sp > MAX_Z_VELOCITY)
+	if (tmp_Zdot_sp > MAX_Z_VELOCITY_ERROR)
 	{
-		Z_dot.value.set(MAX_Z_VELOCITY);
+		Z_dot.value.set(MAX_Z_VELOCITY_ERROR);
 		return;
 	}
-	else if (tmp_Zdot_sp < -MAX_Z_VELOCITY)
+	else if (tmp_Zdot_sp < -MAX_Z_VELOCITY_ERROR)
 	{
-		Z_dot.value.set(-MAX_Z_VELOCITY);
+		Z_dot.value.set(-MAX_Z_VELOCITY_ERROR);
 		return;
 	}
 	else
@@ -501,14 +501,15 @@ void setpoint_t::update_XY_vel(void)
 	double tmp_yaw = state_estimate.get_continuous_heading();	
 	double tmp_roll_stick = __deadzone(user_input.roll.get(), 0.05);
 	double tmp_pitch_stick = __deadzone(user_input.pitch.get(), 0.05);
+	if (tmp_roll_stick == 0.0 && tmp_pitch_stick == 0.0) return; //return if no change requested
 	
 	XY_dot.x.value.set((-tmp_pitch_stick * cos(tmp_yaw)\
 		- tmp_roll_stick * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY_NORM);
+		* MAX_XY_VELOCITY_ERROR);
 
 	XY_dot.y.value.set((tmp_roll_stick * cos(tmp_yaw)\
 		- tmp_pitch_stick * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY_NORM);
+		* MAX_XY_VELOCITY_ERROR);
 	return;
 }
 
@@ -530,11 +531,11 @@ void setpoint_t::update_XY_pos(void)
 
 	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
 		tmp_x_sp, tmp_y_sp, \
-		state_estimate.get_X() / XY_MAX_ERROR_NORM, state_estimate.get_Y() / XY_MAX_ERROR_NORM, \
+		state_estimate.get_X() / MAX_XY_ERROR_NORM, state_estimate.get_Y() / MAX_XY_ERROR_NORM, \
 		1.0);
 
-	XY.x.value.set(tmp_x_sp * XY_MAX_ERROR_NORM);
-	XY.y.value.set(tmp_y_sp * XY_MAX_ERROR_NORM);
+	XY.x.value.set(tmp_x_sp * MAX_XY_ERROR_NORM);
+	XY.y.value.set(tmp_y_sp * MAX_XY_ERROR_NORM);
 	*/
 
 	// get manual stick inputs
@@ -546,12 +547,12 @@ void setpoint_t::update_XY_pos(void)
 	double tmp_x = XY.x.value.get() + \
 		(-tmp_pitch * cos(tmp_yaw)\
 		- tmp_roll * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY * DT;
+		* MAX_XY_VELOCITY_ERROR * DT;
 	
 	double tmp_y = XY.y.value.get() + \
 		(tmp_roll * cos(tmp_yaw)\
 		- tmp_pitch * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY * DT;
+		* MAX_XY_VELOCITY_ERROR * DT;
 
 	// make sure setpoint doesn't go too far from state in case touching something
 	double tmp_X = state_estimate.get_X();
@@ -559,11 +560,11 @@ void setpoint_t::update_XY_pos(void)
 	double tmp_x_error = tmp_x - tmp_X;
 	double tmp_y_error = tmp_y - tmp_Y;
 	double tmp_error_norm = sqrt(tmp_x_error * tmp_x_error + tmp_y_error * tmp_y_error);
-	if (tmp_error_norm >= XY_MAX_ERROR_NORM)
+	if (tmp_error_norm > MAX_XY_ERROR_NORM)
 	{
 		//maintain the same dirrection of error, but bound the magnitude
-		XY.x.value.set(tmp_X + tmp_x_error / tmp_error_norm * XY_MAX_ERROR_NORM);
-		XY.y.value.set(tmp_Y + tmp_y_error / tmp_error_norm * XY_MAX_ERROR_NORM);
+		XY.x.value.set(tmp_X + tmp_x_error / tmp_error_norm * MAX_XYZ_ERROR);
+		XY.y.value.set(tmp_Y + tmp_y_error / tmp_error_norm * MAX_XYZ_ERROR);
 		return;
 	}
 	else
@@ -579,13 +580,13 @@ void setpoint_t::update_XY_pos(void)
 	//apply as a velocity command integrated by the timestep 
 	//XY.x.value.increment((-tmp_pitch * cos(tmp_yaw)\
 		- tmp_roll * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY * DT);
+		* MAX_XY_VELOCITY_ERROR * DT);
 
 	// Y in the body frame (lateral translation)
 	//apply velocity command 
 	//XY.y.value.increment((user_input.roll.get() * cos(tmp_yaw)\
 		- user_input.pitch.get() * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY * DT); //Y is defined positive to the left 
+		* MAX_XY_VELOCITY_ERROR * DT); //Y is defined positive to the left 
 
 	return;
 }

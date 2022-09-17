@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  08/29/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -49,19 +49,13 @@
 #endif // !likely
 
 
-/*returns sign of an argument*/
-template <typename T> int sgn(T val) {
-	return (T(0) < val) - (val < T(0));
-}
-
-
 /* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
-void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
+inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	double x_sp, double y_sp, double x, double y, double max_norm)
 {
 	double tmp_x_err = x_sp - x;
 	double tmp_y_err = y_sp - y;
-	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err);
+	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err) / max_norm;
 	double tmp_x_out, tmp_y_out;
 	if (tmp_norm < 0.001) // do not consider error direction if too small 
 	{
@@ -69,7 +63,7 @@ void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 		new_y_sp = y / max_norm;
 		return;
 	}
-	if (tmp_norm > max_norm)
+	if (tmp_norm > sqrt(2.0))
 	{
 		new_x_sp = tmp_x_err / tmp_norm + x / max_norm; // (x_sp - x)/nm = x_err/nm  --> x_sp/nm = (x_err + x)/nm
 		new_y_sp = tmp_y_err / tmp_norm + y / max_norm;
@@ -83,12 +77,12 @@ void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 }
 
 /* Brief: shortcut for 1D normalized bound on setpoint */
-double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
+inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
 {
 	double tmp_err = (x_sp - x) / max_err;
-	if (tmp_err > 1.0) tmp_err = 1.0;
-	else if (tmp_err < -1.0) tmp_err = -1.0;
-	return tmp_err + x / max_err;
+	if (tmp_err > 1.0) return 1.0 + x / max_err;
+	else if (tmp_err < -1.0) return -1.0 + x / max_err;
+	return x_sp / max_err;
 }
 
 
@@ -159,20 +153,6 @@ int feedback_controller_t::rpy_march(void)
 	roll.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.x.value.get(), MAX_ROLL_SETPOINT), state_estimate.get_roll() / MAX_ROLL_SETPOINT);
 	pitch.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.y.value.get(), MAX_PITCH_SETPOINT), state_estimate.get_pitch() / MAX_PITCH_SETPOINT);
 	yaw.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(tmp_yaw, setpoint.ATT.z.value.get(), MAX_YAW_ERROR), tmp_yaw / MAX_YAW_ERROR);
-	/*
-	if (setpoint.ATT.is_en_FF())
-	{
-		roll.march(setpoint.ATT_dot.x.value.get_pt(), err_roll, setpoint.ATT.x.FF.get());
-		pitch.march(setpoint.ATT_dot.y.value.get_pt(), err_pitch, setpoint.ATT.y.FF.get());
-		yaw.march(setpoint.ATT_dot.z.value.get_pt(), err_yaw, setpoint.ATT.z.FF.get());
-	}
-	else
-	{
-		roll.march(setpoint.ATT_dot.x.value.get_pt(), err_roll);
-		pitch.march(setpoint.ATT_dot.y.value.get_pt(), err_pitch);
-		yaw.march(setpoint.ATT_dot.z.value.get_pt(), err_yaw);
-	}	
-	*/
 
 	if (setpoint.ATT_dot.is_en())
 	{
@@ -283,20 +263,6 @@ int feedback_controller_t::rpy_rate_march(void)
 	pitch_dot.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.y.value.get(), MAX_PITCH_RATE), state_estimate.get_pitch_dot() / MAX_PITCH_RATE);
 	yaw_dot.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.z.value.get(), MAX_YAW_RATE), state_estimate.get_yaw_dot() / MAX_YAW_RATE);
 	
-	/*
-	if (setpoint.ATT_dot.is_en_FF())
-	{
-		roll_dot.march(setpoint.ATT_throttle.x.value.get_pt(), err_roll_dot, setpoint.ATT_dot.x.FF.get());
-		pitch_dot.march(setpoint.ATT_throttle.y.value.get_pt(), err_pitch_dot, setpoint.ATT_dot.y.FF.get());
-		yaw_dot.march(setpoint.ATT_throttle.z.value.get_pt(), err_yaw_dot, setpoint.ATT_dot.z.FF.get());
-	}
-	else
-	{
-		roll_dot.march(setpoint.ATT_throttle.x.value.get_pt(), err_roll_dot);
-		pitch_dot.march(setpoint.ATT_throttle.y.value.get_pt(), err_pitch_dot);
-		yaw_dot.march(setpoint.ATT_throttle.z.value.get_pt(), err_yaw_dot);
-	}
-	*/
 	setpoint.ATT_throttle.x.value.set(tmp_roll_out * MAX_ROLL_RATE);
 	setpoint.ATT_throttle.y.value.set(tmp_pitch_out * MAX_PITCH_RATE);
 	setpoint.ATT_throttle.z.value.set(tmp_yaw_out * MAX_YAW_RATE);
@@ -377,8 +343,8 @@ int feedback_controller_t::xy_march(void)
 	/*
 	double tmp_x_err = setpoint.XY.x.value.get() - state_estimate.get_X();
 	double tmp_y_err = setpoint.XY.y.value.get() - state_estimate.get_Y();
-	rc_saturate_double(&tmp_x_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
-	rc_saturate_double(&tmp_y_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
+	rc_saturate_double(&tmp_x_err, -MAX_XYZ_ERROR, MAX_XYZ_ERROR);
+	rc_saturate_double(&tmp_y_err, -MAX_XYZ_ERROR, MAX_XYZ_ERROR);
 	*/
 	double tmp_x_sp, tmp_y_sp, tmp_x_out, tmp_y_out;
 	double tmp_x = state_estimate.get_X();
@@ -386,11 +352,11 @@ int feedback_controller_t::xy_march(void)
 
 	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp,\
 		setpoint.XY.x.value.get(), setpoint.XY.y.value.get(),\
-		tmp_x, tmp_y, XY_MAX_ERROR_NORM);
+		tmp_x, tmp_y, MAX_XYZ_ERROR);
 
 	// Position error -> Velocity/Acceleration error
-	x.march_std(tmp_x_out, tmp_x_sp, tmp_x / XY_MAX_ERROR_NORM);
-	y.march_std(tmp_y_out, tmp_y_sp, tmp_y / XY_MAX_ERROR_NORM);
+	x.march_std(tmp_x_out, tmp_x_sp, tmp_x / MAX_XYZ_ERROR);
+	y.march_std(tmp_y_out, tmp_y_sp, tmp_y / MAX_XYZ_ERROR);
 	
 	/*
 	if (setpoint.XY.is_en_FF())
@@ -407,13 +373,13 @@ int feedback_controller_t::xy_march(void)
 	
 	if (setpoint.XY_dot.is_en())
 	{
-		setpoint.XY_dot.x.value.set(tmp_x_out * XY_MAX_ERROR_NORM); // rescale input x
-		setpoint.XY_dot.y.value.set(tmp_y_out * XY_MAX_ERROR_NORM); // rescale input y
+		setpoint.XY_dot.x.value.set(tmp_x_out * MAX_XYZ_ERROR); // rescale input x
+		setpoint.XY_dot.y.value.set(tmp_y_out * MAX_XYZ_ERROR); // rescale input y
 	}
 	else
 	{
-		setpoint.XYZ_ddot.x.value.set(tmp_x_out * XY_MAX_ERROR_NORM); // rescale input x
-		setpoint.XYZ_ddot.y.value.set(tmp_y_out * XY_MAX_ERROR_NORM); // rescale input y
+		setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XYZ_ERROR); // rescale input x
+		setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XYZ_ERROR); // rescale input y
 	}
 	
 
@@ -476,39 +442,25 @@ int feedback_controller_t::xy_rate_march(void)
 	double tmp_x_sp = setpoint.XY_dot.x.value.get();
 	double tmp_y_sp = setpoint.XY_dot.y.value.get();
 
-	double norm = sqrt(tmp_x_sp * tmp_x_sp + tmp_y_sp * tmp_y_sp);
-	if (norm > MAX_XY_VELOCITY_NORM)
-	{
-		tmp_x_sp = tmp_x_sp / norm;
-		tmp_y_sp = tmp_y_sp / norm;		
-	}
-	else
-	{
-		tmp_x_sp = tmp_x_sp / MAX_XY_VELOCITY_NORM;
-		tmp_y_sp = tmp_y_sp / MAX_XY_VELOCITY_NORM;
-	}
-	setpoint.XY_dot.x.value.set(tmp_x_sp * MAX_XY_VELOCITY_NORM);
-	setpoint.XY_dot.y.value.set(tmp_y_sp * MAX_XY_VELOCITY_NORM);
-
 	double tmp_x_out, tmp_y_out;
 	double tmp_x = state_estimate.get_X_vel();
 	double tmp_y = state_estimate.get_Y_vel();
 
-	//__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
+	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
 		setpoint.XY_dot.x.value.get(), setpoint.XY_dot.y.value.get(), \
-		tmp_x, tmp_y, MAX_XY_VELOCITY_NORM);
+		tmp_x, tmp_y, MAX_XY_VELOCITY_ERROR);
 
 	// Position error -> Velocity/Acceleration error
-	x_dot.march_std(tmp_x_out, tmp_x_sp, tmp_x / MAX_XY_VELOCITY_NORM);
-	y_dot.march_std(tmp_y_out, tmp_y_sp, tmp_y / MAX_XY_VELOCITY_NORM);
+	x_dot.march_std(tmp_x_out, tmp_x_sp, tmp_x / MAX_XY_VELOCITY_ERROR);
+	y_dot.march_std(tmp_y_out, tmp_y_sp, tmp_y / MAX_XY_VELOCITY_ERROR);
 
-	setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XY_VELOCITY_NORM);
-	setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XY_VELOCITY_NORM);
+	setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XY_VELOCITY_ERROR);
+	setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XY_VELOCITY_ERROR);
 
 
 	/*
-	setpoint.XY_dot.x.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
-	setpoint.XY_dot.y.value.saturate(-MAX_XY_VELOCITY, MAX_XY_VELOCITY);
+	setpoint.XY_dot.x.value.saturate(-MAX_XY_VELOCITY_ERROR, MAX_XY_VELOCITY_ERROR);
+	setpoint.XY_dot.y.value.saturate(-MAX_XY_VELOCITY_ERROR, MAX_XY_VELOCITY_ERROR);
 
 	if (setpoint.XY_dot.is_en_FF())
 	{
@@ -532,8 +484,8 @@ int feedback_controller_t::xy_rate_reset(void)
 	y_dot.reset();
 
 	// prefill filters with current error (only those with D terms)
-	x_dot.prefill_pd_input(-state_estimate.get_X_vel());
-	y_dot.prefill_pd_input(-state_estimate.get_Y_vel());
+	//x_dot.prefill_pd_input(-state_estimate.get_X_vel());
+	//y_dot.prefill_pd_input(-state_estimate.get_Y_vel());
 	return 0;
 }
 
@@ -596,34 +548,19 @@ int feedback_controller_t::z_march(void)
 		z.scale_gains(settings.battery.nominal / state_estimate.get_v_batt());
 	}
 
-	//double tmp_z_err = setpoint.Z.value.get() - state_estimate.get_Z();
-	//rc_saturate_double(&tmp_z_err, -XYZ_MAX_ERROR, XYZ_MAX_ERROR);
-
 	// Position error -> Velocity error:
 	double tmp_out;
 	double tmp_z = state_estimate.get_Z();
-	//z.march_std(&tmp_out, setpoint.Z.value.get(), tmp_z);
 
-	z.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z.value.get(), XYZ_MAX_ERROR), tmp_z / XYZ_MAX_ERROR);
-
-	/*
-	if (setpoint.Z.FF.is_en())
-	{
-		z.march(setpoint.Z_dot.value.get_pt(), tmp_z_err, setpoint.Z.FF.get());
-	}
-	else
-	{
-		z.march(setpoint.Z_dot.value.get_pt(), tmp_z_err);
-	}
-	*/
+	z.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z.value.get(), MAX_XYZ_ERROR), tmp_z / MAX_XYZ_ERROR);
 
 	if (setpoint.Z_dot.value.is_en())
 	{
-		setpoint.Z_dot.value.set(tmp_out * XYZ_MAX_ERROR);
+		setpoint.Z_dot.value.set(tmp_out * MAX_XYZ_ERROR);
 	}
 	else
 	{
-		setpoint.XYZ_ddot.z.value.set(tmp_out * XYZ_MAX_ERROR);
+		setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_XYZ_ERROR);
 	}	
 	
 	last_en_Z_ctrl = true;
@@ -687,8 +624,8 @@ int feedback_controller_t::z_rate_march(void)
 	double tmp_z = state_estimate.get_Z_vel();
 	double tmp_out;
 
-	z_dot.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY), tmp_z / MAX_Z_VELOCITY);
-	setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_Z_VELOCITY);
+	z_dot.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY_ERROR), tmp_z / MAX_Z_VELOCITY_ERROR);
+	setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_Z_VELOCITY_ERROR);
 
 	last_en_Zdot_ctrl = true;
 	return 0;

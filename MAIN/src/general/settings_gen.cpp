@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/02/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  *
  * Defines some basic functions for loading settings from JSON files
  */
@@ -89,10 +89,20 @@ int parse_double(json_object* jobj_str, const char* name, double& value)
 		return -1;
 	}
 	if (json_object_is_type(tmp, json_type_double) == 0) {
-		fprintf(stderr, "ERROR %s should be a double\n", name);
-		return -1;
+		if (json_object_is_type(tmp, json_type_int) == 0) //try parsing int as double
+		{
+			fprintf(stderr, "ERROR %s should be a double or an int\n", name);
+			return -1;
+		}
+		else
+		{
+			value = (double)json_object_get_int(tmp);
+		}
 	}
-	value = json_object_get_double(tmp);
+	else
+	{
+		value = json_object_get_double(tmp);
+	}	
 	return 0;
 }
 

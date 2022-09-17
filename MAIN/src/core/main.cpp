@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  09/05/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  */
 
 #include "main.hpp"
@@ -323,6 +323,13 @@ int main(int argc, char** argv)
         if (log_entry.init() < 0)
         {
             FAIL("ERROR: failed to initialize log manager\n")
+        }
+        if (!settings.log_only_while_armed)
+        {
+            if (log_entry.start() < 0)
+            {
+                FAIL("ERROR: failed to start log manager\n")
+            }
         }
     }
 

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/05/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Functions to read the json settings file
@@ -156,8 +156,6 @@ typedef struct settings_t{
 	bool printf_gain_tunning;
 	bool printf_tracking;
 	bool printf_gps;
-	bool printf_rev;
-	bool printf_counter;
 	///@}
 
 	/** @name log settings */
