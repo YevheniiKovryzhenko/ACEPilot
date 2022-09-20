@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/16/2022 (MM/DD/YYYY)
+ * Last Edit:  09/19/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Setpoint manager runs at the same rate as the feedback controller
@@ -88,6 +88,22 @@ inline double __deadzone(double in, double zone)
 	if (fabs(in) <= zone) return 0.0;
 	if (in > 0.0)	return ((in - zone) / (1.0 - zone));
 	else		return ((in + zone) / (1.0 - zone));
+}
+
+/* Brief: shortcut for 1D normalized bound on setpoint */
+inline double __get_sp_bounded_1D(double x, double x_sp, double max_err)
+{
+	double tmp_err = (x_sp - x) / max_err;
+	if (tmp_err > 1.0) return 1.0 * max_err + x;
+	else if (tmp_err < -1.0) return -1.0 * max_err + x;
+	return x_sp;
+}
+inline void __get_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
+	double x_sp, double y_sp, double x, double y, double max_err)
+{
+	new_x_sp = __get_sp_bounded_1D(x, x_sp, max_err);
+	new_y_sp = __get_sp_bounded_1D(y, y_sp, max_err);
+	return;
 }
 
 /* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
@@ -501,7 +517,12 @@ void setpoint_t::update_XY_vel(void)
 	double tmp_yaw = state_estimate.get_continuous_heading();	
 	double tmp_roll_stick = __deadzone(user_input.roll.get(), 0.05);
 	double tmp_pitch_stick = __deadzone(user_input.pitch.get(), 0.05);
-	if (tmp_roll_stick == 0.0 && tmp_pitch_stick == 0.0) return; //return if no change requested
+	if (tmp_roll_stick == 0.0 && tmp_pitch_stick == 0.0)
+	{
+		XY_dot.x.value.set(0.0);
+		XY_dot.y.value.set(0.0);
+		return; //return if no change requested
+	}
 	
 	XY_dot.x.value.set((-tmp_pitch_stick * cos(tmp_yaw)\
 		- tmp_roll_stick * sin(tmp_yaw))\
@@ -516,27 +537,9 @@ void setpoint_t::update_XY_vel(void)
 //----Manual/Radio/Direct control of horizontal position ----//
 void setpoint_t::update_XY_pos(void)
 {
-	/*
+	
 	// X in the body frame (forward flight)
 	// Y in the body frame (lateral translation to the right wing)
-	double tmp_yaw = state_estimate.get_continuous_heading();
-	double tmp_roll = __deadzone(user_input.roll.get(), 0.05);
-	double tmp_pitch = __deadzone(user_input.pitch.get(), 0.05);
-
-	double tmp_x_sp = (-tmp_pitch * cos(tmp_yaw)\
-		- tmp_roll * sin(tmp_yaw));
-
-	double tmp_y_sp = (tmp_roll * cos(tmp_yaw)\
-		- tmp_pitch * sin(tmp_yaw));
-
-	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
-		tmp_x_sp, tmp_y_sp, \
-		state_estimate.get_X() / MAX_XY_ERROR_NORM, state_estimate.get_Y() / MAX_XY_ERROR_NORM, \
-		1.0);
-
-	XY.x.value.set(tmp_x_sp * MAX_XY_ERROR_NORM);
-	XY.y.value.set(tmp_y_sp * MAX_XY_ERROR_NORM);
-	*/
 
 	// get manual stick inputs
 	double tmp_roll = __deadzone(user_input.roll.get(), 0.05);
@@ -557,6 +560,12 @@ void setpoint_t::update_XY_pos(void)
 	// make sure setpoint doesn't go too far from state in case touching something
 	double tmp_X = state_estimate.get_X();
 	double tmp_Y = state_estimate.get_Y();
+	double new_sp_x, new_sp_y;
+	__get_sp_bounded_2D(new_sp_x, new_sp_y, tmp_x, tmp_y, tmp_X, tmp_Y, MAX_XYZ_ERROR);
+	XY.x.value.set(new_sp_x);
+	XY.y.value.set(new_sp_y);
+
+	/*
 	double tmp_x_error = tmp_x - tmp_X;
 	double tmp_y_error = tmp_y - tmp_Y;
 	double tmp_error_norm = sqrt(tmp_x_error * tmp_x_error + tmp_y_error * tmp_y_error);
@@ -572,22 +581,7 @@ void setpoint_t::update_XY_pos(void)
 		XY.x.value.set(tmp_x);
 		XY.y.value.set(tmp_y);
 	}
-
-	//double tmp_X_dot, tmp_Y_dot;
-	
-	
-	// X in the body frame (forward flight)
-	//apply as a velocity command integrated by the timestep 
-	//XY.x.value.increment((-tmp_pitch * cos(tmp_yaw)\
-		- tmp_roll * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY_ERROR * DT);
-
-	// Y in the body frame (lateral translation)
-	//apply velocity command 
-	//XY.y.value.increment((user_input.roll.get() * cos(tmp_yaw)\
-		- user_input.pitch.get() * sin(tmp_yaw))\
-		* MAX_XY_VELOCITY_ERROR * DT); //Y is defined positive to the left 
-
+	*/
 	return;
 }
 

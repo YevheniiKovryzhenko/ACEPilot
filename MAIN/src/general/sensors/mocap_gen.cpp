@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/16/2022 (MM/DD/YYYY)
+ * Last Edit:  09/19/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system
@@ -52,7 +52,7 @@ char mocap_gen_t::init(mocap_settings_t& new_mocap_settings)
 		fprintf(stderr, "ERROR in init: mocap already initialized.\n");
 		return -1;
 	}
-
+	
 	if (unlikely(att_lp.set(new_mocap_settings.att_filter) < 0))
 	{
 		fprintf(stderr, "ERROR in init: failed to initialize mocap attitude filters\n");
@@ -63,6 +63,15 @@ char mocap_gen_t::init(mocap_settings_t& new_mocap_settings)
 		fprintf(stderr, "ERROR in init: failed to initialize mocap velocity filters\n");
 		return -1;
 	}
+	if (new_mocap_settings.enable_pos_filter)
+	{
+		if (unlikely(pos_lp.set(new_mocap_settings.pos_filter) < 0))
+		{
+			fprintf(stderr, "ERROR in init: failed to initialize mocap position filters\n");
+			return -1;
+		}
+	}
+	
 
 	settings = new_mocap_settings;
 	initialized = true;
@@ -91,6 +100,10 @@ char mocap_gen_t::init(void)
 	settings.vel_filter[0].tc = 20.0 * DT;
 	settings.vel_filter[1].tc = 20.0 * DT;
 	settings.vel_filter[2].tc = 4.0 * DT;
+
+	settings.pos_filter[0].tc = 10.0 * DT;
+	settings.pos_filter[1].tc = 10.0 * DT;
+	settings.pos_filter[2].tc = 10.0 * DT;
 	settings.enable_warnings = true;
 
 	return init(settings);
@@ -117,7 +130,7 @@ char mocap_gen_t::update_time(uint64_t new_time, uint8_t new_valid_fl)
 	}
 	else
 	{
-		if (no_new_updates > 9)
+		if (no_new_updates > 10)
 		{
 			valid = false;
 			if (settings.enable_warnings) printf("WARNING: mocap lost visual\n");
@@ -192,21 +205,21 @@ char mocap_gen_t::update_pos_vel_from_pos(double new_mocap_pos_raw[3])
 
 	double dt_s = finddt_s(time_pos); //calculate time since last update
 
-	double tmp_pos_NED[3];
+	double tmp_pos_raw_NED[3];
 	for (int i = 0; i < 3; i++)
 	{
 		/* temporarily keep old values */
-		tmp_pos_NED[i] = pos_NED[i];
+		tmp_pos_raw_NED[i] = pos_raw_NED[i];
 
 		/* save new mocap data internally */
 		pos_raw[i] = new_mocap_pos_raw[i];
 	}
 
 	/* transform from mocap frame to NED */
-	rotate2NED(settings.frame_type, pos_NED, pos_raw);
+	rotate2NED(settings.frame_type, pos_raw_NED, pos_raw);
 
 	/* estimate velocity by taking numerical derivative of position */
-	for (int i = 0; i < 3; i++) vel_raw_NED[i] = (pos_NED[i] - tmp_pos_NED[i]) / dt_s;
+	for (int i = 0; i < 3; i++) vel_raw_NED[i] = (pos_raw_NED[i] - tmp_pos_raw_NED[i]) / dt_s;
 
 	pos_updated = true;
 	time_pos = rc_nanos_since_boot(); //update timer
@@ -228,6 +241,7 @@ char mocap_gen_t::march(void)
 	}
 	if (pos_updated)
 	{
+		if (settings.enable_pos_filter) pos_lp.march(pos_filtered_NED, pos_raw_NED);		
 		vel_lp.march(vel_filtered_NED, vel_raw_NED);
 		pos_updated = false;
 	}
@@ -244,6 +258,7 @@ char mocap_gen_t::reset(void)
 		return -1;
 	}
 	char tmp = att_lp.reset();
+	if (settings.enable_pos_filter)if (pos_lp.reset() < 0) tmp = -1;
 	if (vel_lp.reset() < 0) tmp = -1;
 	att_updated = false;
 	pos_updated = false;
@@ -315,9 +330,22 @@ void mocap_gen_t::get_pos_raw(double* buff)
 	for (int i = 0; i < 3; i++) buff[i] = pos_raw[i];
 	return;
 }
+void mocap_gen_t::get_pos_raw_NED(double* buff)
+{
+	for (int i = 0; i < 3; i++) buff[i] = pos_raw_NED[i];
+	return;
+}
 void mocap_gen_t::get_pos(double* buff)
 {
-	for (int i = 0; i < 3; i++) buff[i] = pos_NED[i];
+	if (settings.enable_pos_filter)
+	{
+		for (int i = 0; i < 3; i++) buff[i] = pos_filtered_NED[i];
+	}
+	else
+	{
+		for (int i = 0; i < 3; i++) buff[i] = pos_raw_NED[i];
+	}
+	
 	return;
 }
 
@@ -364,9 +392,16 @@ char mocap_log_entry_t::update(mocap_gen_t& new_state, mocap_settings_t& log_set
 
 	time_pos = new_state.get_time_pos();
 
-	if (log_settings.log_raw) new_state.get_pos_raw(pos_raw);
-	new_state.get_pos(pos_NED);
-
+	if (log_settings.log_raw)
+	{
+		new_state.get_pos_raw(pos_raw);
+		new_state.get_pos_raw_NED(pos_raw_NED);
+	}
+	if (log_settings.enable_pos_filter)new_state.get_pos(pos_filtered_NED);
+	else
+	{
+		if (!log_settings.log_raw)new_state.get_pos_raw_NED(pos_raw_NED);
+	}
 	if (log_settings.log_vel)
 	{
 		if (log_settings.log_raw) new_state.get_vel_raw(vel_raw_NED);
@@ -417,8 +452,16 @@ char mocap_log_entry_t::print_header(FILE* file, const char* prefix, mocap_setti
 	}
 	
 	fprintf(file, ",%s%s", prefix, GET_VARIABLE_NAME(time_pos));
-	if (log_settings.log_raw) print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_raw), 3);
-	print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_NED), 3);
+	if (log_settings.log_raw)
+	{
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_raw), 3);
+		print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_raw_NED), 3);
+	}
+	if (log_settings.enable_pos_filter)print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_filtered_NED), 3);
+	else
+	{
+		if (!log_settings.log_raw)print_header_vec(file, prefix, GET_VARIABLE_NAME(pos_raw_NED), 3);
+	}
 
 	if (log_settings.log_vel)
 	{
@@ -451,8 +494,16 @@ char mocap_log_entry_t::print_entry(FILE* file, mocap_settings_t& log_settings)
 	}
 
 	fprintf(file, ",%" PRIu64, time_pos);
-	if (log_settings.log_raw) print_vec(file, pos_raw, 3);
-	print_vec(file, pos_NED, 3);
+	if (log_settings.log_raw)
+	{
+		print_vec(file, pos_raw, 3);
+		print_vec(file, pos_raw_NED, 3);
+	}
+	if (log_settings.enable_pos_filter)print_vec(file, pos_filtered_NED, 3);
+	else
+	{
+		if (!log_settings.log_raw)print_vec(file, pos_raw_NED, 3);
+	}
 
 	if (log_settings.log_vel)
 	{
@@ -519,6 +570,11 @@ int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_setti
 		fprintf(stderr, "ERROR: failed to parse use_heading flag for %s\n", name);
 		return -1;
 	}
+	if (parse_bool(tmp_main_json, "enable_pos_filter", sensor.enable_pos_filter))
+	{
+		fprintf(stderr, "ERROR: failed to parse enable_pos_filter flag for %s\n", name);
+		return -1;
+	}
 
 	// Parse coordinate frame type:
 	if (parse_coordinate_frame_gen_type(tmp_main_json, "frame_type", sensor.frame_type))
@@ -534,7 +590,7 @@ int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_setti
 		snprintf(buf, 15, "att_filter_%i", i); // puts string into buffer
 		if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.att_filter[i]) < 0)
 		{
-			fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);
+			fprintf(stderr, "ERROR: failed to parse attitude filter for %s\n", name);
 			return -1;
 		}
 	}
@@ -543,8 +599,20 @@ int parse_mocap_gen_settings(json_object* in_json, const char* name, mocap_setti
 		snprintf(buf, 15, "vel_filter_%i", i); // puts string into buffer
 		if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.vel_filter[i]) < 0)
 		{
-			fprintf(stderr, "ERROR: failed to parse filter for %s\n", name);
+			fprintf(stderr, "ERROR: failed to parse velocity filter for %s\n", name);
 			return -1;
+		}
+	}
+	if (sensor.enable_pos_filter)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			snprintf(buf, 15, "pos_filter_%i", i); // puts string into buffer
+			if (parse_signal_filter_gen_settings(tmp_main_json, buf, sensor.pos_filter[i]) < 0)
+			{
+				fprintf(stderr, "ERROR: failed to parse position filter for %s\n", name);
+				return -1;
+			}
 		}
 	}
 	

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/17/2022 (MM/DD/YYYY)
+ * Last Edit:  09/19/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -48,6 +48,21 @@
 #define likely(x)	__builtin_expect (!!(x), 1)
 #endif // !likely
 
+/* Brief: shortcut for 1D normalized bound on setpoint */
+inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
+{
+	double tmp_err = (x_sp - x) / max_err;
+	if (tmp_err > 1.0) return 1.0 + x / max_err;
+	else if (tmp_err < -1.0) return -1.0 + x / max_err;
+	return x_sp / max_err;
+}
+inline void __get_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
+	double x_sp, double y_sp, double x, double y, double max_err)
+{
+	new_x_sp = __get_norm_sp_bounded_1D(x, x_sp, max_err);
+	new_y_sp = __get_norm_sp_bounded_1D(y, y_sp, max_err);
+	return;
+}
 
 /* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
 inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
@@ -56,7 +71,6 @@ inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	double tmp_x_err = x_sp - x;
 	double tmp_y_err = y_sp - y;
 	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err) / max_norm;
-	double tmp_x_out, tmp_y_out;
 	if (tmp_norm < 0.001) // do not consider error direction if too small 
 	{
 		new_x_sp = x / max_norm;
@@ -75,16 +89,6 @@ inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
 	}
 	return;
 }
-
-/* Brief: shortcut for 1D normalized bound on setpoint */
-inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
-{
-	double tmp_err = (x_sp - x) / max_err;
-	if (tmp_err > 1.0) return 1.0 + x / max_err;
-	else if (tmp_err < -1.0) return -1.0 + x / max_err;
-	return x_sp / max_err;
-}
-
 
 
 
@@ -340,36 +344,18 @@ int feedback_controller_t::xy_march(void)
 		x.scale_gains(scale_val);
 		y.scale_gains(scale_val);
 	}
-	/*
-	double tmp_x_err = setpoint.XY.x.value.get() - state_estimate.get_X();
-	double tmp_y_err = setpoint.XY.y.value.get() - state_estimate.get_Y();
-	rc_saturate_double(&tmp_x_err, -MAX_XYZ_ERROR, MAX_XYZ_ERROR);
-	rc_saturate_double(&tmp_y_err, -MAX_XYZ_ERROR, MAX_XYZ_ERROR);
-	*/
+
 	double tmp_x_sp, tmp_y_sp, tmp_x_out, tmp_y_out;
 	double tmp_x = state_estimate.get_X();
 	double tmp_y = state_estimate.get_Y();
 
-	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp,\
+	__get_sp_bounded_2D(tmp_x_sp, tmp_y_sp,\
 		setpoint.XY.x.value.get(), setpoint.XY.y.value.get(),\
 		tmp_x, tmp_y, MAX_XYZ_ERROR);
 
 	// Position error -> Velocity/Acceleration error
 	x.march_std(tmp_x_out, tmp_x_sp, tmp_x / MAX_XYZ_ERROR);
 	y.march_std(tmp_y_out, tmp_y_sp, tmp_y / MAX_XYZ_ERROR);
-	
-	/*
-	if (setpoint.XY.is_en_FF())
-	{
-		x.march(setpoint.XY_dot.x.value.get_pt(), tmp_x_err, setpoint.XY.x.FF.get());
-		y.march(setpoint.XY_dot.y.value.get_pt(), tmp_y_err, setpoint.XY.y.FF.get());
-	}
-	else
-	{
-		x.march(setpoint.XY_dot.x.value.get_pt(), tmp_x_err);
-		y.march(setpoint.XY_dot.y.value.get_pt(), tmp_y_err);
-	}
-	*/
 	
 	if (setpoint.XY_dot.is_en())
 	{
@@ -446,7 +432,7 @@ int feedback_controller_t::xy_rate_march(void)
 	double tmp_x = state_estimate.get_X_vel();
 	double tmp_y = state_estimate.get_Y_vel();
 
-	__get_norm_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
+	__get_sp_bounded_2D(tmp_x_sp, tmp_y_sp, \
 		setpoint.XY_dot.x.value.get(), setpoint.XY_dot.y.value.get(), \
 		tmp_x, tmp_y, MAX_XY_VELOCITY_ERROR);
 
@@ -456,23 +442,6 @@ int feedback_controller_t::xy_rate_march(void)
 
 	setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XY_VELOCITY_ERROR);
 	setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XY_VELOCITY_ERROR);
-
-
-	/*
-	setpoint.XY_dot.x.value.saturate(-MAX_XY_VELOCITY_ERROR, MAX_XY_VELOCITY_ERROR);
-	setpoint.XY_dot.y.value.saturate(-MAX_XY_VELOCITY_ERROR, MAX_XY_VELOCITY_ERROR);
-
-	if (setpoint.XY_dot.is_en_FF())
-	{
-		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.get_X_vel(), setpoint.XY_dot.x.FF.get());
-		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.get_Y_vel(), setpoint.XY_dot.y.FF.get());
-	}
-	else
-	{
-		x_dot.march(setpoint.XYZ_ddot.x.value.get_pt(), setpoint.XY_dot.x.value.get() - state_estimate.get_X_vel());
-		y_dot.march(setpoint.XYZ_ddot.y.value.get_pt(), setpoint.XY_dot.y.value.get() - state_estimate.get_Y_vel());
-	}
-	*/
 	
 	last_en_XYdot_ctrl = true;
 	return 0;
@@ -690,25 +659,13 @@ int feedback_controller_t::XY_accel_2_attitude(void)
 		tmp_y = tmp_y / MAX_XY_ACCELERATION_NORM;
 	}
 
-	//setpoint.XYZ_ddot.x.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
-	//setpoint.XYZ_ddot.y.value.saturate(-MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
-
 	// Horizonal acceleration setpoint -> Lean Angles
-	setpoint.ATT.x.value.set(\
+	setpoint.ATT.x.value.set((\
 		- sin(tmp_yaw) * tmp_x\
-		+ cos(tmp_yaw) * tmp_y);
-	setpoint.ATT.y.set(\
+		+ cos(tmp_yaw) * tmp_y) * MAX_ROLL_SETPOINT);
+	setpoint.ATT.y.set((\
 		- (cos(tmp_yaw) * tmp_x\
-			+ sin(tmp_yaw) * tmp_y));
-	
-	/*
-	setpoint.ATT.x.value.set(\
-		(-sin(tmp_yaw) * setpoint.XYZ_ddot.x.value.get()\
-			+ cos(tmp_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-	setpoint.ATT.y.set(\
-		- (cos(tmp_yaw) * setpoint.XYZ_ddot.x.value.get()\
-			+ sin(tmp_yaw) * setpoint.XYZ_ddot.y.value.get()) / GRAVITY);
-	*/
+			+ sin(tmp_yaw) * tmp_y)) * MAX_PITCH_SETPOINT);
 	return 0;
 }
 

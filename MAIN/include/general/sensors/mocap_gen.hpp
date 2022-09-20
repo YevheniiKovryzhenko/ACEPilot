@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/03/2022 (MM/DD/YYYY)
+ * Last Edit:  09/19/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here is defined general class for operating motion capture system 
@@ -44,9 +44,11 @@ typedef struct mocap_settings_t
 	bool use_yaw_rate;
 	bool use_roll_pitch;
 	bool use_heading;
+	bool enable_pos_filter;
 	coordinate_frames_gen_t frame_type;// = NWU;
 	signal_filter_gen_settings_t att_filter[3]; //filter settings for attitude
 	signal_filter_gen_settings_t vel_filter[3]; //filter settings for velocity
+	signal_filter_gen_settings_t pos_filter[3]; //filter settings for position
 	bool enable_warnings;
 	bool enable_logging;
 	bool log_att;
@@ -86,7 +88,8 @@ private:
 	uint64_t time_pos = rc_nanos_since_boot();
 
 	double pos_raw[3] = { 0.0 , 0.0, 0.0 };
-	double pos_NED[3] = { 0.0 , 0.0, 0.0 };
+	double pos_raw_NED[3] = { 0.0 , 0.0, 0.0 };
+	double pos_filtered_NED[3] = { 0.0 , 0.0, 0.0 };
 
 	double vel_raw_NED[3] = { 0.0 , 0.0, 0.0 };
 	double vel_filtered_NED[3] = { 0.0 , 0.0, 0.0 };		
@@ -96,6 +99,7 @@ private:
 	// mocap filters
 	signal_filter3D_gen_t att_lp{};
 	signal_filter3D_gen_t vel_lp{};
+	signal_filter3D_gen_t pos_lp{};
 
 public:
 	
@@ -125,6 +129,7 @@ public:
 	double get_continuous_heading(void);
 
 	void get_pos_raw(double* buff);
+	void get_pos_raw_NED(double* buff);
 	void get_pos(double* buff);
 	void get_vel_raw(double* buff);
 	void get_vel(double* buff);
@@ -163,7 +168,8 @@ private:
 	uint64_t time_pos;
 
 	double pos_raw[3];
-	double pos_NED[3];
+	double pos_raw_NED[3];
+	double pos_filtered_NED[3];
 
 	double vel_raw_NED[3];
 	double vel_filtered_NED[3];

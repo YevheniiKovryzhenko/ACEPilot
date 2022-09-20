@@ -95,7 +95,7 @@ typedef enum dsm_kill_mode_t {
 #define MAX_YAW_COMPONENT			0.4
 #define MAX_X_COMPONENT				1.0
 #define MAX_Y_COMPONENT				1.0
-#define MAX_XYZ_ERROR				0.5  ///< meters.
+#define MAX_XYZ_ERROR				1.0  ///< meters.
 
 #define MAX_XY_ERROR_NORM sqrt(2)*MAX_XYZ_ERROR
 #define MAX_XY_VELOCITY_ERROR_NORM sqrt(2)*MAX_XY_VELOCITY_ERROR
