@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  09/19/2022 (MM/DD/YYYY)
+ * Last Edit:  09/20/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -166,19 +166,21 @@ int feedback_filter_gen_t::march_std(double &out, double ref_in, double st_in)
 
 	return 0;
 }
-int feedback_filter_gen_t::march_std(double& out, double err_in, double st_in, double FF_in)
+int feedback_filter_gen_t::march_std(double& out, double err_in, double st_dot_in, double FF_in)
 {
 	if (unlikely(!initialized))
 	{
 		printf("ERROR in march: not initialized\n");
 		return -1;
 	}
-	out = gain_pd.gain * gain_K * (err_in)\
-		+ rc_filter_march(&gain_pd, -gain_K * st_in)\
-		+ rc_filter_march(&gain_i, gain_K * (err_in))\
-		+ gain_FF * FF_in;
+	err_in = gain_K * err_in;
+	st_dot_in = -gain_K * st_dot_in;
+	FF_in = gain_FF * FF_in;
 
-
+	out = gain_pd.gain * err_in\
+		+ rc_filter_march(&gain_pd, st_dot_in)\
+		+ rc_filter_march(&gain_i, err_in)\
+		+ FF_in;
 	return 0;
 }
 
