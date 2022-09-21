@@ -115,7 +115,6 @@ int state_machine_t::update_thread(void)
             return -1;
         }     
         en_update = false;
-        printf("Updated thread for state machine\n");
         if (settings.log_benchmark) benchmark_timers.tSM = rc_nanos_since_boot();
     }
     else

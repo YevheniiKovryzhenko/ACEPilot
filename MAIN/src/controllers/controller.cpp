@@ -172,11 +172,6 @@ int feedback_controller_t::rpy_march(void)
 	roll.march_std(tmp_roll_out, __get_norm_err_bounded_1D(state_estimate.get_roll(), setpoint.ATT.x.value.get(), MAX_ROLL_SETPOINT), state_estimate.get_roll_dot() / MAX_ROLL_SETPOINT, 0.0);
 	pitch.march_std(tmp_pitch_out, __get_norm_err_bounded_1D(state_estimate.get_pitch(), setpoint.ATT.y.value.get(), MAX_PITCH_SETPOINT), state_estimate.get_pitch_dot() / MAX_PITCH_SETPOINT, 0.0);
 	yaw.march_std(tmp_yaw_out, __get_norm_err_bounded_1D(tmp_yaw, setpoint.ATT.z.value.get(), MAX_YAW_ERROR), state_estimate.get_yaw_dot() / MAX_YAW_ERROR, 0.0);
-	/*
-	roll.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.x.value.get(), MAX_ROLL_SETPOINT), state_estimate.get_roll() / MAX_ROLL_SETPOINT);
-	pitch.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT.y.value.get(), MAX_PITCH_SETPOINT), state_estimate.get_pitch() / MAX_PITCH_SETPOINT);
-	yaw.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(tmp_yaw, setpoint.ATT.z.value.get(), MAX_YAW_ERROR), tmp_yaw / MAX_YAW_ERROR);
-	*/
 	
 	
 	if (setpoint.ATT_dot.is_en())
@@ -377,10 +372,6 @@ int feedback_controller_t::xy_march(void)
 	// Position error -> Velocity/Acceleration error
 	x.march_std(tmp_x_out, tmp_x_sp, state_estimate.get_X_vel() / MAX_XYZ_ERROR, 0.0);
 	y.march_std(tmp_y_out, tmp_y_sp, state_estimate.get_Y_vel() / MAX_XYZ_ERROR, 0.0);
-	/*
-	x.march_std(tmp_x_out, tmp_x_sp, tmp_x / MAX_XYZ_ERROR);
-	y.march_std(tmp_y_out, tmp_y_sp, tmp_y / MAX_XYZ_ERROR);
-	*/
 	if (setpoint.XY_dot.is_en())
 	{
 		setpoint.XY_dot.x.value.set(tmp_x_out * MAX_XYZ_ERROR); // rescale input x
@@ -462,10 +453,6 @@ int feedback_controller_t::xy_rate_march(void)
 	// Position error -> Velocity/Acceleration error
 	x_dot.march_std(tmp_x_out, tmp_x_sp, tmp_xyz_acc[0] / MAX_XY_VELOCITY_ERROR, 0.0);
 	y_dot.march_std(tmp_y_out, tmp_y_sp, tmp_xyz_acc[1] / MAX_XY_VELOCITY_ERROR, 0.0);
-	/*
-	x_dot.march_std(tmp_x_out, tmp_x_sp, tmp_x / MAX_XY_VELOCITY_ERROR);
-	y_dot.march_std(tmp_y_out, tmp_y_sp, tmp_y / MAX_XY_VELOCITY_ERROR);
-	*/
 
 	setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XY_VELOCITY_ERROR);
 	setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XY_VELOCITY_ERROR);
@@ -548,9 +535,6 @@ int feedback_controller_t::z_march(void)
 	double tmp_out;
 	double tmp_z = state_estimate.get_Z();
 	z.march_std(tmp_out, __get_norm_err_bounded_1D(tmp_z, setpoint.Z.value.get(), MAX_XYZ_ERROR), state_estimate.get_Z_vel() / MAX_XYZ_ERROR, 0.0);
-	/*
-	z.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z.value.get(), MAX_XYZ_ERROR), tmp_z / MAX_XYZ_ERROR);
-	*/
 	if (setpoint.Z_dot.value.is_en())
 	{
 		setpoint.Z_dot.value.set(tmp_out * MAX_XYZ_ERROR);
@@ -623,9 +607,6 @@ int feedback_controller_t::z_rate_march(void)
 	double tmp_xyz_dot[3];
 	state_estimate.get_acc_glob(tmp_xyz_dot);
 	z_dot.march_std(tmp_out, __get_norm_err_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY_ERROR), (tmp_xyz_dot[2] - GRAVITY) / MAX_Z_VELOCITY_ERROR, 0.0);
-	/*
-	z_dot.march_std(tmp_out, __get_norm_sp_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY_ERROR), tmp_z / MAX_Z_VELOCITY_ERROR);
-	*/
 	setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_Z_VELOCITY_ERROR);
 
 	last_en_Zdot_ctrl = true;

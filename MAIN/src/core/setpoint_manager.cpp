@@ -1431,7 +1431,6 @@ int setpoint_t::update_setpoints(void)
 		Z_dot.enable_FF();
 		XY_dot.enable_FF();
 
-		printf("Requesting update from setpoint manager\n");
 		waypoint_state_machine.request_update();
 
 		break;

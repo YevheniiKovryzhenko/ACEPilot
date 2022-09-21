@@ -36,17 +36,17 @@
 			"filter_0": {
 				"type": "Lowpass",
 				"dt": 0.005,
-				"tc": 0.030
+				"tc": 0.050
 			},
 			"filter_1": {
 				"type": "Lowpass",
 				"dt": 0.005,
-				"tc": 0.030
+				"tc": 0.050
 			},
 			"filter_2": {
 				"type": "Lowpass",
 				"dt": 0.005,
-				"tc": 0.035
+				"tc": 0.055
 			},
 			"enable_logging": true,
 			"log_raw": false
@@ -57,17 +57,17 @@
 			"filter_0": {
 				"type": "Lowpass",
 				"dt": 0.005,
-				"tc": 0.100
+				"tc": 0.050
 			},
 			"filter_1": {
 				"type": "Lowpass",
 				"dt": 0.005,
-				"tc": 0.100
+				"tc": 0.050
 			},
 			"filter_2": {
 				"type": "Lowpass",
 				"dt": 0.005,
-				"tc": 0.100
+				"tc": 0.050
 			},
 			"enable_logging": true,
 			"log_raw": false
@@ -141,17 +141,17 @@
 		"vel_filter_0": {
 			"type": "Lowpass",
 			"dt": 0.005,
-			"tc": 0.100
+			"tc": 0.090
 		},
 		"vel_filter_1": {
 			"type": "Lowpass",
 			"dt": 0.005,
-			"tc": 0.100
+			"tc": 0.090
 		},
 		"vel_filter_2": {
 			"type": "Lowpass",
 			"dt": 0.005,
-			"tc": 0.020
+			"tc": 0.050
 		},
 		"pos_filter_0": {
 			"type": "Lowpass",
@@ -199,8 +199,8 @@
 
 	"num_dsm_modes": 3,
 	"flight_mode_1": "MANUAL_AAxxxx",
-	"flight_mode_2": "POS_CTRL_FFFAAx",
-	"flight_mode_3": "POS_CTRL_AAAAAA",
+	"flight_mode_2": "POS_CTRL_AAAAAA",
+	"flight_mode_3": "AUTO_FFFAFA",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -296,8 +296,8 @@
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
 			"kp": 0.0,
-			"kd": 0.067143176248160,
-			"crossover_freq_rad_per_sec": 101.74269998
+			"kd": 0.085922733677416346,
+			"crossover_freq_rad_per_sec": 150.63828755570211
 		},
 		"i": {
 			"CT_or_DT": "CT",
@@ -305,7 +305,7 @@
 			"ki": 0.457545919995665,
 			"imax": 0.10
 		},
-		"K": 0.1904,
+		"K": 0.17820299526657604,
 		"FF": 0.0
 	},
 
@@ -314,16 +314,16 @@
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
 			"kp": 0.0,
-			"kd": 0.063464262995572,
-			"crossover_freq_rad_per_sec": 101.74269998
+			"kd": 0.085922733677416346,
+			"crossover_freq_rad_per_sec": 150.63828755570211
 		},
 		"i": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "I",
-			"ki": 0.429836900829403,
+			"ki": 0.073818810892925191,
 			"imax": 0.10
 		},
-		"K": 0.2027,
+		"K": 0.17820299526657604,
 		"FF": 0.0
 	},
 
@@ -349,17 +349,17 @@
 		"pd": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
-			"kp": 0.000733506,
+			"kp": 0.00093503141019801684,
 			"kd": 0.0,
 			"crossover_freq_rad_per_sec": 80.08300020
 		},
 		"i": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "I",
-			"ki": 0.01184977996139,
+			"ki": 0.0091201217049423355,
 			"imax": 0.10
 		},
-		"K": 8.2729,
+		"K": 8.2033040352468678,
 		"FF": 0.0
 	},
 
@@ -367,17 +367,17 @@
 		"pd": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
-			"kp": 0.000733506,
+			"kp": 0.00093503141019801684,
 			"kd": 0.0,
 			"crossover_freq_rad_per_sec": 80.08300020
 		},
 		"i": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "I",
-			"ki": 0.01184977996139,
+			"ki": 0.0091201217049423355,
 			"imax": 0.10
 		},
-		"K": 8.2729,
+		"K": 8.2671707532084984,
 		"FF": 0.0
 	},
 
@@ -403,7 +403,7 @@
 		"pd": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
-			"kp": 0.0065312240362454237,
+			"kp": 0.010115352399590532,
 			"kd": 0.0,
 			"crossover_freq_rad_per_sec": 72.61410027
 		},
@@ -413,7 +413,7 @@
 			"ki": 0.005471793121890901,
 			"imax": 0.10
 		},
-		"K": 0.060252963772661927,
+		"K": 0.080484363575638818,
 		"FF": 0.0
 	},
 
@@ -421,7 +421,7 @@
 		"pd": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
-			"kp": 0.0065312240362454237,
+			"kp": 0.010115352399590532,
 			"kd": 0.0,
 			"crossover_freq_rad_per_sec": 72.61410027
 		},
@@ -431,7 +431,7 @@
 			"ki": 0.005471793121890901,
 			"imax": 0.10
 		},
-		"K": 0.060252963772661927,
+		"K": 0.080484363575638818,
 		"FF": 0.0
 	},
 
@@ -457,17 +457,17 @@
 		"pd": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
-			"kp": 0.040475894785454,
+			"kp": 0.45267765461668708,
 			"kd": 0.0,
 			"crossover_freq_rad_per_sec": 62.83
 		},
 		"i": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "I",
-			"ki": 0.004240075423323,
+			"ki": 0.0040592033544647752,
 			"imax": 0.10
 		},
-		"K": 1.7831,
+		"K": 1.5224696221767333,
 		"FF": 0.0
 	},
 
@@ -475,17 +475,17 @@
 		"pd": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "PD",
-			"kp": 0.040475894785454,
+			"kp": 0.45267765461668708,
 			"kd": 0.0,
 			"crossover_freq_rad_per_sec": 62.83
 		},
 		"i": {
 			"CT_or_DT": "CT",
 			"TF_or_PID": "I",
-			"ki": 0.004240075423323,
+			"ki": 0.0040592033544647752,
 			"imax": 0.10
 		},
-		"K": 1.7831,
+		"K": 1.5224696221767333,
 		"FF": 0.0
 	},
 
