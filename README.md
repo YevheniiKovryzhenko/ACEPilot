@@ -117,11 +117,16 @@ You can look into docs/ folder for more information regarding code layout and de
 If you have any questions, please feel free to contact me, Yevhenii (Jack) Kovryzhenko, at yzk0058@auburn.edu.
 
 # Credit
-This work started during my undergraduate research at [ACELAB](https://etaheri0.wixsite.com/acelabauburnuni) at Auburn University, under the supervision of Dr. Ehsan Taheri. Check out my more recent autopilot-related works like [PX4 Simulink IO Framework](https://github.com/YevheniiKovryzhenko/PX4_SIMULINK_IO_Framework.git), [RRTV TiltWing](https://github.com/YevheniiKovryzhenko/RRTV_TiltWing.git) 
+This work started during my undergraduate research at [ACELAB](https://etaheri0.wixsite.com/acelabauburnuni) at Auburn University, under the supervision of Dr. Ehsan Taheri. 
+
+I would like to express my appreciation to Ella Atkins for providing access to the [rc_pilot](https://github.com/StrawsonDesign/rc_pilot) firmware, and to Matthew Romano and Behdad Davoudi for their assistance in understanding how to use it properly. 
+Their contributions have been vital in initiating this research and enhancing my understanding of embedded system code and architecture.
+
+Check out my more recent autopilot-related works like [PX4 Simulink IO Framework](https://github.com/YevheniiKovryzhenko/PX4_SIMULINK_IO_Framework.git), [RRTV TiltWing](https://github.com/YevheniiKovryzhenko/RRTV_TiltWing.git) 
 and [Quadrotor_with_FF_Control](https://github.com/YevheniiKovryzhenko/Quadrotor_with_FF_Control.git). 
 
 Feel free to cite any of my earlier papers that directly used this work:
-*  Y. Kovryzhenko, “Application of the finite fourier series for smooth motion planning of quadrotors,” Masters Thesis, Auburn University, 2023. Accessed: Jul. 26, 2023. [Online]. Available: https://etd.auburn.edu//handle/10415/8797
-*  Y. Kovryzhenko and E. Taheri, “Comparison of minimum-snap and finite fourier series methods for multi-copter motion planning,” in AIAA SCITECH 2022 Forum, San Diego, CA & Virtual: American Institute of Aeronautics and Astronautics, Jan. 2022. doi: 10.2514/6.2022-1085.
-* Y. Kovryzhenko and E. Taheri, “Development of Cascaded Control and Path- Planning Algorithms for Autonomous Aerial Vehicles,” Auburn University Journal of Undergraduate Scholarship, p. 4, 2021.
+*  Y. Kovryzhenko, “Application of the finite Fourier series for smooth motion planning of quadrotors,” Masters Thesis, Auburn University, 2023. Accessed: Jul. 26, 2023. [Online]. Available: https://etd.auburn.edu//handle/10415/8797
+*  Y. Kovryzhenko and E. Taheri, “Comparison of minimum-snap and finite Fourier series methods for multi-copter motion planning,” in AIAA SciTech 2022 Forum, San Diego, CA & Virtual: American Institute of Aeronautics and Astronautics, Jan. 2022. doi: 10.2514/6.2022-1085.
+* Y. Kovryzhenko and E. Taheri, “Development of Cascaded Control and Path-Planning Algorithms for Autonomous Aerial Vehicles,” Auburn University Journal of Undergraduate Scholarship, p. 4, 2021.
 
