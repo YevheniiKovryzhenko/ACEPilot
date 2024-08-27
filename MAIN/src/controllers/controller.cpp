@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/19/2022 (MM/DD/YYYY)
+ * Last Edit:  09/20/2022 (MM/DD/YYYY)
  */
 #include <math.h>
 #include <stdio.h>
@@ -31,79 +31,103 @@
 #include <rc/math.h>
 #include <rc/time.h>
 #include <rc/math/filter.h>
-#include "settings.h"
+#include "settings.hpp"
 #include "input_manager.hpp"
 #include "setpoint_manager.hpp"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 
 #include "controller.hpp"
-#include "comms_tmp_data_packet.h"
+#include "comms_manager.hpp"
 
- // preposessor macros
+// preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
+
+/* Brief: shortcut for 1D normalized bound on setpoint */
+inline double __get_norm_sp_bounded_1D(double x, double x_sp, double max_err)
+{
+	double tmp_err = (x_sp - x) / max_err;
+	if (tmp_err > 1.0) return 1.0 + x / max_err;
+	else if (tmp_err < -1.0) return -1.0 + x / max_err;
+	return x_sp / max_err;
+}
+inline void __get_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
+	double x_sp, double y_sp, double x, double y, double max_err)
+{
+	new_x_sp = __get_norm_sp_bounded_1D(x, x_sp, max_err);
+	new_y_sp = __get_norm_sp_bounded_1D(y, y_sp, max_err);
+	return;
+}
+
+inline double __get_norm_err_bounded_1D(double x, double x_sp, double max_err)
+{
+	double tmp_err = (x_sp - x) / max_err;
+	if (tmp_err > 1.0) tmp_err = 1.0;
+	else if (tmp_err < -1.0) tmp_err = -1.0;
+	return tmp_err;
+}
+inline void __get_err_bounded_2D(double& new_x_err, double& new_y_err, \
+	double x_sp, double y_sp, double x, double y, double max_err)
+{
+	new_x_err = __get_norm_err_bounded_1D(x, x_sp, max_err);
+	new_y_err = __get_norm_err_bounded_1D(y, y_sp, max_err);
+	return;
+}
+
+/* Brief: shortcut for 2D/circular normalized bound on setpoint (not square bound)*/
+inline void __get_norm_sp_bounded_2D(double& new_x_sp, double& new_y_sp, \
+	double x_sp, double y_sp, double x, double y, double max_norm)
+{
+	double tmp_x_err = x_sp - x;
+	double tmp_y_err = y_sp - y;
+	double tmp_norm = sqrt(tmp_x_err * tmp_x_err + tmp_y_err * tmp_y_err) / max_norm;
+	if (tmp_norm < 0.001) // do not consider error direction if too small 
+	{
+		new_x_sp = x / max_norm;
+		new_y_sp = y / max_norm;
+		return;
+	}
+	if (tmp_norm > sqrt(2.0))
+	{
+		new_x_sp = tmp_x_err / tmp_norm + x / max_norm; // (x_sp - x)/nm = x_err/nm  --> x_sp/nm = (x_err + x)/nm
+		new_y_sp = tmp_y_err / tmp_norm + y / max_norm;
+	}
+	else
+	{
+		new_x_sp = x_sp / max_norm;
+		new_y_sp = y_sp / max_norm;
+	}
+	return;
+}
+
+
 
 /***************************************************************************
 * Roll Pitch Yaw controllers
 ***************************************************************************/
 int feedback_controller_t::rpy_init(void)
 {
-    // filters
-    D_roll_pd	= RC_FILTER_INITIALIZER;
-    D_pitch_pd	= RC_FILTER_INITIALIZER;
-    D_yaw_pd	= RC_FILTER_INITIALIZER;
-	D_roll_i	= RC_FILTER_INITIALIZER;
-	D_pitch_i	= RC_FILTER_INITIALIZER;
-	D_yaw_i		= RC_FILTER_INITIALIZER;
-
     // get controllers from settings
-	if (unlikely(rc_filter_duplicate(&D_roll_pd, settings.roll_controller_pd) == -1))
+	if (unlikely(roll.init(settings.roll_ctrl) == -1))
 	{
-		printf("Error in rpy_init: failed to dublicate controller from settings\n");
+		printf("Error in rpy_init: failed to create roll controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_pitch_pd, settings.pitch_controller_pd) == -1))
+	if (unlikely(pitch.init(settings.pitch_ctrl) == -1))
 	{
-		printf("Error in rpy_init: failed to dublicate controller from settings\n");
+		printf("Error in rpy_init: failed to create pitch controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_yaw_pd, settings.yaw_controller_pd) == -1))
+	if (unlikely(yaw.init(settings.yaw_ctrl) == -1))
 	{
-		printf("Error in rpy_init: failed to dublicate controller from settings\n");
+		printf("Error in rpy_init: failed to create yaw controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_roll_i, settings.roll_controller_i) == -1))
-	{
-		printf("Error in rpy_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-	if (unlikely(rc_filter_duplicate(&D_pitch_i, settings.pitch_controller_i) == -1))
-	{
-		printf("Error in rpy_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-	if (unlikely(rc_filter_duplicate(&D_yaw_i, settings.yaw_controller_i) == -1))
-	{
-		printf("Error in rpy_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-
-#ifdef DEBUG
-    printf("ROLL CONTROLLER:\n");
-    rc_filter_print(D_roll);
-    printf("PITCH CONTROLLER:\n");
-    rc_filter_print(D_pitch);
-    printf("YAW CONTROLLER:\n");
-    rc_filter_print(D_yaw);
-#endif
-
-	//save a copy of the original/default gain set:
-	D_roll_pd_orig = D_roll_pd;
-	D_pitch_pd_orig = D_pitch_pd;
-	D_yaw_pd_orig = D_yaw_pd;
-	D_roll_i_orig = D_roll_i;
-	D_pitch_i_orig = D_pitch_i;
-	D_yaw_i_orig = D_yaw_i;
 
 	last_en_rpy_ctrl = false;
     return 0;
@@ -113,52 +137,54 @@ int feedback_controller_t::rpy_march(void)
 {
 	if (!last_en_rpy_ctrl)
 	{
-		setpoint.reset_att();
-		setpoint.reset_att_ff();
+		setpoint.ATT.reset();
+		setpoint.ATT.x.set(state_estimate.get_roll());
+		setpoint.ATT.y.set(state_estimate.get_pitch());
+		setpoint.ATT.z.set(state_estimate.get_continuous_heading());
 		rpy_reset();
 
 		last_en_rpy_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_roll_pd.gain = D_roll_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch_pd.gain = D_pitch_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw_pd.gain = D_yaw_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_roll_i.gain = D_roll_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch_i.gain = D_pitch_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw_i.gain = D_yaw_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		double scale_val = settings.battery.nominal / state_estimate.get_v_batt();
+		roll.scale_gains(scale_val);
+		pitch.scale_gains(scale_val);
+		yaw.scale_gains(scale_val);
 	}
 
-	double err_roll, err_pitch, err_yaw;
-	err_roll = setpoint.roll - state_estimate.roll;
-	err_pitch = setpoint.pitch - state_estimate.pitch;
-	err_yaw = setpoint.yaw - state_estimate.continuous_yaw;
-	//use smooth transition if control blending is enabled:
-	if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw); //zero out ff terms?
-
-	// 1) Attitude -> Attitude Rate
-	setpoint.roll_dot = rc_filter_march(&D_roll_pd, err_roll)
-		+ rc_filter_march(&D_roll_i, err_roll) + setpoint.roll_dot_ff;
-	setpoint.pitch_dot = rc_filter_march(&D_pitch_pd, err_pitch)
-		+ rc_filter_march(&D_pitch_i, err_pitch) + setpoint.pitch_dot_ff;
-	setpoint.yaw_dot = rc_filter_march(&D_yaw_pd, err_yaw)
-		+ rc_filter_march(&D_yaw_i, err_yaw) + setpoint.yaw_dot_ff;
-
+	setpoint.ATT.x.value.saturate(-MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
+	setpoint.ATT.y.value.saturate(-MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
+	double tmp_yaw = state_estimate.get_continuous_heading();
 	
 
-	if (!setpoint.en_rpy_rate_ctrl)
+	//double err_roll, err_pitch, err_yaw;
+	//err_roll = setpoint.ATT.x.value.get() - state_estimate.get_roll();
+	//err_pitch = setpoint.ATT.y.value.get() - state_estimate.get_pitch();
+	//err_yaw = setpoint.ATT.z.value.get() - state_estimate.get_continuous_heading();
+	//use smooth transition if control blending is enabled:
+	//if (setpoint.en_rpy_trans) rpy_transition(err_roll, err_pitch, err_yaw); //zero out ff terms?
+
+	// 1) Attitude -> Attitude Rate
+	double tmp_roll_out, tmp_pitch_out, tmp_yaw_out;
+	roll.march_std(tmp_roll_out, __get_norm_err_bounded_1D(state_estimate.get_roll(), setpoint.ATT.x.value.get(), MAX_ROLL_SETPOINT), state_estimate.get_roll_dot() / MAX_ROLL_SETPOINT, 0.0);
+	pitch.march_std(tmp_pitch_out, __get_norm_err_bounded_1D(state_estimate.get_pitch(), setpoint.ATT.y.value.get(), MAX_PITCH_SETPOINT), state_estimate.get_pitch_dot() / MAX_PITCH_SETPOINT, 0.0);
+	yaw.march_std(tmp_yaw_out, __get_norm_err_bounded_1D(tmp_yaw, setpoint.ATT.z.value.get(), MAX_YAW_ERROR), state_estimate.get_yaw_dot() / MAX_YAW_ERROR, 0.0);
+	
+	
+	if (setpoint.ATT_dot.is_en())
 	{
-		setpoint.roll_throttle = setpoint.roll_dot;
-		setpoint.pitch_throttle = setpoint.pitch_dot;
-		setpoint.yaw_throttle = setpoint.yaw_dot;
+		setpoint.ATT_dot.x.value.set(tmp_roll_out * MAX_ROLL_SETPOINT);
+		setpoint.ATT_dot.y.value.set(tmp_pitch_out * MAX_PITCH_SETPOINT);
+		setpoint.ATT_dot.z.value.set(tmp_yaw_out * MAX_YAW_ERROR);
 	}
 	else
-	{
-		rc_saturate_double(&setpoint.roll_dot, -MAX_ROLL_RATE, MAX_ROLL_RATE);
-		rc_saturate_double(&setpoint.pitch_dot, -MAX_PITCH_RATE, MAX_PITCH_RATE);
-		rc_saturate_double(&setpoint.yaw_dot, -MAX_YAW_RATE, MAX_YAW_RATE);
+	{		
+		setpoint.ATT_throttle.x.value.set(tmp_roll_out * MAX_ROLL_SETPOINT);
+		setpoint.ATT_throttle.y.value.set(tmp_pitch_out * MAX_PITCH_SETPOINT);
+		setpoint.ATT_throttle.z.value.set(tmp_yaw_out * MAX_YAW_ERROR);
 	}
 
 	last_en_rpy_ctrl = true;
@@ -167,32 +193,22 @@ int feedback_controller_t::rpy_march(void)
 
 int feedback_controller_t::rpy_reset(void)
 {
-	D_roll_pd = D_roll_pd_orig;
-	D_pitch_pd = D_pitch_pd_orig;
-	D_yaw_pd = D_yaw_pd_orig;
-	D_roll_i = D_roll_i_orig;
-	D_pitch_i = D_pitch_i_orig;
-	D_yaw_i = D_yaw_i_orig;
-
-    rc_filter_reset(&D_roll_pd);
-    rc_filter_reset(&D_pitch_pd);
-    rc_filter_reset(&D_yaw_pd);
-	rc_filter_reset(&D_roll_i);
-	rc_filter_reset(&D_pitch_i);
-	rc_filter_reset(&D_yaw_i);
+	roll.reset();
+	pitch.reset();
+	yaw.reset();	
 
     // prefill filters with current error (only those with D terms)
-    rc_filter_prefill_inputs(&D_roll_pd, -state_estimate.roll);
-    rc_filter_prefill_inputs(&D_pitch_pd, -state_estimate.pitch);
+	roll.prefill_pd_input(-state_estimate.get_roll());
+	pitch.prefill_pd_input(-state_estimate.get_pitch());
     return 0;
 }
 
 int feedback_controller_t::rpy_transition(double& roll_err, \
 	double& pitch_err, double& yaw_err)
 {
-	roll_err = roll_err * (tanh(7.0 + setpoint.roll_tr / 0.06) + 1.0) / 2.0;
-	pitch_err = pitch_err * (tanh(4.9 + setpoint.pitch_tr / 0.12) + 1.0) / 2.0;
-	yaw_err = yaw_err * (tanh(4.9 + setpoint.yaw_tr / 0.12) + 1.0) / 2.0;
+	//roll_err = roll_err * (tanh(7.0 + setpoint.roll_tr / 0.06) + 1.0) / 2.0;
+	//pitch_err = pitch_err * (tanh(4.9 + setpoint.pitch_tr / 0.12) + 1.0) / 2.0;
+	//yaw_err = yaw_err * (tanh(4.9 + setpoint.yaw_tr / 0.12) + 1.0) / 2.0;
 	return 0;
 }
 
@@ -203,53 +219,22 @@ int feedback_controller_t::rpy_transition(double& roll_err, \
 ***************************************************************************/
 int feedback_controller_t::rpy_rate_init(void)
 {
-	// filters
-	D_roll_rate_pd = RC_FILTER_INITIALIZER;
-	D_pitch_rate_pd = RC_FILTER_INITIALIZER;
-	D_yaw_rate_pd = RC_FILTER_INITIALIZER;
-	D_roll_rate_i = RC_FILTER_INITIALIZER;
-	D_pitch_rate_i = RC_FILTER_INITIALIZER;
-	D_yaw_rate_i = RC_FILTER_INITIALIZER;
-
 	// get controllers from settings
-	if (unlikely(rc_filter_duplicate(&D_roll_rate_pd, settings.roll_rate_controller_pd) == -1))
+	if (unlikely(roll_dot.init(settings.roll_rate_ctrl) == -1))
 	{
-		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
+		printf("Error in rpy_rate_init: failed to create roll rate controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_pitch_rate_pd, settings.pitch_rate_controller_pd) == -1))
+	if (unlikely(pitch_dot.init(settings.pitch_rate_ctrl) == -1))
 	{
-		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
+		printf("Error in rpy_rate_init: failed to create pitch rate controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_yaw_rate_pd, settings.yaw_rate_controller_pd) == -1))
+	if (unlikely(yaw_dot.init(settings.yaw_rate_ctrl) == -1))
 	{
-		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
+		printf("Error in rpy_rate_init: failed to create yaw rate controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_roll_rate_i, settings.roll_rate_controller_i) == -1))
-	{
-		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-	if (unlikely(rc_filter_duplicate(&D_pitch_rate_i, settings.pitch_rate_controller_i) == -1))
-	{
-		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-	if (unlikely(rc_filter_duplicate(&D_yaw_rate_i, settings.yaw_rate_controller_i) == -1))
-	{
-		printf("Error in rpy_rate_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-
-	//save a copy of the original/default gain set:
-	D_roll_rate_pd_orig = D_roll_rate_pd;
-	D_pitch_rate_pd_orig = D_pitch_rate_pd;
-	D_yaw_rate_pd_orig = D_yaw_rate_pd;
-	D_roll_rate_i_orig = D_roll_rate_i;
-	D_pitch_rate_i_orig = D_pitch_rate_i;
-	D_yaw_rate_i_orig = D_yaw_rate_i;
 
 	last_en_rpy_rate_ctrl = false;
 
@@ -260,38 +245,47 @@ int feedback_controller_t::rpy_rate_march(void)
 {
 	if (!last_en_rpy_rate_ctrl)
 	{
-		setpoint.reset_att_dot();
+		setpoint.ATT_dot.reset();
+		setpoint.ATT_dot.x.set(state_estimate.get_roll_dot());
+		setpoint.ATT_dot.y.set(state_estimate.get_pitch_dot());
+		setpoint.ATT_dot.z.set(state_estimate.get_yaw_dot());
 		rpy_rate_reset();
 
 		last_en_rpy_rate_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_roll_rate_pd.gain = D_roll_rate_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch_rate_pd.gain = D_pitch_rate_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw_rate_pd.gain = D_yaw_rate_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_roll_rate_i.gain = D_roll_rate_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_pitch_rate_i.gain = D_pitch_rate_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_yaw_rate_i.gain = D_yaw_rate_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		double scale_val = settings.battery.nominal / state_estimate.get_v_batt();
+		roll_dot.scale_gains(scale_val);
+		pitch_dot.scale_gains(scale_val);
+		yaw_dot.scale_gains(scale_val);
 	}
 
+	setpoint.ATT_dot.x.value.saturate(-MAX_ROLL_RATE, MAX_ROLL_RATE);
+	setpoint.ATT_dot.y.value.saturate(-MAX_PITCH_RATE, MAX_PITCH_RATE);
+	setpoint.ATT_dot.z.value.saturate(-MAX_YAW_RATE, MAX_YAW_RATE);
+	/*
 	double err_roll_dot, err_pitch_dot, err_yaw_dot;
-	err_roll_dot = setpoint.roll_dot - state_estimate.roll_dot;
-	err_pitch_dot = setpoint.pitch_dot - state_estimate.pitch_dot;
-	err_yaw_dot = setpoint.yaw_dot - state_estimate.yaw_dot;
+	err_roll_dot = setpoint.ATT_dot.x.value.get() - state_estimate.get_roll_dot();
+	err_pitch_dot = setpoint.ATT_dot.y.value.get() - state_estimate.get_pitch_dot();
+	err_yaw_dot = setpoint.ATT_dot.z.value.get() - state_estimate.get_yaw_dot();
+	*/
+	//printf("yaw_dot = %f\t yaw_dot_sp =%f\t err_yaw_dot = %f\n", state_estimate.get_yaw_dot(), setpoint.ATT_dot.z.value.get(), err_yaw_dot);
 
 	//use smooth transition if control blending is enabled:
-	if (setpoint.en_rpy_rate_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
+	//if (setpoint.en_rpy_rate_trans) rpy_rate_transition(err_roll_dot, err_pitch_dot, err_yaw_dot);
 
 	// Attitude rate error -> Torque cmd.
-	setpoint.roll_throttle = rc_filter_march(&D_roll_rate_pd, err_roll_dot)
-		+ rc_filter_march(&D_roll_rate_i, err_roll_dot);
-	setpoint.pitch_throttle = rc_filter_march(&D_pitch_rate_pd, err_pitch_dot)
-		+ rc_filter_march(&D_pitch_rate_i, err_pitch_dot);
-	setpoint.yaw_throttle = rc_filter_march(&D_yaw_rate_pd, err_yaw_dot)
-		+ rc_filter_march(&D_yaw_rate_i, err_yaw_dot);
+	double tmp_roll_out, tmp_pitch_out, tmp_yaw_out;
+	roll_dot.march_std(tmp_roll_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.x.value.get(), MAX_ROLL_RATE), state_estimate.get_roll_dot() / MAX_ROLL_RATE);
+	pitch_dot.march_std(tmp_pitch_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.y.value.get(), MAX_PITCH_RATE), state_estimate.get_pitch_dot() / MAX_PITCH_RATE);
+	yaw_dot.march_std(tmp_yaw_out, __get_norm_sp_bounded_1D(0.0, setpoint.ATT_dot.z.value.get(), MAX_YAW_RATE), state_estimate.get_yaw_dot() / MAX_YAW_RATE);
+	
+	setpoint.ATT_throttle.x.value.set(tmp_roll_out * MAX_ROLL_RATE);
+	setpoint.ATT_throttle.y.value.set(tmp_pitch_out * MAX_PITCH_RATE);
+	setpoint.ATT_throttle.z.value.set(tmp_yaw_out * MAX_YAW_RATE);
 
 	last_en_rpy_rate_ctrl = true;
 	return 0;
@@ -299,24 +293,14 @@ int feedback_controller_t::rpy_rate_march(void)
 
 int feedback_controller_t::rpy_rate_reset(void)
 {
-	D_roll_rate_pd = D_roll_rate_pd_orig;
-	D_pitch_rate_pd = D_pitch_rate_pd_orig;
-	D_yaw_rate_pd = D_yaw_rate_pd_orig;
-	D_roll_rate_i = D_roll_rate_i_orig;
-	D_pitch_rate_i = D_pitch_rate_i_orig;
-	D_yaw_rate_i = D_yaw_rate_i_orig;
-
-	rc_filter_reset(&D_roll_rate_pd);
-	rc_filter_reset(&D_roll_rate_i);
-	rc_filter_reset(&D_pitch_rate_pd);
-	rc_filter_reset(&D_pitch_rate_i);
-	rc_filter_reset(&D_yaw_rate_pd);
-	rc_filter_reset(&D_yaw_rate_i);
+	roll_dot.reset();
+	pitch_dot.reset();
+	yaw_dot.reset();
 
 	// prefill filters with current error (only those with D terms)
-	rc_filter_prefill_inputs(&D_roll_rate_pd, -state_estimate.roll_dot);
-	rc_filter_prefill_inputs(&D_pitch_rate_pd, -state_estimate.pitch_dot);
-	rc_filter_prefill_inputs(&D_yaw_rate_pd, -state_estimate.yaw_dot);
+	roll_dot.prefill_pd_input(-state_estimate.get_roll_dot());
+	pitch_dot.prefill_pd_input(-state_estimate.get_pitch_dot());
+	yaw_dot.prefill_pd_input(-state_estimate.get_yaw_dot());
 	return 0;
 }
 
@@ -324,9 +308,9 @@ int feedback_controller_t::rpy_rate_reset(void)
 int feedback_controller_t::rpy_rate_transition(double& roll_dot_err,\
 	double& pitch_dot_err, double& yaw_dot_err)
 {
-	roll_dot_err = roll_dot_err * (tanh(7.0 + setpoint.roll_dot_tr / 0.06) + 1.0) / 2.0;
-	pitch_dot_err = pitch_dot_err * (tanh(4.9 + setpoint.pitch_dot_tr / 0.12) + 1.0) / 2.0;
-	yaw_dot_err = yaw_dot_err * (tanh(4.9 + setpoint.yaw_dot_tr / 0.12) + 1.0) / 2.0;
+	//roll_dot_err = roll_dot_err * (tanh(7.0 + setpoint.roll_dot_tr / 0.06) + 1.0) / 2.0;
+	//pitch_dot_err = pitch_dot_err * (tanh(4.9 + setpoint.pitch_dot_tr / 0.12) + 1.0) / 2.0;
+	//yaw_dot_err = yaw_dot_err * (tanh(4.9 + setpoint.yaw_dot_tr / 0.12) + 1.0) / 2.0;
 	return 0;
 }
 
@@ -338,39 +322,17 @@ int feedback_controller_t::rpy_rate_transition(double& roll_dot_err,\
 ***************************************************************************/
 int feedback_controller_t::xy_init(void)
 {
-    // filters
-	D_X_pd	= RC_FILTER_INITIALIZER;
-	D_Y_pd	= RC_FILTER_INITIALIZER;
-	D_X_i	= RC_FILTER_INITIALIZER;
-	D_Y_i	= RC_FILTER_INITIALIZER;
-
-	if (unlikely(rc_filter_duplicate(&D_X_pd, settings.horiz_pos_ctrl_X_pd) == -1))
+	// get controllers from settings
+	if (unlikely(x.init(settings.X_pos_ctrl) == -1))
 	{
-		printf("Error in xy_init: failed to dublicate controller from settings\n");
+		printf("Error in xy_init: failed to create X position controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_X_i, settings.horiz_pos_ctrl_X_i) == -1))
+	if (unlikely(y.init(settings.Y_pos_ctrl) == -1))
 	{
-		printf("Error in xy_init: failed to dublicate controller from settings\n");
+		printf("Error in xy_init: failed to create Y position controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_Y_pd, settings.horiz_pos_ctrl_Y_pd) == -1))
-	{
-		printf("Error in xy_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-	if (unlikely(rc_filter_duplicate(&D_Y_i, settings.horiz_pos_ctrl_Y_i) == -1))
-	{
-		printf("Error in xy_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-
-
-	//save a copy of the original/default gain set:
-	D_X_pd_orig = D_X_pd;
-	D_Y_pd_orig = D_Y_pd;
-	D_X_i_orig = D_X_i;
-	D_Y_i_orig = D_Y_i;
 
 	last_en_XY_ctrl = false;
 
@@ -382,71 +344,52 @@ int feedback_controller_t::xy_march(void)
 {
 	if (!last_en_XY_ctrl)
 	{
-		setpoint.reset_X();
-		setpoint.reset_Y();
-		setpoint.reset_X_dot_ff();
-		setpoint.reset_Y_dot_ff();
-
+		setpoint.XY.reset();
+		setpoint.XY.x.set(state_estimate.get_X());
+		setpoint.XY.y.set(state_estimate.get_Y());
 		xy_reset();
 
 		last_en_XY_ctrl = true;
 	}
 
 	////////////// PID for horizontal positon control /////////////
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_X_pd.gain = D_X_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Y_pd.gain = D_Y_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_X_i.gain = D_X_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Y_i.gain = D_Y_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		double scale_val = settings.battery.nominal / state_estimate.get_v_batt();
+		x.scale_gains(scale_val);
+		y.scale_gains(scale_val);
 	}
 
+	double tmp_x_sp, tmp_y_sp, tmp_x_out, tmp_y_out;
+	double tmp_x = state_estimate.get_X();
+	double tmp_y = state_estimate.get_Y();
+
+	__get_err_bounded_2D(tmp_x_sp, tmp_y_sp,\
+		setpoint.XY.x.value.get(), setpoint.XY.y.value.get(),\
+		tmp_x, tmp_y, MAX_XYZ_ERROR);
+
 	// Position error -> Velocity/Acceleration error
-	setpoint.X_dot = rc_filter_march(&D_X_pd, setpoint.X - state_estimate.X)\
-		+ rc_filter_march(&D_X_i, setpoint.X - state_estimate.X) + setpoint.X_dot_ff;
-	setpoint.Y_dot = rc_filter_march(&D_Y_pd, setpoint.Y - state_estimate.Y)\
-		+ rc_filter_march(&D_Y_i, setpoint.Y - state_estimate.Y) + setpoint.Y_dot_ff;
-	rc_saturate_double(&setpoint.X_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
-	rc_saturate_double(&setpoint.Y_dot, -MAX_XY_VELOCITY, MAX_XY_VELOCITY);
-	
-	if (setpoint.en_XY_vel_ctrl)
+	x.march_std(tmp_x_out, tmp_x_sp, state_estimate.get_X_vel() / MAX_XYZ_ERROR, 0.0);
+	y.march_std(tmp_y_out, tmp_y_sp, state_estimate.get_Y_vel() / MAX_XYZ_ERROR, 0.0);
+	if (setpoint.XY_dot.is_en())
 	{
-		// Velocity error -> Acceleration error
-		xy_rate_march();
+		setpoint.XY_dot.x.value.set(tmp_x_out * MAX_XYZ_ERROR); // rescale input x
+		setpoint.XY_dot.y.value.set(tmp_y_out * MAX_XYZ_ERROR); // rescale input y
 	}
 	else
 	{
-		setpoint.X_ddot = setpoint.X_dot;
-		setpoint.Y_ddot = setpoint.Y_dot;
+		setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XYZ_ERROR); // rescale input x
+		setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XYZ_ERROR); // rescale input y
 	}
-
-	// Acceleration error -> Lean Angles
-	setpoint.roll = (-sin(state_estimate.continuous_yaw) * setpoint.X_ddot\
-		+ cos(state_estimate.continuous_yaw) * setpoint.Y_ddot) / GRAVITY\
-		+ setpoint.roll_ff;
-	setpoint.pitch = -(cos(state_estimate.continuous_yaw) * setpoint.X_ddot\
-		+ sin(state_estimate.continuous_yaw) * setpoint.Y_ddot) / GRAVITY\
-		+ setpoint.pitch_ff;
-
-	rc_saturate_double(&setpoint.roll, -MAX_ROLL_SETPOINT, MAX_ROLL_SETPOINT);
-	rc_saturate_double(&setpoint.pitch, -MAX_PITCH_SETPOINT, MAX_PITCH_SETPOINT);
-
 	last_en_XY_ctrl = true;
 	return 0;
 }
 
 int feedback_controller_t::xy_reset(void)
 {
-	D_X_pd = D_X_pd_orig;
-	D_Y_pd = D_Y_pd_orig;
-	D_X_i = D_X_i_orig;
-	D_Y_i = D_Y_i_orig;
-
-	rc_filter_reset(&D_X_pd);
-	rc_filter_reset(&D_Y_pd);
-	rc_filter_reset(&D_X_i);
-	rc_filter_reset(&D_Y_i);
+	x.reset();
+	y.reset();
 	return 0;
 }
 
@@ -457,39 +400,17 @@ int feedback_controller_t::xy_reset(void)
 ***************************************************************************/
 int feedback_controller_t::xy_rate_init(void)
 {
-	// filters
-	D_Xdot_pd = RC_FILTER_INITIALIZER;
-	D_Xdot_i = RC_FILTER_INITIALIZER;
-	D_Ydot_pd = RC_FILTER_INITIALIZER;
-	D_Ydot_i = RC_FILTER_INITIALIZER;
-
-	if (unlikely(rc_filter_duplicate(&D_Xdot_pd, settings.horiz_vel_ctrl_pd_X) == -1))
+	// get controllers from settings
+	if (unlikely(x_dot.init(settings.X_vel_ctrl) == -1))
 	{
-		printf("Error in xy_rate_init: failed to dublicate controller from settings\n");
+		printf("Error in xy_rate_init: failed to create X velocity controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_Xdot_i, settings.horiz_vel_ctrl_i_X) == -1))
+	if (unlikely(y_dot.init(settings.Y_vel_ctrl) == -1))
 	{
-		printf("Error in xy_rate_init: failed to dublicate controller from settings\n");
+		printf("Error in xy_rate_init: failed to create Y velocity controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_Ydot_pd, settings.horiz_vel_ctrl_pd_Y) == -1))
-	{
-		printf("Error in xy_rate_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-	if (unlikely(rc_filter_duplicate(&D_Ydot_i, settings.horiz_vel_ctrl_i_Y) == -1))
-	{
-		printf("Error in xy_rate_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-
-
-	//save a copy of the original/default gain set:
-	D_Xdot_pd_orig = D_Xdot_pd;
-	D_Xdot_i_orig = D_Xdot_i;
-	D_Ydot_pd_orig = D_Ydot_pd;
-	D_Ydot_i_orig = D_Ydot_i;
 
 	last_en_XYdot_ctrl = false;
 	return 0;
@@ -499,32 +420,42 @@ int feedback_controller_t::xy_rate_march(void)
 {
 	if (!last_en_XYdot_ctrl)
 	{
-		setpoint.reset_X_dot();
-		setpoint.reset_Y_dot();
-		
+		setpoint.XY_dot.reset();
+		setpoint.XY_dot.x.set(state_estimate.get_X_vel());
+		setpoint.XY_dot.y.set(state_estimate.get_Y_vel());
 		xy_rate_reset();
-
 		last_en_XYdot_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_Xdot_pd.gain = D_Xdot_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Xdot_i.gain = D_Xdot_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Ydot_pd.gain = D_Ydot_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Ydot_i.gain = D_Ydot_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		double scale_val = settings.battery.nominal / state_estimate.get_v_batt();
+		x_dot.scale_gains(scale_val);
+		y_dot.scale_gains(scale_val);
 	}
 
+
 	////////////// PID for horizontal velocity control /////////////
+	double tmp_x_sp = setpoint.XY_dot.x.value.get();
+	double tmp_y_sp = setpoint.XY_dot.y.value.get();
 
-	setpoint.X_ddot = rc_filter_march(&D_Xdot_pd, setpoint.X_dot - state_estimate.X_dot)
-		+ rc_filter_march(&D_Xdot_i, setpoint.X_dot - state_estimate.X_dot);
-	setpoint.Y_ddot = rc_filter_march(&D_Ydot_pd, setpoint.Y_dot - state_estimate.Y_dot)
-		+ rc_filter_march(&D_Ydot_i, setpoint.Y_dot - state_estimate.Y_dot);
+	double tmp_x_out, tmp_y_out;
+	double tmp_x = state_estimate.get_X_vel();
+	double tmp_y = state_estimate.get_Y_vel();
 
-	rc_saturate_double(&setpoint.X_ddot, -MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
-	rc_saturate_double(&setpoint.Y_ddot, -MAX_XY_ACCELERATION, MAX_XY_ACCELERATION);
+	__get_err_bounded_2D(tmp_x_sp, tmp_y_sp, \
+		setpoint.XY_dot.x.value.get(), setpoint.XY_dot.y.value.get(), \
+		tmp_x, tmp_y, MAX_XY_VELOCITY_ERROR);
+	double tmp_xyz_acc[3];
+	state_estimate.get_acc_glob(tmp_xyz_acc);
+
+	// Position error -> Velocity/Acceleration error
+	x_dot.march_std(tmp_x_out, tmp_x_sp, tmp_xyz_acc[0] / MAX_XY_VELOCITY_ERROR, 0.0);
+	y_dot.march_std(tmp_y_out, tmp_y_sp, tmp_xyz_acc[1] / MAX_XY_VELOCITY_ERROR, 0.0);
+
+	setpoint.XYZ_ddot.x.value.set(tmp_x_out * MAX_XY_VELOCITY_ERROR);
+	setpoint.XYZ_ddot.y.value.set(tmp_y_out * MAX_XY_VELOCITY_ERROR);
 	
 	last_en_XYdot_ctrl = true;
 	return 0;
@@ -532,22 +463,14 @@ int feedback_controller_t::xy_rate_march(void)
 
 int feedback_controller_t::xy_rate_reset(void)
 {
-	D_Xdot_pd = D_Xdot_pd_orig;
-	D_Xdot_i = D_Xdot_i_orig;
-	D_Ydot_pd = D_Ydot_pd_orig;
-	D_Ydot_i = D_Ydot_i_orig;
+	x_dot.reset();
+	y_dot.reset();
 
-
-	rc_filter_reset(&D_Xdot_pd);
-	rc_filter_reset(&D_Xdot_i);
-	rc_filter_reset(&D_Ydot_pd);
-	rc_filter_reset(&D_Ydot_i);
-
-	rc_filter_prefill_inputs(&D_Xdot_pd, -state_estimate.X_dot);
-	rc_filter_prefill_inputs(&D_Ydot_pd, -state_estimate.Y_dot);
+	// prefill filters with current error (only those with D terms)
+	//x_dot.prefill_pd_input(-state_estimate.get_X_vel());
+	//y_dot.prefill_pd_input(-state_estimate.get_Y_vel());
 	return 0;
 }
-
 
 
 
@@ -561,30 +484,12 @@ int feedback_controller_t::xy_rate_reset(void)
 ***************************************************************************/
 int feedback_controller_t::z_init(void)
 {
-	// filters
-	D_Z_pd = RC_FILTER_INITIALIZER;
-	D_Z_i = RC_FILTER_INITIALIZER;
-
-	if (unlikely(rc_filter_duplicate(&D_Z_pd, settings.altitude_controller_pd) == -1))
+	// get controllers from settings
+	if (unlikely(z.init(settings.Z_pos_ctrl) == -1))
 	{
-		printf("Error in z_init: failed to dublicate controller from settings\n");
+		printf("Error in z_rate_init: failed to create Altitude controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_Z_i, settings.altitude_controller_i) == -1))
-	{
-		printf("Error in z_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-
-
-#ifdef DEBUG
-	printf("ALTITUDE CONTROLLER:\n");
-	rc_filter_print(D_Z);
-#endif
-
-	//save a copy of the original/default gain set:
-	D_Z_pd_orig = D_Z_pd;
-	D_Z_i_orig = D_Z_i;
 
 	last_en_Z_ctrl = false;
 
@@ -597,63 +502,55 @@ int feedback_controller_t::z_march(void)
 	// only the first step after altitude controll is on
 	if (!last_en_Z_ctrl)
 	{
-		setpoint.reset_Z();
-		setpoint.reset_Z_dot_ff();
-		//take stick position as nominal hover thrust but leave enough room for manual adjustements for extreme cases
-		if (settings.enable_mocap) {
-			if (user_input.get_thr_stick() > 0.80) {
+		setpoint.Z.reset();
+
+		if (!last_en_Zdot_ctrl)
+		{
+			//take stick position as nominal hover thrust but leave enough room for manual adjustements for extreme cases
+			if (user_input.throttle.get() > 0.80) {
 				setpoint.Z_throttle_0 = 0.80; //don't let hover thrust be too high (but account for heavy drones with T/W < 1.7)
 			}
-			else if (user_input.get_thr_stick() < 0.15) {
+			else if (user_input.throttle.get() < 0.15) {
 				setpoint.Z_throttle_0 = 0.15; //don't let hover thrust be too low if starting from the ground
 			}
 			else {
-				setpoint.Z_throttle_0 = user_input.get_thr_stick(); //detect last user input
+				setpoint.Z_throttle_0 = user_input.throttle.get(); //detect last user input
 			}
 		}
-
 		
-		setpoint.Z = state_estimate.Z; // set altitude setpoint to current altitude
+		setpoint.Z.value.set(state_estimate.get_Z()); // set altitude setpoint to current altitude
 
 		z_reset();   // reset the filter (works well so far, not need to prefill outputs)
 
 		last_en_Z_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_Z_pd.gain = D_Z_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Z_i.gain = D_Z_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		z.scale_gains(settings.battery.nominal / state_estimate.get_v_batt());
 	}
+
 	// Position error -> Velocity error:
-	setpoint.Z_dot = rc_filter_march(&D_Z_pd, setpoint.Z - state_estimate.Z)
-		+ rc_filter_march(&D_Z_i, setpoint.Z - state_estimate.Z) + setpoint.Z_dot_ff;
-	
-	rc_saturate_double(&setpoint.Z_dot, -MAX_Z_VELOCITY, MAX_Z_VELOCITY);
-	if (setpoint.en_Z_rate_ctrl)
+	double tmp_out;
+	double tmp_z = state_estimate.get_Z();
+	z.march_std(tmp_out, __get_norm_err_bounded_1D(tmp_z, setpoint.Z.value.get(), MAX_XYZ_ERROR), state_estimate.get_Z_vel() / MAX_XYZ_ERROR, 0.0);
+	if (setpoint.Z_dot.value.is_en())
 	{
-		z_rate_march();
+		setpoint.Z_dot.value.set(tmp_out * MAX_XYZ_ERROR);
 	}
 	else
 	{
-		setpoint.Z_ddot = setpoint.Z_dot;
-	}
+		setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_XYZ_ERROR);
+	}	
 	
-	setpoint.Z_throttle = (setpoint.Z_ddot - setpoint.Z_throttle_0)\
-		/ (cos(state_estimate.roll) * cos(state_estimate.pitch));
-
 	last_en_Z_ctrl = true;
 	return 0;
 }
 
 int feedback_controller_t::z_reset(void)
 {
-	D_Z_pd = D_Z_pd_orig;
-	D_Z_i = D_Z_i_orig;
-
-    rc_filter_reset(&D_Z_pd);
-	rc_filter_reset(&D_Z_i);
+	z.reset();
     return 0;
 }
 
@@ -663,24 +560,12 @@ int feedback_controller_t::z_reset(void)
 ***************************************************************************/
 int feedback_controller_t::z_rate_init(void)
 {
-	// filters
-	D_Zdot_pd = RC_FILTER_INITIALIZER;
-	D_Zdot_i = RC_FILTER_INITIALIZER;
-
-	if (unlikely(rc_filter_duplicate(&D_Zdot_pd, settings.altitude_rate_controller_pd) == -1))
+	// get controllers from settings
+	if (unlikely(z_dot.init(settings.Z_vel_ctrl) == -1))
 	{
-		printf("Error in z_rate_init: failed to dublicate controller from settings\n");
+		printf("Error in z_rate_init: failed to create Altitude rate controller from settings\n");
 		return -1;
 	}
-	if (unlikely(rc_filter_duplicate(&D_Zdot_i, settings.altitude_rate_controller_i) == -1))
-	{
-		printf("Error in z_rate_init: failed to dublicate controller from settings\n");
-		return -1;
-	}
-
-	//save a copy of the original/default gain set:
-	D_Zdot_pd_orig = D_Zdot_pd;
-	D_Zdot_i_orig = D_Zdot_i;
 
 	last_en_Zdot_ctrl = false;
 	return 0;
@@ -690,23 +575,39 @@ int feedback_controller_t::z_rate_march(void)
 {
 	if (!last_en_Zdot_ctrl)
 	{
-		setpoint.reset_Z_dot();
+		setpoint.Z_dot.reset();
+		setpoint.Z_dot.set(state_estimate.get_Z_vel());
 		z_rate_reset();
+
+		if (!last_en_Z_ctrl)
+		{
+			//take stick position as nominal hover thrust but leave enough room for manual adjustements for extreme cases
+			if (user_input.throttle.get() > 0.80) {
+				setpoint.Z_throttle_0 = 0.80; //don't let hover thrust be too high (but account for heavy drones with T/W < 1.7)
+			}
+			else if (user_input.throttle.get() < 0.15) {
+				setpoint.Z_throttle_0 = 0.15; //don't let hover thrust be too low if starting from the ground
+			}
+			else {
+				setpoint.Z_throttle_0 = user_input.throttle.get(); //detect last user input
+			}
+		}
 		
 		last_en_Zdot_ctrl = true;
 	}
 
-	if (settings.enable_v_gain_scaling)
+	if (settings.battery.enable_gain_scaling)
 	{
 		// updating the gains based on battery voltage
-		D_Zdot_pd.gain = D_Zdot_pd_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
-		D_Zdot_i.gain = D_Zdot_i_orig.gain * settings.v_nominal / state_estimate.v_batt_lp;
+		z_dot.scale_gains(settings.battery.nominal / state_estimate.get_v_batt());
 	}
-
-	// Vertical velocity error -> Vertical acceleration error
-	setpoint.Z_ddot = rc_filter_march(&D_Zdot_pd, setpoint.Z_dot - state_estimate.Z_dot)
-		+ rc_filter_march(&D_Zdot_i, setpoint.Z_dot - state_estimate.Z_dot);
-	rc_saturate_double(&setpoint.Z_ddot, -MAX_Z_ACCELERATION, MAX_Z_ACCELERATION);
+	
+	double tmp_z = state_estimate.get_Z_vel();
+	double tmp_out;
+	double tmp_xyz_dot[3];
+	state_estimate.get_acc_glob(tmp_xyz_dot);
+	z_dot.march_std(tmp_out, __get_norm_err_bounded_1D(tmp_z, setpoint.Z_dot.value.get(), MAX_Z_VELOCITY_ERROR), (tmp_xyz_dot[2] - GRAVITY) / MAX_Z_VELOCITY_ERROR, 0.0);
+	setpoint.XYZ_ddot.z.value.set(tmp_out * MAX_Z_VELOCITY_ERROR);
 
 	last_en_Zdot_ctrl = true;
 	return 0;
@@ -714,13 +615,10 @@ int feedback_controller_t::z_rate_march(void)
 
 int feedback_controller_t::z_rate_reset(void)
 {
-	D_Zdot_pd = D_Zdot_pd_orig;
-	D_Zdot_i = D_Zdot_i_orig;
+	z_dot.reset();
 
-	rc_filter_reset(&D_Zdot_pd);
-	rc_filter_reset(&D_Zdot_i);
-
-	rc_filter_prefill_inputs(&D_Zdot_pd, -state_estimate.Z_dot);
+	// prefill filters with current error (only those with D terms)
+	//z_dot.prefill_pd_input(-state_estimate.get_Z_vel()); //not needed as far as I can see
 	return 0;
 }
 
@@ -734,6 +632,8 @@ char feedback_controller_t::gain_tune_march(void)
 		received_gain_set.GainN0_pd = GS_RX.GainN0_pd;
 		received_gain_set.GainN1_pd = GS_RX.GainN1_pd;
 		received_gain_set.GainD1_pd = GS_RX.GainD1_pd;
+		received_gain_set.GainFF = GS_RX.GainFF;
+		received_gain_set.GainK = GS_RX.GainK;
 
 
 
@@ -755,6 +655,47 @@ char feedback_controller_t::gain_tune_march(void)
 	return 0;
 }
 
+int feedback_controller_t::XY_accel_2_attitude(void)
+{
+	double tmp_x = setpoint.XYZ_ddot.x.value.get();
+	double tmp_y = setpoint.XYZ_ddot.y.value.get();
+	double tmp_yaw = state_estimate.get_continuous_heading();
+	double tmp_norm = sqrt(tmp_x * tmp_x + tmp_y * tmp_y);
+	if (tmp_norm >= MAX_XY_ACCELERATION_NORM)
+	{
+		tmp_x = tmp_x / tmp_norm;
+		tmp_y = tmp_y / tmp_norm;
+	}
+	else
+	{
+		tmp_x = tmp_x / MAX_XY_ACCELERATION_NORM;
+		tmp_y = tmp_y / MAX_XY_ACCELERATION_NORM;
+	}
+
+	// Horizonal acceleration setpoint -> Lean Angles
+	setpoint.ATT.x.value.set((\
+		- sin(tmp_yaw) * tmp_x\
+		+ cos(tmp_yaw) * tmp_y) * MAX_ROLL_SETPOINT);
+	setpoint.ATT.y.set((\
+		- (cos(tmp_yaw) * tmp_x\
+			+ sin(tmp_yaw) * tmp_y)) * MAX_PITCH_SETPOINT);
+	return 0;
+}
+
+int feedback_controller_t::Z_accel_2_throttle(void)
+{
+	double tmp_z = setpoint.XYZ_ddot.z.value.get() / MAX_Z_ACCELERATION;
+	if (tmp_z > 1.0) tmp_z = 1.0;
+	else if (tmp_z < -1.0) tmp_z = -1.0;
+
+	// Vertical acceleration error -> throttle	
+	setpoint.POS_throttle.z.value.set((tmp_z - setpoint.Z_throttle_0)\
+		/ (cos(state_estimate.get_roll()) * cos(state_estimate.get_pitch())));
+
+	return 0;
+}
+
+
 char feedback_controller_t::update_gains(void)
 {
 	/*
@@ -766,89 +707,53 @@ char feedback_controller_t::update_gains(void)
 	switch (received_gain_set.GainCH)
 	{
 	case 0:
-		break;
+		return 0;
 	case 1: //roll
-		D_roll_i.num.d[1] = received_gain_set.GainN1_i;
-		D_roll_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_roll_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_roll_pd.den.d[1] = received_gain_set.GainD1_pd;
+		roll.set_tune_gains(received_gain_set);
 		break;
 
 	case 2: //pitch
-		D_pitch_i.num.d[1] = received_gain_set.GainN1_i;
-		D_pitch_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_pitch_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_pitch_pd.den.d[1] = received_gain_set.GainD1_pd;
+		pitch.set_tune_gains(received_gain_set);
 		break;
 
 	case 3: //yaw
-		D_yaw_i.num.d[1] = received_gain_set.GainN1_i;
-		D_yaw_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_yaw_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_yaw_pd.den.d[1] = received_gain_set.GainD1_pd;
+		yaw.set_tune_gains(received_gain_set);
 		break;
 
 	case 4: //roll rate
-		D_roll_rate_i.num.d[1] = received_gain_set.GainN1_i;
-		D_roll_rate_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_roll_rate_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_roll_rate_pd.den.d[1] = received_gain_set.GainD1_pd;
+		roll_dot.set_tune_gains(received_gain_set);
 		break;
 
 	case 5: //pitch rate
-		D_pitch_rate_i.num.d[1] = received_gain_set.GainN1_i;
-		D_pitch_rate_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_pitch_rate_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_pitch_rate_pd.den.d[1] = received_gain_set.GainD1_pd;
+		pitch_dot.set_tune_gains(received_gain_set);
 		break;
 
 	case 6: //yaw rate
-		D_yaw_rate_i.num.d[1] = received_gain_set.GainN1_i;
-		D_yaw_rate_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_yaw_rate_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_yaw_rate_pd.den.d[1] = received_gain_set.GainD1_pd;
+		yaw_dot.set_tune_gains(received_gain_set);
 		break;
 
 	case 7: //x
-		D_X_i.num.d[1] = received_gain_set.GainN1_i;
-		D_X_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_X_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_X_pd.den.d[1] = received_gain_set.GainD1_pd;
+		x.set_tune_gains(received_gain_set);
 		break;
 
 	case 8: //y
-		D_Y_i.num.d[1] = received_gain_set.GainN1_i;
-		D_Y_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_Y_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_Y_pd.den.d[1] = received_gain_set.GainD1_pd;
+		y.set_tune_gains(received_gain_set);
 		break;
 
 	case 9: //z
-		D_Z_i.num.d[1] = received_gain_set.GainN1_i;
-		D_Z_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_Z_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_Z_pd.den.d[1] = received_gain_set.GainD1_pd;
+		z.set_tune_gains(received_gain_set);
 		break;
 
 	case 10: //x rate
-		D_Xdot_i.num.d[1] = received_gain_set.GainN1_i;
-		D_Xdot_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_Xdot_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_Xdot_pd.den.d[1] = received_gain_set.GainD1_pd;
+		x_dot.set_tune_gains(received_gain_set);
 		break;
 
 	case 11: //y rate
-		D_Ydot_i.num.d[1] = received_gain_set.GainN1_i;
-		D_Ydot_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_Ydot_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_Ydot_pd.den.d[1] = received_gain_set.GainD1_pd;
+		y_dot.set_tune_gains(received_gain_set);
 		break;
 
 	case 12: //z rate
-		D_Zdot_i.num.d[1] = received_gain_set.GainN1_i;
-		D_Zdot_pd.num.d[0] = received_gain_set.GainN0_pd;
-		D_Zdot_pd.num.d[1] = received_gain_set.GainN1_pd;
-		D_Zdot_pd.den.d[1] = received_gain_set.GainD1_pd;
+		z_dot.set_tune_gains(received_gain_set);
 		break;
 	
 	default: //no changes 
@@ -913,51 +818,65 @@ int feedback_controller_t::mix_all_control(double(&u)[MAX_INPUTS], double(&mot)[
 
 	double min, max;
 
-	/* 1. Throttle/Altitude Control */
-	rc_saturate_double(&setpoint.Z_throttle, MIN_THRUST_COMPONENT, MAX_THRUST_COMPONENT);
-	u[VEC_Z] = setpoint.Z_throttle;
-	mix_add_input(u[VEC_Z], VEC_Z, mot);
+	if (setpoint.POS_throttle.z.value.is_en())
+	{
+		/* 1. Throttle/Altitude Control */
+		setpoint.POS_throttle.z.value.saturate(MIN_THRUST_COMPONENT, MAX_THRUST_COMPONENT);
+		u[VEC_Z] = setpoint.POS_throttle.z.value.get();
+		mix_add_input(u[VEC_Z], VEC_Z, mot);
+	}
 
+	if (setpoint.ATT_throttle.x.value.is_en())
+	{
+		/* 2. Roll (X) Control */
+		mix_check_saturation(VEC_ROLL, mot, &min, &max);
+		if (max > MAX_ROLL_COMPONENT)  max = MAX_ROLL_COMPONENT;
+		if (min < -MAX_ROLL_COMPONENT) min = -MAX_ROLL_COMPONENT;
+		u[VEC_ROLL] = setpoint.ATT_throttle.x.value.get();
+		rc_saturate_double(&u[VEC_ROLL], min, max);
+		mix_add_input(u[VEC_ROLL], VEC_ROLL, mot);
+	}
 
-	/* 2. Roll (X) Control */
-	mix_check_saturation(VEC_ROLL, mot, &min, &max);
-	if (max > MAX_ROLL_COMPONENT)  max = MAX_ROLL_COMPONENT;
-	if (min < -MAX_ROLL_COMPONENT) min = -MAX_ROLL_COMPONENT;
-	u[VEC_ROLL] = setpoint.roll_throttle;
-	rc_saturate_double(&u[VEC_ROLL], min, max);
-	mix_add_input(u[VEC_ROLL], VEC_ROLL, mot);
-
-	/* 2. Pitch (Y) Control */
-	mix_check_saturation(VEC_PITCH, mot, &min, &max);
-	if (max > MAX_PITCH_COMPONENT)  max = MAX_PITCH_COMPONENT;
-	if (min < -MAX_PITCH_COMPONENT) min = -MAX_PITCH_COMPONENT;
-	u[VEC_PITCH] = setpoint.pitch_throttle;
-	rc_saturate_double(&u[VEC_PITCH], min, max);
-	mix_add_input(u[VEC_PITCH], VEC_PITCH, mot);
+	if (setpoint.ATT_throttle.y.value.is_en())
+	{
+		/* 2. Pitch (Y) Control */
+		mix_check_saturation(VEC_PITCH, mot, &min, &max);
+		if (max > MAX_PITCH_COMPONENT)  max = MAX_PITCH_COMPONENT;
+		if (min < -MAX_PITCH_COMPONENT) min = -MAX_PITCH_COMPONENT;
+		u[VEC_PITCH] = setpoint.ATT_throttle.y.value.get();
+		rc_saturate_double(&u[VEC_PITCH], min, max);
+		mix_add_input(u[VEC_PITCH], VEC_PITCH, mot);
+	}
 	
-	/* 3. Yaw (Z) Control */
-	mix_check_saturation(VEC_YAW, mot, &min, &max);
-	if (max > MAX_YAW_COMPONENT)  max = MAX_YAW_COMPONENT;
-	if (min < -MAX_YAW_COMPONENT) min = -MAX_YAW_COMPONENT;
-	u[VEC_YAW] = setpoint.yaw_throttle;
-	rc_saturate_double(&u[VEC_YAW], min, max);
-	mix_add_input(u[VEC_YAW], VEC_YAW, mot);
+	if (setpoint.ATT_throttle.z.value.is_en())
+	{
+		/* 3. Yaw (Z) Control */
+		mix_check_saturation(VEC_YAW, mot, &min, &max);
+		if (max > MAX_YAW_COMPONENT)  max = MAX_YAW_COMPONENT;
+		if (min < -MAX_YAW_COMPONENT) min = -MAX_YAW_COMPONENT;
+		u[VEC_YAW] = setpoint.ATT_throttle.z.value.get();
+		rc_saturate_double(&u[VEC_YAW], min, max);
+		mix_add_input(u[VEC_YAW], VEC_YAW, mot);
+	}
 
 	// for 6dof systems, add X and Y
-	if (setpoint.en_6dof) {
+	if (setpoint.POS_throttle.x.value.is_en()) 
+	{
 		// X
 		mix_check_saturation(VEC_X, mot, &min, &max);
 		if (max > MAX_X_COMPONENT)  max = MAX_X_COMPONENT;
 		if (min < -MAX_X_COMPONENT) min = -MAX_X_COMPONENT;
-		u[VEC_X] = setpoint.X_throttle;
+		u[VEC_X] = setpoint.POS_throttle.x.value.get();
 		rc_saturate_double(&u[VEC_X], min, max);
 		mix_add_input(u[VEC_X], VEC_X, mot);
-
+	}
+	if (setpoint.POS_throttle.y.value.is_en())
+	{
 		// Y
 		mix_check_saturation(VEC_Y, mot, &min, &max);
 		if (max > MAX_Y_COMPONENT)  max = MAX_Y_COMPONENT;
 		if (min < -MAX_Y_COMPONENT) min = -MAX_Y_COMPONENT;
-		u[VEC_Y] = setpoint.Y_throttle;
+		u[VEC_Y] = setpoint.POS_throttle.y.value.get();
 		rc_saturate_double(&u[VEC_Y], min, max);
 		mix_add_input(u[VEC_Y], VEC_Y, mot);
 	}
@@ -979,54 +898,117 @@ int feedback_controller_t::march(double(&u)[MAX_INPUTS], double(&mot)[MAX_ROTORS
 	switching between flight modes - we want to make sure controllers are being
 	reset every time flight mode is switched.
 	*/
-	if (!setpoint.en_rpy_ctrl) last_en_rpy_ctrl = false;
-	if (!setpoint.en_rpy_rate_ctrl) last_en_rpy_rate_ctrl = false;
-	if (!setpoint.en_Z_ctrl) last_en_Z_ctrl = false;
-	if (!setpoint.en_Z_rate_ctrl) last_en_Zdot_ctrl = false;
-	if (!setpoint.en_XY_pos_ctrl) last_en_XY_ctrl = false;
-	if (!setpoint.en_XY_vel_ctrl) last_en_XYdot_ctrl = false;
+	if (!setpoint.ATT.is_en()) last_en_rpy_ctrl = false;
+	if (!setpoint.ATT_dot.is_en()) last_en_rpy_rate_ctrl = false;
+	if (!setpoint.Z.value.is_en()) last_en_Z_ctrl = false;
+	if (!setpoint.Z_dot.value.is_en()) last_en_Zdot_ctrl = false;
+	if (!setpoint.XY.is_en()) last_en_XY_ctrl = false;
+	if (!setpoint.XY_dot.is_en()) last_en_XYdot_ctrl = false;
 	
 	// update gains if allowed
-	if (settings.allow_remote_tuning) gain_tune_march();
+	if (settings.allow_remote_tuning)
+	{
+		if (unlikely(gain_tune_march() < 0))
+		{
+			printf("ERROR in march: failed to march gain tunning\n");
+			settings.allow_remote_tuning = false;
+			reset();
+		}
+	}
+		
 
 	// run position controller if enabled
-	if (setpoint.en_XY_pos_ctrl) 
+	if (setpoint.XY.is_en())
 	{
-		xy_march(); //marches XY velocity controller as well
+		if (unlikely(xy_march() < 0))
+		{
+			printf("ERROR in march: failed to march horizontal position control\n");
+			return -1;
+		}
 	}
-	else if (setpoint.en_XY_vel_ctrl) //iff only using XY velocity ctrl
+	
+	// run velocity controller if enabled
+	if (setpoint.XY_dot.is_en())
 	{
-		xy_rate_march();
+		if (unlikely(xy_rate_march() < 0))
+		{
+			printf("ERROR in march: failed to march horizontal velocity control\n");
+			return -1;
+		}
+	}
+
+	// check if we have any of the above enabled. If so, convert acceleration setpoints into attitude
+	if (setpoint.XY.is_en() || setpoint.XY_dot.is_en())
+	{
+		if (unlikely(XY_accel_2_attitude() < 0))
+		{
+			printf("ERROR in march: failed to convert acceleration into attitude setpoints\n");
+			return -1;
+		}
 	}
 	
 	// run altitude controller if enabled
-	if (setpoint.en_Z_ctrl)
+	if (setpoint.Z.value.is_en())
 	{
-		z_march(); //also marches vertical velocity controller
+		if (unlikely(z_march() < 0))
+		{
+			printf("ERROR in march: failed to march altitude control\n");
+			return -1;
+		}
 	}
-	else if (setpoint.en_Z_rate_ctrl) //iff only using vertical velocity controller
+	
+	// run vertical velocity controller if enabled
+	if (setpoint.Z_dot.value.is_en())
 	{
-		z_rate_march();
+		if (unlikely(z_rate_march() < 0))
+		{
+			printf("ERROR in march: failed to march vertical velocity control\n");
+			return -1;
+		}
+	}
+
+	// check if we have any of the above vertical controllers enabled. If so, convert acceleration setpoints into throttle
+	if (setpoint.Z.value.is_en() || setpoint.Z_dot.value.is_en())
+	{
+		if (unlikely(Z_accel_2_throttle() < 0))
+		{
+			printf("ERROR in march: failed to convert vertical acceleration into throttle setpoints\n");
+			return -1;
+		}
 	}
 
 	// run attitude controllers if enabled
-	if (setpoint.en_rpy_ctrl)
+	if (setpoint.ATT.is_en())
 	{
-		rpy_march(); //marches only attitude ctrl. + transition
+		if (unlikely(rpy_march() < 0))
+		{
+			printf("ERROR in march: failed to march attitude control\n");
+			return -1;
+		}
 	}
+	/*
 	else if (setpoint.en_rpy_trans)
 	{
-		rpy_transition(setpoint.roll_throttle, setpoint.pitch_throttle, setpoint.yaw_throttle);
+		rpy_transition(setpoint.ATT_throttle.x.value.get(), setpoint.ATT_throttle.y.value.get(), setpoint.ATT_throttle.z.value.get());
 	}
+	*/
 
 	// run attitude rate controllers if enabled
-	if (setpoint.en_rpy_rate_ctrl)
+	if (setpoint.ATT_dot.is_en())
 	{
-		rpy_rate_march(); //marches only attitude rates ctrl. + transition
+		if (unlikely(rpy_rate_march() < 0))
+		{
+			printf("ERROR in march: failed to march attitude rate control\n");
+			return -1;
+		}
 	}
 
 	// now use motor mixing matrix to get individual motor inputs in [0 1] range
-	mix_all_control(u, mot);
+	if (unlikely(mix_all_control(u, mot) < 0))
+	{
+		printf("ERROR in march: failed to mix all control\n");
+		return -1;
+	}
 
 
 	return 0;

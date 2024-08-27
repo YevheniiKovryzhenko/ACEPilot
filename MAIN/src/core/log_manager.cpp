@@ -22,10 +22,11 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/23/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  *
  * Class to start, stop, and interact with the log manager thread.
  */
+#include "log_manager.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -42,26 +43,31 @@
 #include <rc/time.h>
 #include <rc/encoder.h>
 
-#include "rc_pilot_defs.h"
-#include "thread_defs.h"
-#include "settings.h"
+#include "rc_pilot_defs.hpp"
+#include "thread_defs.hpp"
+#include "settings.hpp"
 #include "setpoint_manager.hpp"
 #include "feedback.hpp"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "signal.h"
 #include "tools.h"
-#include "gps.h"
-#include "benchmark.h"
+#include "gps.hpp"
+#include "benchmark.hpp"
 #include "input_manager.hpp"
-
-#include "log_manager.hpp"
+#include "KF.hpp"
+#include "EKF.hpp"
+#include "EKF2.hpp"
+#include "voltage_sensor_gen.hpp"
+#include "extra_sensors.hpp"
+ 
 // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
-#define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !unlikely
 
-// threard
-//static pthread_t log_manager_thread;
-//static int thread_initialized = 0;
+#ifndef likely
+#define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
@@ -71,10 +77,15 @@ log_entry_t log_entry{};
 static void* __log_manager_func(__attribute__((unused)) void* ptr)
 {
     while (rc_get_state() != EXITING)
-    {        
-        if (log_entry.update() < 0)
+    {
+        int tmp = log_entry.update();
+        if (tmp < 0)
         {
             printf("ERROR in __log_manager_func: failed to update log_mannager\n");
+            return NULL;
+        }
+        else if (tmp > 0) //done, so exit
+        {            
             return NULL;
         }
     }
@@ -83,6 +94,20 @@ static void* __log_manager_func(__attribute__((unused)) void* ptr)
 
 int log_entry_t::update(void)
 {
+    if (request_shutdown_fl)
+    {
+        // if the logging is running, stop before starting a new log file
+        if (logging_enabled)
+        {
+            logging_enabled = false;
+            if (file_open)
+            {
+                fclose(log_fd);
+                file_open = false;
+            }
+        }
+        return 1;
+    }
     if (request_reset_fl)
     {
         if (reset() < 0)
@@ -119,29 +144,22 @@ int log_entry_t::write_header(void)
     }
 
 	// always print loop index
-    fprintf(log_fd, "loop_index,last_step_ns,imu_time_ns,bmp_time_ns,log_time_ns");
-	
-
-	if (settings.log_sensors)
+    fprintf(log_fd, "loop_index,last_step_ns,log_time_ns");
+    
+    /* state estimator */
+    if (settings.log_state) state_estimator_entry.print_header(log_fd);
+    
+    if (settings.log_sensors)
     {
-        fprintf(log_fd,
-            ",v_batt,alt_bmp_raw,bmp_temp,gyro_roll,gyro_pitch,gyro_yaw,accel_X,accel_Y,accel_Z,mag_X, "
-            "mag_Y, mag_Z");
+        battery_entry.print_header(log_fd, "batt_", settings.battery);
+        bmp_entry.print_header(log_fd, "bmp_");
+        IMU0_entry.print_header(log_fd, "IMU0_", settings.IMU0);
+        IMU1_entry.print_header(log_fd, "IMU1_", settings.IMU1);
     }
 
-	if (settings.log_state)
-    {
-        fprintf(log_fd, ",roll,pitch,yaw,cont_yaw,rollDot,pitchDot,yawDot,X,Y,Z,Xdot,Ydot,Zdot,Xdot_raw,Ydot_raw,Zdot_raw,Zddot");
-    }
-	
-	if (settings.log_mocap)
-    {
-        fprintf(log_fd,
-            ",mocap_time,mocap_timestamp_ns,mocap_x,mocap_y,mocap_z,mocap_qw,mocap_qx,mocap_qy,mocap_qz,"
-            "mocap_roll,mocap_pitch,"
-            "mocap_yaw");
-    }
-	
+
+    if (settings.mocap.enable) mocap_entry.print_header(log_fd, "mocap_",settings.mocap);
+
 	if (settings.log_gps)
     {
         fprintf(log_fd,
@@ -149,23 +167,74 @@ int log_entry_t::write_header(void)
             "headingNc,gps_cog,gps_gpsVsi,gps_hdop,gps_vdop,gps_year,gps_month,gps_day,gps_hour,"
             "gps_minute,gps_second,gps_time_received_ns");
     }
-	
-	if (settings.log_throttles)
+
+    KF_altitude_entry.print_header(log_fd, "KF_alt_");
+    EKF1_entry.print_header(log_fd, "EKF1_");
+    EKF2_entry.print_header(log_fd, "EKF2_");
+
+    if (settings.log_setpoints)
     {
-        fprintf(log_fd, ",X_thrt,Y_thrt,Z_thrt,roll_thrt,pitch_thrt,yaw_thrt");
-    }
+        if (settings.log_throttles)
+        {
+            fprintf(log_fd, ",X_thrt,Y_thrt,Z_thrt,roll_thrt,pitch_thrt,yaw_thrt");
+        }
+
+        if (settings.log_throttles_ff)
+        {
+            fprintf(log_fd, ",X_thrt_ff,Y_thrt_ff,Z_thrt_ff,roll_thrt_ff,pitch_thrt_ff,yaw_thrt_ff");
+        }
+
+        if (settings.log_attitude_rate_setpoint)
+        {
+            fprintf(log_fd, ",sp_roll_dot,sp_pitch_dot,sp_yaw_dot");
+        }
+
+        if (settings.log_attitude_rate_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_roll_dot_ff,sp_pitch_dot_ff,sp_yaw_dot_ff");
+        }
+
+        if (settings.log_attitude_setpoint)
+        {
+            fprintf(log_fd, ",sp_roll,sp_pitch,sp_yaw");
+        }
+
+        if (settings.log_attitude_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_roll_ff,sp_pitch_ff,sp_yaw_ff");
+        }
+
+        if (settings.log_acceleration_setpoint)
+        {
+            fprintf(log_fd, ",sp_Xddot,sp_Yddot,sp_Zddot");
+        }
+
+        if (settings.log_acceleration_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_Xddot,sp_Yddot,sp_Zddot");
+        }
+
+        if (settings.log_velocity_setpoint)
+        {
+            fprintf(log_fd, ",sp_Xdot,sp_Ydot,sp_Zdot");
+        }
+
+        if (settings.log_velocity_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_Xdot_ff,sp_Ydot_ff,sp_Zdot_ff");
+        }
+
+        if (settings.log_position_setpoint)
+        {
+            fprintf(log_fd, ",sp_X,sp_Y,sp_Z");
+        }
+
+        if (settings.log_position_setpoint_ff)
+        {
+            fprintf(log_fd, ",sp_X_ff,sp_Y_ff,sp_Z_ff");
+        }
+    }	
 	
-	if (settings.log_attitude_setpoint)
-    {
-        fprintf(log_fd, ",sp_roll_dot,sp_pitch_dot,sp_yaw_dot,sp_roll_dot_ff,sp_pitch_dot_ff,sp_yaw_dot_ff");
-        fprintf(log_fd, ",sp_roll,sp_pitch,sp_yaw,sp_roll_ff,sp_pitch_ff");
-    }
-	
-	if (settings.log_position_setpoint)
-    {
-        fprintf(log_fd, ",sp_X,sp_Y,sp_Z,sp_Xdot,sp_Ydot,sp_Zdot");
-        fprintf(log_fd, ",sp_Xdot_ff,sp_Ydot_ff,sp_Zdot_ff,sp_Xddot,sp_Yddot,sp_Zddot");
-    }
 
 	if (settings.log_control_u)
     {
@@ -213,29 +282,20 @@ int log_entry_t::write_log_entry(void)
     }
 
 	// always print loop index
-    fprintf(log_fd, "%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64 ",%" PRIu64, 
-            loop_index, last_step_ns, imu_time_ns, imu_time_ns, log_time_ns);
-							
-	if (settings.log_sensors)
+    fprintf(log_fd, "%" PRIu64 ",%" PRIu64 ",%" PRIu64, 
+            loop_index, last_step_ns, log_time_ns);
+	
+    if (settings.log_state) state_estimator_entry.print_entry(log_fd);
+    
+    if (settings.log_sensors)
     {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", v_batt,
-            alt_bmp_raw, bmp_temp, gyro_roll, gyro_pitch, gyro_yaw, accel_X, accel_Y, accel_Z,
-            mag_X, mag_Y, mag_Z);
+        battery_entry.print_entry(log_fd, settings.battery);
+        bmp_entry.print_entry(log_fd);
+        IMU0_entry.print_entry(log_fd, settings.IMU0);
+        IMU1_entry.print_entry(log_fd, settings.IMU1);
     }
-
-	if (settings.log_state)
-    {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", roll, pitch, yaw,
-            yaw_cont, rollDot, pitchDot, yawDot, X, Y, Z, Xdot, Ydot, Zdot, Xdot_raw, Ydot_raw, Zdot_raw, Zddot);
-    }
-
-    if (settings.log_mocap)
-    {
-        fprintf(log_fd, ",%" PRIu32 ",%" PRIu64, mocap_time, mocap_timestamp_ns);
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", mocap_x, mocap_y,
-            mocap_z, mocap_qw, mocap_qx, mocap_qy, mocap_qz, mocap_roll, mocap_pitch,
-            mocap_yaw);
-    }
+    
+    if (settings.mocap.enable) mocap_entry.print_entry(log_fd, settings.mocap);
 
     if (settings.log_gps)
     {
@@ -247,25 +307,83 @@ int log_entry_t::write_log_entry(void)
         fprintf(log_fd, ",%" PRIu64, gps_time_received_ns);
     }
 
-    if (settings.log_throttles)
-    {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", X_throttle, Y_throttle, Z_throttle,
-            roll_throttle, pitch_throttle, yaw_throttle);
-    }
+    KF_altitude_entry.print_entry(log_fd);
+    EKF1_entry.print_entry(log_fd);
+    EKF2_entry.print_entry(log_fd);
 
-    if (settings.log_attitude_setpoint)
+    if (settings.log_setpoints)
     {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", sp_roll_dot,
-            sp_pitch_dot, sp_yaw_dot, sp_roll_dot_ff, sp_pitch_dot_ff, sp_yaw_dot_ff, sp_roll, sp_pitch, sp_yaw,
-            sp_roll_ff, sp_pitch_ff);
-    }
+        if (settings.log_throttles)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", X_throttle, Y_throttle, Z_throttle,
+                roll_throttle, pitch_throttle, yaw_throttle);
+        }
 
-    if (settings.log_position_setpoint)
-    {
-        fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", sp_X,
-            sp_Y, sp_Z, sp_Xdot, sp_Ydot, sp_Zdot, sp_Xdot_ff, sp_Ydot_ff, sp_Zdot_ff,
-            sp_Xddot, sp_Yddot, sp_Zddot);
+        if (settings.log_throttles_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F,%.4F,%.4F,%.4F", X_throttle_ff, Y_throttle_ff, Z_throttle_ff,
+                roll_throttle_ff, pitch_throttle_ff, yaw_throttle_ff);
+        }
+
+        if (settings.log_attitude_rate_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_roll_dot,
+                sp_pitch_dot, sp_yaw_dot);
+        }
+
+        if (settings.log_attitude_rate_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_roll_dot_ff,
+                sp_pitch_dot_ff, sp_yaw_dot_ff);
+        }
+
+        if (settings.log_attitude_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_roll, sp_pitch, sp_yaw);
+        }
+
+        if (settings.log_attitude_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_roll_ff, sp_pitch_ff, sp_yaw_ff);
+        }
+
+        if (settings.log_acceleration_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_Xddot,
+                sp_Yddot, sp_Zddot);
+        }
+
+        if (settings.log_acceleration_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_Xddot_ff,
+                sp_Yddot_ff, sp_Zddot_ff);
+        }
+
+        if (settings.log_velocity_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_Xdot,
+                sp_Ydot, sp_Zdot);
+        }
+
+        if (settings.log_velocity_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_Xdot_ff,
+                sp_Ydot_ff, sp_Zdot_ff);
+        }
+
+        if (settings.log_position_setpoint)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_X,
+                sp_Y, sp_Z);
+        }
+
+        if (settings.log_position_setpoint_ff)
+        {
+            fprintf(log_fd, ",%.4F,%.4F,%.4F", sp_X_ff,
+                sp_Y_ff, sp_Z_ff);
+        }
     }
+    
 
     if (settings.log_control_u)
     {
@@ -311,6 +429,7 @@ int log_entry_t::write_log_entry(void)
         fprintf(log_fd, ",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64",%" PRIu64,
             tIMU_END, tSM, tCOMMS, tMOCAP, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP);
     }
+    /*
     if (settings.log_encoders) {
         fprintf(log_fd, ",%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64, \
             rev1, \
@@ -318,7 +437,8 @@ int log_entry_t::write_log_entry(void)
             rev3, \
             rev4);
     }
-	
+	*/
+
 	fprintf(log_fd, "\n");
 	return 0;
 }
@@ -337,16 +457,24 @@ int log_entry_t::init(void)
         initialized = false;
         return -1;
     }
-    request_reset_fl = false;
-    new_data_available = false;
-    file_open = false;
 
+    initialized = true;
+	return 0;
+}
 
+int log_entry_t::start(void)
+{
+    if (unlikely(!initialized))
+    {
+        printf("\nERROR in add_new: not initialized");
+        return -1;
+    }
+    request_shutdown_fl = false;
 
     if (unlikely((request_reset() < 0)))
     {
         printf("ERROR in init: failed to reset\n");
-        initialized = false;
+        request_shutdown_fl = true;
         logging_enabled = false;
         return -1;
     }
@@ -355,18 +483,22 @@ int log_entry_t::init(void)
     {
         printf("ERROR in init: failed to start the thread.\n");
         logging_enabled = false;
-        initialized = false;
+        request_shutdown_fl = true;
         return -1;
     }
-
-    initialized = true;
-	return 0;
+    return 0;
 }
 
 int log_entry_t::request_reset(void)
 {
     if (file_open && num_entries < 1) return 0;
     request_reset_fl = true;
+    return 0;
+}
+
+int log_entry_t::request_shutdown(void)
+{
+    request_shutdown_fl = true;
     return 0;
 }
 
@@ -435,54 +567,26 @@ void log_entry_t::construct_new_entry(void)
 {
 	loop_index 	    = fstate.get_loop_index();
     last_step_ns 	= fstate.get_last_step_ns();
-    imu_time_ns 	= state_estimate.imu_time_ns;
-    bmp_time_ns 	= state_estimate.bmp_time_ns;
     log_time_ns     = rc_nanos_since_boot();
 
-    v_batt 		    = state_estimate.v_batt_lp;
-    alt_bmp_raw 	= state_estimate.alt_bmp_raw;
-    bmp_temp 		= state_estimate.bmp_temp;
-    gyro_roll 	    = state_estimate.gyro[0];
-    gyro_pitch 	    = state_estimate.gyro[1];
-    gyro_yaw 		= state_estimate.gyro[2];
-    accel_X 		= state_estimate.accel[0];
-    accel_Y 		= state_estimate.accel[1];
-    accel_Z 		= state_estimate.accel[2];
-    mag_X 		    = state_estimate.mag[0];
-    mag_Y 		    = state_estimate.mag[1];
-    mag_Z 		    = state_estimate.mag[2];
+    if (settings.log_sensors)
+    {
+        battery_entry.update(batt, settings.battery);
+        bmp_entry.update(bmp);
+        IMU0_entry.update(IMU0, settings.IMU0);
+        IMU1_entry.update(IMU1, settings.IMU1);
+    }
 
-    roll 			= state_estimate.roll;
-    pitch 		    = state_estimate.pitch;
-    yaw 			= state_estimate.yaw;
-	yaw_cont 		= state_estimate.continuous_yaw;
-    rollDot 		= state_estimate.roll_dot;
-    pitchDot 		= state_estimate.pitch_dot;
-    yawDot 		    = state_estimate.yaw_dot;
+    if (settings.log_state) state_estimator_entry.update(&state_estimate);
+    
+    if (settings.mocap.enable) mocap_entry.update(mocap, settings.mocap);
 
-    X 			    = state_estimate.X;
-    Y 			    = state_estimate.Y;
-    Z 			    = state_estimate.Z;
-    Xdot 			= state_estimate.X_dot;
-    Ydot 			= state_estimate.Y_dot;
-    Zdot 			= state_estimate.Z_dot;
-    Xdot_raw        = state_estimate.X_dot_raw;
-    Ydot_raw        = state_estimate.Y_dot_raw;
-    Zdot_raw        = state_estimate.Z_dot_raw;
-    Zddot 		    = state_estimate.Z_ddot;
-
-    mocap_time 	    = state_estimate.mocap_time;
-    mocap_timestamp_ns = state_estimate.mocap_timestamp_ns;
-    mocap_x 		= state_estimate.pos_mocap[0];
-    mocap_y 		= state_estimate.pos_mocap[1];
-    mocap_z 		= state_estimate.pos_mocap[2];
-    mocap_qw 		= state_estimate.quat_mocap[0];
-    mocap_qx 		= state_estimate.quat_mocap[1];
-    mocap_qy 		= state_estimate.quat_mocap[2];
-    mocap_qz 		= state_estimate.quat_mocap[3];
-    mocap_roll 	    = state_estimate.tb_mocap[0];
-    mocap_pitch 	= state_estimate.tb_mocap[0];
-    mocap_yaw 	    = state_estimate.tb_mocap[0];
+    /*
+    rev1 = state_estimate.rev[0];
+    rev2 = state_estimate.rev[1];
+    rev3 = state_estimate.rev[2];
+    rev4 = state_estimate.rev[3];
+    */
 
     gps_lon 		= gps_data.lla.lon;
     gps_lat 		= gps_data.lla.lat;
@@ -506,37 +610,56 @@ void log_entry_t::construct_new_entry(void)
     gps_second 	    = gps_data.second;
     gps_time_received_ns = gps_data.gps_data_received_ns;
 
-    X_throttle 	    = setpoint.X_throttle;
-    Y_throttle 	    = setpoint.Y_throttle;
-    Z_throttle 	    = setpoint.Z_throttle;
-    roll_throttle   = setpoint.roll_throttle;
-    pitch_throttle  = setpoint.pitch_throttle;
-    yaw_throttle 	= setpoint.yaw_throttle;
+    /* Filters */
+    KF_altitude_entry.update(&KF_altitude);
+    EKF1_entry.update(EKF1);
+    EKF2_entry.update(EKF2);
 
-    sp_roll_dot 	= setpoint.roll_dot;
-    sp_pitch_dot 	= setpoint.pitch_dot;
-    sp_yaw_dot 	    = setpoint.yaw_dot;
-    sp_roll_dot_ff  = setpoint.roll_dot_ff;
-    sp_pitch_dot_ff = setpoint.pitch_dot_ff;
-    sp_yaw_dot_ff   = setpoint.yaw_dot_ff;
-    sp_roll 		= setpoint.roll;
-    sp_pitch 		= setpoint.pitch;
-    sp_yaw 		    = setpoint.yaw;
-    sp_roll_ff 	    = setpoint.roll_ff;
-    sp_pitch_ff 	= setpoint.pitch_ff;
 
-    sp_X 			= setpoint.X;
-    sp_Y 			= setpoint.Y;
-    sp_Z 			= setpoint.Z;
-    sp_Xdot 		= setpoint.X_dot;
-    sp_Ydot 		= setpoint.Y_dot;
-    sp_Zdot 		= setpoint.Z_dot;
-    sp_Xdot_ff 	    = setpoint.X_dot_ff;
-    sp_Ydot_ff  	= setpoint.Y_dot_ff;
-    sp_Zdot_ff 	    = setpoint.Z_dot_ff;
-    sp_Xddot 		= setpoint.X_ddot;
-    sp_Yddot 		= setpoint.Y_ddot;
-    sp_Zddot 		= setpoint.Z_ddot;
+    X_throttle 	    = setpoint.POS_throttle.x.value.get();//setpoint.X_throttle;
+    Y_throttle 	    = setpoint.POS_throttle.y.value.get();//setpoint.Y_throttle;
+    Z_throttle      = setpoint.POS_throttle.z.value.get();//setpoint.Z_throttle;
+    X_throttle_ff   = setpoint.POS_throttle.x.FF.get();//setpoint.X_throttle FF;
+    Y_throttle_ff   = setpoint.POS_throttle.y.FF.get();//setpoint.Y_throttle FF;
+    Z_throttle_ff   = setpoint.POS_throttle.z.FF.get();//setpoint.Z_throttle FF;
+    roll_throttle   = setpoint.ATT_throttle.x.value.get();//setpoint.roll_throttle;
+    pitch_throttle  = setpoint.ATT_throttle.y.value.get();//setpoint.pitch_throttle;
+    yaw_throttle 	= setpoint.ATT_throttle.z.value.get();//setpoint.yaw_throttle;
+    roll_throttle_ff = setpoint.ATT_throttle.x.FF.get();//setpoint.roll_throttle;
+    pitch_throttle_ff = setpoint.ATT_throttle.y.FF.get();//setpoint.pitch_throttle;
+    yaw_throttle_ff = setpoint.ATT_throttle.z.FF.get();//setpoint.yaw_throttle;
+
+    sp_roll_dot 	= setpoint.ATT_dot.x.value.get();
+    sp_pitch_dot 	= setpoint.ATT_dot.y.value.get();
+    sp_yaw_dot 	    = setpoint.ATT_dot.z.value.get();
+    sp_roll_dot_ff  = setpoint.ATT_dot.x.FF.get();
+    sp_pitch_dot_ff = setpoint.ATT_dot.y.FF.get();
+    sp_yaw_dot_ff   = setpoint.ATT_dot.z.FF.get();
+    sp_roll 		= setpoint.ATT.x.value.get();
+    sp_pitch 		= setpoint.ATT.y.value.get();
+    sp_yaw 		    = setpoint.ATT.z.value.get();
+    sp_roll_ff 	    = setpoint.ATT.x.FF.get();
+    sp_pitch_ff 	= setpoint.ATT.y.FF.get();
+    sp_yaw_ff       = setpoint.ATT.z.FF.get();
+
+    sp_X 			= setpoint.XY.x.value.get();
+    sp_Y 			= setpoint.XY.y.value.get();
+    sp_Z 			= setpoint.Z.value.get();
+    sp_X_ff         = setpoint.XY.x.FF.get();
+    sp_Y_ff         = setpoint.XY.y.FF.get();
+    sp_Z_ff         = setpoint.Z.FF.get();
+    sp_Xdot 		= setpoint.XY_dot.x.value.get();
+    sp_Ydot 		= setpoint.XY_dot.y.value.get();
+    sp_Zdot 		= setpoint.Z_dot.value.get();
+    sp_Xdot_ff 	    = setpoint.XY_dot.x.FF.get();
+    sp_Ydot_ff  	= setpoint.XY_dot.y.FF.get();
+    sp_Zdot_ff 	    = setpoint.Z.value.get();
+    sp_Xddot        = setpoint.XYZ_ddot.x.value.get();
+    sp_Yddot 		= setpoint.XYZ_ddot.y.value.get();
+    sp_Zddot 		= setpoint.XYZ_ddot.z.value.get();
+    sp_Xddot_ff     = setpoint.XYZ_ddot.x.FF.get();
+    sp_Yddot_ff     = setpoint.XYZ_ddot.y.FF.get();
+    sp_Zddot_ff     = setpoint.XYZ_ddot.z.FF.get();
 
     u_roll 		    = fstate.get_u(VEC_ROLL);
     u_pitch 		= fstate.get_u(VEC_PITCH);
@@ -556,7 +679,7 @@ void log_entry_t::construct_new_entry(void)
 
     dsm_con 		= user_input.input_active;
 
-    flight_mode 	= user_input.flight_mode;
+    flight_mode 	= user_input.get_flight_mode();
 
     tIMU_END 		= benchmark_timers.tIMU_END;
     tSM 			= benchmark_timers.tSM;
@@ -569,12 +692,6 @@ void log_entry_t::construct_new_entry(void)
     tCTR 			= benchmark_timers.tCTR;
     tLOG 			= benchmark_timers.tLOG;
     tNTP 			= benchmark_timers.tNTP;
-
-    rev1            = state_estimate.rev[0];
-    rev2            = state_estimate.rev[1];
-    rev3            = state_estimate.rev[2];
-    rev4            = state_estimate.rev[3];
-
 	return;
 }
 
@@ -635,6 +752,7 @@ int log_entry_t::cleanup(void)
 
     logging_enabled = false;
     initialized = false;
+    request_shutdown_fl = true;
     fclose(log_fd);
 
     return 0;

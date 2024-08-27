@@ -13,14 +13,17 @@
 
 	"enable_magnetometer": false,
 	"enable_mocap": true,
-	"use_mocap_yaw": true,
-	"use_mocap_pitch": false,
 	"use_mocap_roll": false,
+	"use_mocap_pitch": false,
+	"use_mocap_yaw": true,
+	"use_mocap_roll_rate": false,
+	"use_mocap_pitch_rate": false,
+	"use_mocap_yaw_rate": false,
 	"enable_encoders": false,
 	"enable_gps": false,
 	"enable_ext_mag": false,
 
-	"arm_time_s": 3.0,
+	"arm_time_s": 2.0,
 
 	"enable_servos": false,
 	"en_servo_ch_pool_sat": false,
@@ -40,9 +43,9 @@
 	"serial_baud_gps": 57600,
 
 	"num_dsm_modes": 3,
-	"flight_mode_1": "ACRO",
-	"flight_mode_2": "MANUAL_F",
-	"flight_mode_3": "ALT_HOLD_FF",
+	"flight_mode_1": "ACRO_Fxxxxx",
+	"flight_mode_2": "ALT_HOLD_FxFxxx",
+	"flight_mode_3": "ALT_HOLD_FxFAxx",
 
 	"enable_dsm": true,
 	"dsm_thr_ch": 1,
@@ -65,10 +68,17 @@
 	"printf_rpy": true,
 	"printf_sticks": true,
 	"printf_setpoint": true,
+	"printf_setpoint_xy": false,
+	"printf_setpoint_xy_dot": false,
+	"printf_setpoint_z": false,
+	"printf_setpoint_z_dot": true,
+	"printf_setpoint_att": false,
+	"printf_setpoint_att_dot": true,
 	"printf_u": false,
 	"printf_motors": false,
 	"printf_mode": true,
 	"printf_mocap": true,
+	"printf_gain_tunning": true,
 	"printf_tracking": false,
 	"printf_gps": false,
 	"printf_int_mag": false,
@@ -76,16 +86,26 @@
 	"printf_rev": false,
 	"printf_counter": false,
 
-	"enable_logging": false,
+	"enable_logging": true,
 	"log_every_n_entry": 1,
 	"log_only_while_armed": true,
 	"log_sensors": true,
 	"log_state": true,
 	"log_mocap": true,
 	"log_gps": false,
-	"log_attitude_setpoint": true,
-	"log_position_setpoint": true,
+	"log_setpoints": true,
 	"log_throttles": true,
+	"log_throttles_ff": false,
+	"log_attitude_rate_setpoint": true,
+	"log_attitude_rate_setpoint_ff": true,
+	"log_attitude_setpoint": true,
+	"log_attitude_setpoint_ff": true,
+	"log_acceleration_setpoint": true,
+	"log_acceleration_setpoint_ff": false,
+	"log_velocity_setpoint": true,
+	"log_velocity_setpoint_ff": true,
+	"log_position_setpoint": true,
+	"log_position_setpoint_ff": true,
 	"log_dsm": true,
 	"log_flight_mode": true,
 	"log_benchmark": true,
@@ -110,7 +130,7 @@
 	"t_takeoff": 2.0,
 	"max_XY_velocity": 5.0,
 	"max_Z_velocity": 1.5,
-	"hover_throttle": 0.4,
+	"hover_throttle": 0.35,
 	"XY_start_delay_s": 1.0,
 	"XY_waypt_delay_s": 0.3,
 	"square_X_offset": 1.5,
@@ -125,121 +145,129 @@
 	"roll_rate_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 0.098133,
-		"kd": 0.0033195,
-		"crossover_freq_rad_per_sec": 75.1037
+		"kp": 0.08103097,
+		"kd": 0.00957690,
+		"crossover_freq_rad_per_sec": 300.6358
 	},
 	"roll_rate_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.058091,
+		"ki": 0.16256544,
 		"imax": 0.10
 	},
+	"roll_rate_controller_FF": 0.00124485,
 
 
 	"pitch_rate_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 0.098133,
-		"kd": 0.0033195,
-		"crossover_freq_rad_per_sec": 75.1037
+		"kp": 0.17912324,
+		"kd": 0.01304930,
+		"crossover_freq_rad_per_sec": 174.941
 	},
 	"pitch_rate_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.058091,
+		"ki": 0.20922657,
 		"imax": 0.10
 	},
+	"pitch_rate_controller_FF": 0.00248970,
 
 
 	"yaw_rate_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 0.2,
-		"kd": 0.01,
-		"crossover_freq_rad_per_sec": 62.83
+		"kp": 0.50155180,
+		"kd": 0.00854772,
+		"crossover_freq_rad_per_sec": 110.8714
 	},
 	"yaw_rate_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.05,
+		"ki": 0.18010458,
 		"imax": 0.10
 	},
+	"yaw_rate_controller_FF": 0.01804980,
 
 
 	"roll_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 7.7594,
-		"kd": 0.010788,
+		"kp": 0.19317802,
+		"kd": 0.00196960,
 		"crossover_freq_rad_per_sec": 68.8797
 	},
 	"roll_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.13071,
+		"ki": 0.05519347,
 		"imax": 0.10
 	},
+	"roll_controller_FF": 0.34,
 
 
 	"pitch_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 8.2884,
-		"kd": 0.014564,
+		"kp": 0.24074487,
+		"kd": 0.00196960,
 		"crossover_freq_rad_per_sec": 68.8797
 	},
 	"pitch_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.13071,
+		"ki": 0.05724118,
 		"imax": 0.10
 	},
+	"pitch_controller_FF": 0.36,
 
 
 	"yaw_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 5.3112,
-		"kd": 0.10166,
+		"kp": 4.05502684,
+		"kd": 0.02994965,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"yaw_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.0,
+		"ki": 0.12448150,
 		"imax": 0.10
 	},
+	"yaw_controller_FF": 0.0,
 
 
 	"altitude_rate_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 0.38112030,
-		"kd": 0.00165980,
-		"crossover_freq_rad_per_sec": 62.83
+		"kp": 0.17065822,
+		"kd": 0.00331950,
+		"crossover_freq_rad_per_sec": 105.93359994
 	},
 	"altitude_rate_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.05809300,
+		"ki": 0.05228230,
 		"imax": 3.00
 	},
+	"altitude_rate_controller_FF": 0.01680495,
 
 
 	"altitude_controller_pd": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "PD",
-		"kp": 4.63711309,
-		"kd": 0.11086958,
+		"kp": 1.04131387,
+		"kd": 0.19958395,
 		"crossover_freq_rad_per_sec": 62.83
 	},
 	"altitude_controller_i": {
 		"CT_or_DT": "CT",
 		"TF_or_PID": "I",
-		"ki": 0.01342824,
+		"ki": 0.10756993,
 		"imax": 1.00
 	},
+	"altitude_controller_FF": 0.0,
 
 
 	"horiz_vel_ctrl_pd_X": {
@@ -255,6 +283,7 @@
 		"ki": 0.02074690,
 		"imax": 1.00
 	},
+	"horiz_vel_X_controller_FF": 1.0,
 
 	"horiz_vel_ctrl_pd_Y": {
 		"CT_or_DT": "CT",
@@ -269,7 +298,7 @@
 		"ki": 0.02033200,
 		"imax": 1.00
 	},
-
+	"horiz_vel_Y_controller_FF": 1.0,
 
 	"horiz_pos_ctrl_X_pd": {
 		"CT_or_DT": "CT",
@@ -284,6 +313,7 @@
 		"ki": 0.01069185,
 		"imax": 3.0
 	},
+	"horiz_pos_X_ctrl_FF": 1.0,
 
 	"horiz_pos_ctrl_Y_pd": {
 		"CT_or_DT": "CT",
@@ -297,5 +327,6 @@
 		"TF_or_PID": "I",
 		"ki": 0.01029596,
 		"imax": 3.0
-	}
+	},
+	"horiz_pos_Y_ctrl_FF": 1.0
 }

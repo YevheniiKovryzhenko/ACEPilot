@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
- * Last Edit:  08/16/2020 (MM/DD/YYYY)
+ * Last Edit:  08/26/2022 (MM/DD/YYYY)
  */
 
 #ifndef MAIN_HPP
@@ -53,24 +53,24 @@
 #include <signal.h>
 
 
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "tools.h"
-#include "gps.h"
-#include "serial_com.h"
+#include "gps.hpp"
+//#include "serial_com.h"
 #include "AdafruitGPS_cmds.hpp"
 #include "adafruit_servo_driver.hpp"
 #include "servos.hpp"
 #include "lwgps.h"
 #include "lwrb.h"
-#include "rc_pilot_defs.h"
+#include "rc_pilot_defs.hpp"
 #include "input_manager.hpp"
-#include "settings.h"
+#include "settings.hpp"
 #include "state_machine.hpp"
 #include "log_manager.hpp"
 #include "printf_manager.hpp"
 //#include "xbee_receive.h"
 #include "setpoint_manager.hpp"
-#include "benchmark.h"
+#include "benchmark.hpp"
 #include "feedback.hpp"
 #include "mix_servos.hpp"
 #include "path.hpp"

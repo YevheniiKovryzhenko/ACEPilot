@@ -1,0 +1,509 @@
+{
+	"name": "QUADCOPTER",
+
+	"warnings_en": true,
+	"delay_warnings_en": true,
+	"telem_warnings_en": true,
+
+	"layout": "LAYOUT_4X",
+	"thrust_map": "RS2212_920_4S",
+	"orientation": "ORIENTATION_X_FORWARD",
+
+	"battery": {
+		"filter": {
+			"type": "Moving_Avg",
+			"dt": 0.005,
+			"tc": 0.05,
+			"n_samples": 20,
+			"enable_saturation": false,
+			"min": -1.0,
+			"max": 1.0
+		},
+		"enable_gain_scaling": false,
+		"enable_warnings": true,
+		"nominal": 16.5,
+		"min_critical": 4.8,
+		"enable_logging": true,
+		"log_raw": false
+	},
+
+	"IMU0": {
+		"enable": true,
+		"frame_type": "ENU",
+		"gyro": {
+			"frame_type": "ENU",
+			"enable_filters": true,
+			"filter_0": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.050
+			},
+			"filter_1": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.050
+			},
+			"filter_2": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.055
+			},
+			"enable_logging": true,
+			"log_raw": false
+		},
+		"accel": {
+			"frame_type": "ENU",
+			"enable_filters": true,
+			"filter_0": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.050
+			},
+			"filter_1": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.050
+			},
+			"filter_2": {
+				"type": "Lowpass",
+				"dt": 0.005,
+				"tc": 0.050
+			},
+			"enable_logging": true,
+			"log_raw": false
+		},
+		"use_compass": true,
+		"compass": {
+			"enable": true,
+			"frame_type": "ENU",
+			"enable_logging": true,
+			"log_raw": false
+		},
+		"enable_logging": true,
+		"log_raw": false,
+		"log_dmp": true,
+		"log_fused": true,
+		"log_est": false
+	},
+
+	"IMU1": {
+		"enable": false,
+		"frame_type": "ENU",
+		"gyro": {
+			"frame_type": "ENU",
+			"enable_filters": false,
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"accel": {
+			"frame_type": "ENU",
+			"enable_filters": false,
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"use_compass": true,
+		"compass": {
+			"enable": true,
+			"frame_type": "ENU",
+			"enable_logging": true,
+			"log_raw": true
+		},
+		"enable_logging": true,
+		"log_raw": true,
+		"log_dmp": false,
+		"log_fused": false,
+		"log_est": true
+	},
+
+	"mocap": {
+		"enable": true,
+		"use_roll_pitch_rate": false,
+		"use_yaw_rate": false,
+		"use_roll_pitch": false,
+		"use_heading": true,
+		"enable_pos_filter": true,
+		"frame_type": "NWU",
+		"att_filter_0": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.030
+		},
+		"att_filter_1": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.030
+		},
+		"att_filter_2": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.050
+		},
+		"vel_filter_0": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.090
+		},
+		"vel_filter_1": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.090
+		},
+		"vel_filter_2": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.050
+		},
+		"pos_filter_0": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.050
+		},
+		"pos_filter_1": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.050
+		},
+		"pos_filter_2": {
+			"type": "Lowpass",
+			"dt": 0.005,
+			"tc": 0.050
+		},
+		"enable_warnings": true,
+		"enable_logging": true,
+		"log_att": true,
+		"log_vel": true,
+		"log_raw": true
+	},
+	"enable_encoders": false,
+	"enable_gps": false,
+	"enable_ext_mag": false,
+
+	"arm_time_s": 3.0,
+
+	"enable_servos": false,
+	"en_servo_ch_pool_sat": false,
+	"servo_i2c_driver_id": 1,
+	"servo_layout": "LAYOUT_6xDIRECT_TEST",
+	"servos_arm_time_s": 1.0,
+
+	"enable_mocap_dropout_emergency_land": false,
+	"mocap_dropout_timeout_ms": 300.0,
+	"allow_remote_tuning": true,
+
+	"serial_port_1": "/dev/ttyS1",
+	"serial_baud_1": 230400,
+	"serial_port_2": "/dev/ttyS6",
+	"serial_baud_2": 230400,
+	"serial_port_gps": "/dev/ttyS2",
+	"serial_baud_gps": 57600,
+
+	"num_dsm_modes": 3,
+	"flight_mode_1": "MANUAL_AAxxxx",
+	"flight_mode_2": "POS_CTRL_AAAAAA",
+	"flight_mode_3": "AUTO_FFFAFA",
+
+	"enable_dsm": true,
+	"dsm_thr_ch": 1,
+	"dsm_thr_pol": 1,
+	"dsm_roll_ch": 2,
+	"dsm_roll_pol": -1,
+	"dsm_pitch_ch": 3,
+	"dsm_pitch_pol": -1,
+	"dsm_yaw_ch": 4,
+	"dsm_yaw_pol": -1,
+	"dsm_mode_ch": 6,
+	"dsm_mode_pol": 1,
+	"dsm_kill_mode": "DSM_KILL_DEDICATED_SWITCH",
+	"dsm_kill_ch": 5,
+	"dsm_kill_pol": 1,
+
+	"printf_arm": true,
+	"printf_altitude": true,
+	"printf_battery": true,
+	"printf_rpy": true,
+	"printf_sticks": true,
+	"printf_setpoint": true,
+	"printf_setpoint_xy": true,
+	"printf_setpoint_xy_dot": true,
+	"printf_setpoint_z": true,
+	"printf_setpoint_z_dot": true,
+	"printf_setpoint_att": true,
+	"printf_setpoint_att_dot": true,
+	"printf_u": false,
+	"printf_motors": false,
+	"printf_mode": true,
+	"printf_mocap": false,
+	"printf_gain_tunning": true,
+	"printf_tracking": false,
+	"printf_gps": false,
+
+	"enable_logging": false,
+	"log_every_n_entry": 1,
+	"log_only_while_armed": true,
+	"log_sensors": true,
+	"log_state": true,
+	"log_gps": false,
+	"log_setpoints": true,
+	"log_throttles": true,
+	"log_throttles_ff": false,
+	"log_attitude_rate_setpoint": true,
+	"log_attitude_rate_setpoint_ff": false,
+	"log_attitude_setpoint": true,
+	"log_attitude_setpoint_ff": false,
+	"log_acceleration_setpoint": true,
+	"log_acceleration_setpoint_ff": false,
+	"log_velocity_setpoint": true,
+	"log_velocity_setpoint_ff": false,
+	"log_position_setpoint": true,
+	"log_position_setpoint_ff": false,
+	"log_dsm": true,
+	"log_flight_mode": true,
+	"log_benchmark": true,
+	"log_control_u": false,
+	"log_motor_signals": false,
+	"log_encoders": false,
+
+	"dest_ip": "169.254.97.190",
+	"my_sys_id": 1,
+	"mav_port": 14551,
+
+	"dsm_timeout_ms": 200,
+
+	"wp_folder": "/home/debian/rc_pilot/MAIN/trajectories/",
+	"wp_takeoff_filename": "takeoff_waypoints.cfg",
+	"wp_guided_filename": "1_8_loop_yaw_polys.cfg",
+	"wp_landing_filename": "landing_waypoints.cfg",
+
+	"V_max_land": 0.3,
+	"height_takeoff": 1.0,
+	"t_takeoff": 2.0,
+	"max_XY_velocity": 5.0,
+	"max_Z_velocity": 1.5,
+	"hover_throttle": 0.4,
+	"XY_start_delay_s": 1.0,
+	"XY_waypt_delay_s": 0.3,
+	"square_X_offset": 1.5,
+	"square_Y_offset": 1.5,
+	"square_X_time_s": 2.0,
+	"square_Y_time_s": 2.0,
+	"turn_radius": 1.0,
+	"turn_period": 10.0,
+	"turn_time_s": 20.0,
+	"turn_dir_yaw_cw": true,
+
+	"roll_rate_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.0,
+			"kd": 0.085922733677416346,
+			"crossover_freq_rad_per_sec": 150.63828755570211
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.457545919995665,
+			"imax": 0.10
+		},
+		"K": 0.17820299526657604,
+		"FF": 0.0
+	},
+
+	"pitch_rate_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.0,
+			"kd": 0.085922733677416346,
+			"crossover_freq_rad_per_sec": 150.63828755570211
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.073818810892925191,
+			"imax": 0.10
+		},
+		"K": 0.17820299526657604,
+		"FF": 0.0
+	},
+
+	"yaw_rate_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.0,
+			"kd": 0.05,
+			"crossover_freq_rad_per_sec": 62.83
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.25,
+			"imax": 0.10
+		},
+		"K": 0.3,
+		"FF": 0.0
+	},
+
+	"roll_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.00093503141019801684,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 80.08300020
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.0091201217049423355,
+			"imax": 0.10
+		},
+		"K": 8.2033040352468678,
+		"FF": 0.0
+	},
+
+	"pitch_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.00093503141019801684,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 80.08300020
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.0091201217049423355,
+			"imax": 0.10
+		},
+		"K": 8.2671707532084984,
+		"FF": 0.0
+	},
+
+	"yaw_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.019140683837927,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 62.83
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.0,
+			"imax": 0.10
+		},
+		"K": 1.59336,
+		"FF": 0.0
+	},
+
+	"X_vel_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.010115352399590532,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 72.61410027
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.005471793121890901,
+			"imax": 0.10
+		},
+		"K": 0.080484363575638818,
+		"FF": 0.0
+	},
+
+	"Y_vel_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.010115352399590532,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 72.61410027
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.005471793121890901,
+			"imax": 0.10
+		},
+		"K": 0.080484363575638818,
+		"FF": 0.0
+	},
+
+	"Z_vel_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.004355055346042,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 62.83
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.152426937111458,
+			"imax": 0.10
+		},
+		"K": 1.1378064527477998,
+		"FF": 0.0
+	},
+
+	"X_pos_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.45267765461668708,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 62.83
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.0040592033544647752,
+			"imax": 0.10
+		},
+		"K": 1.5224696221767333,
+		"FF": 0.0
+	},
+
+	"Y_pos_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.45267765461668708,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 62.83
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.0040592033544647752,
+			"imax": 0.10
+		},
+		"K": 1.5224696221767333,
+		"FF": 0.0
+	},
+
+	"Z_pos_ctrl": {
+		"pd": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "PD",
+			"kp": 0.023909181822434,
+			"kd": 0.0,
+			"crossover_freq_rad_per_sec": 62.83
+		},
+		"i": {
+			"CT_or_DT": "CT",
+			"TF_or_PID": "I",
+			"ki": 0.002895818958774,
+			"imax": 0.10
+		},
+		"K": 2.3186,
+		"FF": 0.0
+	}
+}

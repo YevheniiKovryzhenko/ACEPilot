@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/23/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  * 
  * Class to start, stop, and interact with the log manager.
  */
@@ -32,18 +32,24 @@
 #ifndef LOG_MANAGER_H
 #define LOG_MANAGER_H
 #include <stdbool.h>
-#include "gen_thread.hpp"
+#include "thread_gen.hpp"
+#include "state_estimator.hpp"
+#include "barometer_gen.hpp"
+#include "IMU_9DOF_gen.hpp"
+#include "mocap_gen.hpp"
+#include "KF.hpp"
+#include "EKF.hpp"
+#include "EKF2.hpp"
 
 #define MAX_LOG_FILES	500
 
 /**
-	* Struct containing all possible values that could be writen to the log. For
-	* each log entry you wish to create, fill in an instance of this and pass to
-	* add_log_entry(void). You do not need to populate all parts of the struct.
-	* Currently feedback.c populates all values and log_manager.c only writes the
-	* values enabled in the settings file.
-	*/
-//typedef struct log_entry_t {
+* Struct containing all possible values that could be writen to the log. For
+* each log entry you wish to create, fill in an instance of this and pass to
+* add_log_entry(void). You do not need to populate all parts of the struct.
+* Currently feedback.c populates all values and log_manager.c only writes the
+* values enabled in the settings file.
+*/
 class log_entry_t {
 private:
 	bool initialized;
@@ -52,71 +58,35 @@ private:
 	uint64_t num_entries;	// number of entries logged so far
 	FILE* log_fd;          ///< file descriptor for the log file
 
-	bool logging_enabled;
-	bool new_data_available;
-	bool request_reset_fl;
-	gen_thread_t thread;
+	bool logging_enabled = false;
+	bool new_data_available = false;
+	bool request_reset_fl = false;
+	bool request_shutdown_fl = true;
+	thread_gen_t thread;
 
 	/** @name index, always printed */
 	///@{
 	uint64_t loop_index; // timing
 	uint64_t last_step_ns;
-	uint64_t imu_time_ns;
-	uint64_t bmp_time_ns;
+	//uint64_t imu_time_ns;
 	uint64_t log_time_ns;
 
 	///@}
 
+	/* State estimator */
+	state_estimator_log_entry_t state_estimator_entry{};
+
 	/** @name sensors */
 	///@{
-	double	v_batt;
-	double	alt_bmp_raw;
-	double	bmp_temp;
-	double	gyro_roll;
-	double	gyro_pitch;
-	double	gyro_yaw;
-	double	accel_X;
-	double	accel_Y;
-	double	accel_Z;
-	double 	mag_X;
-	double 	mag_Y;
-	double 	mag_Z;
+	voltage_sensor_log_entry_t battery_entry{};
+	barometer_log_entry_t bmp_entry{};
+	IMU_9DOF_log_entry_t IMU0_entry{};
+	IMU_9DOF_log_entry_t IMU1_entry{};
 	///@}
-
-	/** @name state estimate */
-	///@{
-	double	roll;
-	double	pitch;
-	double	yaw;
-	double  yaw_cont;
-	double 	rollDot;
-	double 	pitchDot;
-	double 	yawDot;
-	double	X;
-	double	Y;
-	double	Z;
-	double	Xdot;
-	double	Ydot;
-	double	Zdot;
-	double	Xdot_raw;
-	double	Ydot_raw;
-	double	Zdot_raw;
-	double	Zddot;
 
 	/*** @name mocap data */
 	///@{
-	uint32_t mocap_time;
-	uint64_t mocap_timestamp_ns;
-	float mocap_x;
-	float mocap_y;
-	float mocap_z;
-	float mocap_qw;
-	float mocap_qx;
-	float mocap_qy;
-	float mocap_qz;
-	float mocap_roll;
-	float mocap_pitch;
-	float mocap_yaw;
+	mocap_log_entry_t mocap_entry{};
 	///@}
 
 	/*** @name gps data */
@@ -144,15 +114,25 @@ private:
 	uint64_t gps_time_received_ns;
 	///@}
 
+	/* Filters */
+	KF_log_entry_t KF_altitude_entry{};
+	EKF_log_entry_t EKF1_entry{};
+	EKF2_log_entry_t EKF2_entry{};
 
 	/** @name throttles */
 	///@{
 	double X_throttle;
 	double Y_throttle;
 	double Z_throttle;
+	double X_throttle_ff;
+	double Y_throttle_ff;
+	double Z_throttle_ff;
 	double roll_throttle;
 	double pitch_throttle;
 	double yaw_throttle;
+	double roll_throttle_ff;
+	double pitch_throttle_ff;
+	double yaw_throttle_ff;
 	///@}
 
 	/** @name attitude setpoints */
@@ -168,6 +148,7 @@ private:
 	double sp_yaw;
 	double sp_roll_ff;
 	double sp_pitch_ff;
+	double sp_yaw_ff;
 	///@}
 
 	/** @name XYZ setpoints */
@@ -175,6 +156,9 @@ private:
 	double sp_X;
 	double sp_Y;
 	double sp_Z;
+	double sp_X_ff;
+	double sp_Y_ff;
+	double sp_Z_ff;
 	double sp_Xdot;
 	double sp_Ydot;
 	double sp_Zdot;
@@ -184,6 +168,9 @@ private:
 	double sp_Xddot;
 	double sp_Yddot;
 	double sp_Zddot;
+	double sp_Xddot_ff;
+	double sp_Yddot_ff;
+	double sp_Zddot_ff;
 	///@}
 
 	/** @name orthogonal control outputs */
@@ -221,14 +208,6 @@ private:
 	/** @name imu_isr() Benchmarking Timers */
 	///@{
 	uint64_t tIMU_END, tSM, tCOMMS, tMOCAP, tGPS, tPNI, tNAV, tGUI, tCTR, tLOG, tNTP;
-	///@}
-
-	/** @name Encoders */
-	///@{
-	int64_t rev1;
-	int64_t rev2;
-	int64_t rev3;
-	int64_t rev4;
 	///@}
 
 	/**
@@ -277,6 +256,22 @@ public:
 	 * @return     0 on success, -1 on failure
 	 */
 	int request_reset(void);
+
+	/**
+	* @brief      starts logging thread (and logging)
+	*
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int start(void);
+
+	/**
+	* @brief      asks the thread to shutdown on its own
+	*
+	*
+	* @return     0 on success, -1 on failure
+	*/
+	int request_shutdown(void);
 
 	/**
 	 * @brief      main update loop of the thread

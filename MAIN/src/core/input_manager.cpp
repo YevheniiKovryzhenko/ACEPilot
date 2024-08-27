@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  *
  * Functions to start and stop the input manager thread which is the translation
  * beween control inputs from DSM to the user_input struct which is read by the
@@ -42,21 +42,49 @@
 #include <rc/math/other.h>
 
 #include "setpoint_manager.hpp"
-#include "settings.h"
-#include "rc_pilot_defs.h"
-#include "flight_mode.h"
-#include "state_estimator.h"
-#include "rc_pilot_defs.h"
-#include "thread_defs.h"
+#include "settings.hpp"
+#include "rc_pilot_defs.hpp"
+#include "flight_mode.hpp"
+#include "state_estimator.hpp"
+#include "rc_pilot_defs.hpp"
+#include "thread_defs.hpp"
 #include "feedback.hpp"
 
 #include "input_manager.hpp"
+
+ // preposessor macros
+#ifndef unlikely
+#define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
+#define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
+
+double stick_t::get(void)
+{
+	return value;
+}
+double& stick_t::get_pt(void)
+{
+	return value;
+}
+int stick_t::set(double in)
+{
+	value = in;
+	return 0;
+}
+int stick_t::reset(void)
+{
+	value = 0.0;
+	return 0;
+}
+
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
  */
 user_input_t user_input{}; // extern variable in input_manager.hpp
-
 
 /**
 * float apply_deadzone(float in, float zone)
@@ -67,10 +95,10 @@ user_input_t user_input{}; // extern variable in input_manager.hpp
 **/
 static double __deadzone(double in, double zone)
 {
-	if(zone<=0.0) return in;
-	if(fabs(in)<=zone) return 0.0;
-	if(in>0.0)	return ((in-zone)/(1.0-zone));
-	else		return ((in+zone)/(1.0-zone));
+	if (zone <= 0.0) return in;
+	if (fabs(in) <= zone) return 0.0;
+	if (in > 0.0)	return ((in - zone) / (1.0 - zone));
+	else		return ((in + zone) / (1.0 - zone));
 }
 
 static bool in_arming_position()
@@ -91,6 +119,28 @@ static bool in_centered_position()
 		   fabs(rc_dsm_ch_normalized(settings.dsm_roll_ch)) < 0.1;
 }
 
+typedef struct disconnect_timer_t
+{
+	uint64_t time_start;
+	int active;
+} disconnect_timer_t;
+
+void* input_manager(__attribute__((unused)) void* ptr)
+{
+	user_input.update();
+	return NULL;
+}
+
+void __new_dsm_data_callback()
+{
+	user_input.new_dsm_data_callback();
+}
+
+void __dsm_disconnect_callback(void)
+{
+	user_input.dsm_disconnect_callback();
+}
+
 // returns true on success
 static bool attempt_arming()
 {
@@ -102,8 +152,8 @@ static bool attempt_arming()
 		if (rc_get_state() == EXITING) return false;
 	}
 	// wait for level
-	while (fabs(state_estimate.roll) > ARM_TIP_THRESHOLD ||
-		   fabs(state_estimate.pitch) > ARM_TIP_THRESHOLD) 
+	while (fabs(state_estimate.get_roll()) > ARM_TIP_THRESHOLD ||
+		   fabs(state_estimate.get_pitch()) > ARM_TIP_THRESHOLD) 
 	{
 		rc_usleep(100000);
 		if (rc_get_state() == EXITING) return false;
@@ -137,11 +187,10 @@ static bool attempt_arming()
 
 	// final check of kill switch and level before arming
 	if (user_input.get_arm_switch() == DISARMED ||
-		fabs(state_estimate.roll) > ARM_TIP_THRESHOLD ||
-		fabs(state_estimate.pitch) > ARM_TIP_THRESHOLD) {
+		fabs(state_estimate.get_roll()) > ARM_TIP_THRESHOLD ||
+		fabs(state_estimate.get_pitch()) > ARM_TIP_THRESHOLD) {
 		return false;
 	}
-	setpoint.Z = 0; //B: we did this to have zero setpoint.z every time we arm the drone
 	return true;
 }
 
@@ -150,10 +199,10 @@ static bool attempt_arming()
  *
  * @return     0 if successful or already armed, -1 if exiting or problem
  */
-static int __wait_for_arming_sequence()
+int user_input_t::wait_for_arming_sequence(void)
 {
 	// already armed, just return. Should never do this in normal operation though
-	if(user_input.requested_arm_mode == ARMED) return 0;
+	if(requested_arm_mode == ARMED) return 0;
 
 	while (rc_get_state() != EXITING) {
 		if (attempt_arming()) {
@@ -164,99 +213,110 @@ static int __wait_for_arming_sequence()
 	return -1;
 }
 
+void user_input_t::dsm_disconnect_callback(void)
+{
+	reset_sticks();
+	input_active = 0;
+	set_arm_switch(DISARMED);
+	requested_arm_mode = DISARMED;
+	fprintf(stderr, "LOST DSM CONNECTION\n");
+}
 
-void new_dsm_data_callback()
+int user_input_t::new_dsm_data_callback(void)
 {
 	double new_kill;
 
 	// Read normalized (+-1) inputs from RC radio stick and multiply by
 	// polarity setting so positive stick means positive setpoint
-	double new_thr   = rc_dsm_ch_normalized(settings.dsm_thr_ch)*settings.dsm_thr_pol;
-	double new_roll  = rc_dsm_ch_normalized(settings.dsm_roll_ch)*settings.dsm_roll_pol;
-	double new_pitch = rc_dsm_ch_normalized(settings.dsm_pitch_ch)*settings.dsm_pitch_pol;
-	double new_yaw   = __deadzone(rc_dsm_ch_normalized(settings.dsm_yaw_ch)*settings.dsm_yaw_pol, YAW_DEADZONE);
-	double new_mode  = rc_dsm_ch_normalized(settings.dsm_mode_ch)*settings.dsm_mode_pol;
+	double new_thr = rc_dsm_ch_normalized(settings.dsm_thr_ch) * settings.dsm_thr_pol;
+	double new_roll = rc_dsm_ch_normalized(settings.dsm_roll_ch) * settings.dsm_roll_pol;
+	double new_pitch = rc_dsm_ch_normalized(settings.dsm_pitch_ch) * settings.dsm_pitch_pol;
+	double new_yaw = __deadzone(rc_dsm_ch_normalized(settings.dsm_yaw_ch) * settings.dsm_yaw_pol, YAW_DEADZONE);
+	double new_mode = rc_dsm_ch_normalized(settings.dsm_mode_ch) * settings.dsm_mode_pol;
 
 
 	// kill mode behaviors
-	switch(settings.dsm_kill_mode){
+	switch (settings.dsm_kill_mode) {
 	case DSM_KILL_DEDICATED_SWITCH:
-		new_kill  = rc_dsm_ch_normalized(settings.dsm_kill_ch)*settings.dsm_kill_pol;
+		new_kill = rc_dsm_ch_normalized(settings.dsm_kill_ch) * settings.dsm_kill_pol;
 		// determine the kill state
-		if(new_kill<=0.1){
-			user_input.set_arm_switch(DISARMED);
-			user_input.requested_arm_mode=DISARMED;
+		if (new_kill <= 0.1) {
+			set_arm_switch(DISARMED);
+			requested_arm_mode = DISARMED;
 		}
-		else{
-			user_input.set_arm_switch(ARMED);
+		else {
+			set_arm_switch(ARMED);
 		}
 		break;
 
 	case DSM_KILL_NEGATIVE_THROTTLE:
-		if(new_thr<=-1.1){
-			user_input.set_arm_switch(DISARMED);
-			user_input.requested_arm_mode = DISARMED;
+		if (new_thr <= -1.1) {
+			set_arm_switch(DISARMED);
+			requested_arm_mode = DISARMED;
 		}
-		else    user_input.set_arm_switch(ARMED);
+		else    set_arm_switch(ARMED);
 		break;
 
 	default:
-		fprintf(stderr, "ERROR in input manager, unhandled settings.dsm_kill_mode\n");
-		return;
+		fprintf(stderr, "ERROR in input new_dsm_data_callback, unhandled settings.dsm_kill_mode\n");
+		return 0;
 	}
 
 	// saturate the sticks to avoid possible erratic behavior
 	// throttle can drop below -1 so extend the range for thr
-	rc_saturate_double(&new_thr,   -1.0, 1.0);
-	rc_saturate_double(&new_roll,  -1.0, 1.0);
+	rc_saturate_double(&new_thr, -1.0, 1.0);
+	rc_saturate_double(&new_roll, -1.0, 1.0);
 	rc_saturate_double(&new_pitch, -1.0, 1.0);
-	rc_saturate_double(&new_yaw,   -1.0, 1.0);
+	rc_saturate_double(&new_yaw, -1.0, 1.0);
 	rc_saturate_double(&new_mode, -1.0, 1.0);
 
 	// pick flight mode
-	switch(settings.num_dsm_modes){
+	switch (settings.num_dsm_modes) {
 	case 1:
-		user_input.flight_mode = settings.flight_mode_1;
+		flight_mode = settings.flight_mode_1;
 		break;
 	case 2:
 		// switch will either range from -1 to 1 or 0 to 1.
 		// in either case it's safe to use +0.5 as the cutoff
-		if(new_mode<0.5*settings.dsm_mode_pol) user_input.flight_mode = settings.flight_mode_2;
-		else user_input.flight_mode = settings.flight_mode_1;
+		if (new_mode < 0.5 * settings.dsm_mode_pol) flight_mode = settings.flight_mode_2;
+		else flight_mode = settings.flight_mode_1;
 		break;
 	case 3:
 		// 3-position switch will have the positions 0, 0.5, 1 when
 		// calibrated correctly. checking +- 0.5 is a safe cutoff
-		if(new_mode<0.45*settings.dsm_mode_pol) user_input.flight_mode = settings.flight_mode_3;
-		else if(new_mode>0.55*settings.dsm_mode_pol) user_input.flight_mode = settings.flight_mode_1;
-		else user_input.flight_mode = settings.flight_mode_2;
+		if (new_mode < 0.45 * settings.dsm_mode_pol) flight_mode = settings.flight_mode_3;
+		else if (new_mode > 0.55 * settings.dsm_mode_pol) flight_mode = settings.flight_mode_1;
+		else flight_mode = settings.flight_mode_2;
 		break;
 	default:
-		fprintf(stderr,"ERROR, in input_manager, num_dsm_modes must be 1,2 or 3\n");
-		fprintf(stderr,"selecting flight mode 1\n");
-		user_input.flight_mode = settings.flight_mode_1;
+		fprintf(stderr, "ERROR, in new_dsm_data_callback, num_dsm_modes must be 1,2 or 3\n");
+		fprintf(stderr, "selecting flight mode 1\n");
+		flight_mode = settings.flight_mode_1;
 		break;
 	}
 
 	//If we need MOCAP and it is no longer available and the user has indicated
 	//they want an emergency landing in case of dropouts, 
 	//then manage switching into and out of to OPEN_LOOP_DESCENT
-	if (mode_needs_mocap(user_input.flight_mode) &&
+	if (mode_needs_mocap(flight_mode) &&
 		settings.enable_mocap_dropout_emergency_land)
 	{
+		fprintf(stderr, "ERROR in new_dsm_data_callback: enable_mocap_dropout_emergency_land is old, must update first\n");
+		/*
+
 		//Compute time since last MOCAP packet was received (in milliseconds)
 		// Each value here must be cast to a double before diving. 
 		// Although I expect this to implicitly cast, the testing shows that OPEN_LOOP_DESCENT "randomly" triggers at inappropriate times
-		double ms_since_mocap = ((double)rc_nanos_since_boot() - (double)state_estimate.mocap_timestamp_ns) / 1e6;
+		//double ms_since_mocap = ((double)rc_nanos_since_boot() - (double)state_estimate.mocap_timestamp_ns) / 1e6;
 
 		//If MOCAP has been out for too long, then enable emergency landing
-		if (!user_input.is_emergency_land_active() &&
+		if (!is_emergency_land_active() &&
 			ms_since_mocap >= settings.mocap_dropout_timeout_ms &&
-			user_input.requested_arm_mode == ARMED)
+			requested_arm_mode == ARMED)
 		{
 			//Enable Emergency landing. 
 			//This extra check is done so that we don't exit emergency landing if MOCAP becomes available suddenly
-			user_input.emergency_land(true);
+			emergency_land(true);
 
 			fprintf(stderr, "ENABLE EMERGENCY LANDING MODE\n");
 			fprintf(stderr, "\tMOCAP has been gone for %lfms which exeeds the limit %lfms\n", ms_since_mocap, settings.mocap_dropout_timeout_ms);
@@ -265,9 +325,9 @@ void new_dsm_data_callback()
 		//Force flight mode to be EMERGENCY_LAND as long as emergency landing is enables
 		if (user_input.is_emergency_land_active())
 		{
-			user_input.flight_mode = EMERGENCY_LAND;
+			flight_mode = EMERGENCY_LAND;
 		}
-
+		*/
 	}
 	else
 	{
@@ -277,74 +337,57 @@ void new_dsm_data_callback()
 	}
 
 	// fill in sticks
-	if(user_input.requested_arm_mode==ARMED){
-		user_input.set_thr_stick(new_thr);
-		user_input.set_roll_stick(new_roll);
-		user_input.set_pitch_stick(new_pitch);
-		user_input.set_yaw_stick(new_yaw);
-		user_input.set_mode_stick(new_mode);
-		user_input.requested_arm_mode = user_input.get_arm_switch();
+	if (requested_arm_mode == ARMED) {
+		throttle.set(new_thr);
+		roll.set(new_roll);
+		pitch.set(new_pitch);
+		yaw.set(new_yaw);
+		requested_flight_mode.set(new_mode);
+		requested_arm_mode = get_arm_switch();
 	}
-	else{
+	else {
 		// during arming sequence keep sticks zeroed
 		user_input.reset_sticks();
 	}
 
-	if(user_input.input_active==0){
-		user_input.input_active=1; // flag that connection has come back online
+	if (user_input.input_active == 0) {
+		user_input.input_active = 1; // flag that connection has come back online
 		printf("DSM CONNECTION ESTABLISHED\n");
 	}
-	return;
-
-}
-
-
-void dsm_disconnect_callback(void)
-{
-	user_input.reset_sticks();
-	user_input.input_active = 0;
-	user_input.set_arm_switch(DISARMED);
-	user_input.requested_arm_mode = DISARMED;
-	fprintf(stderr, "LOST DSM CONNECTION\n");
+	return 0;
 }
 
 void user_input_t::reset_sticks(void)
 {
-	thr_stick = 0.0;
-	roll_stick = 0.0;
-	pitch_stick = 0.0;
-	yaw_stick = 0.0;
-	mode_stick = 0.0;
+	throttle.reset();
+	roll.reset();
+	pitch.reset();
+	yaw.reset();
+	requested_flight_mode.reset();
 }
 
-typedef struct disconnect_timer_t
-{
-	uint64_t time_start;
-	int active;
-} disconnect_timer_t;
-
-void* input_manager(__attribute__((unused)) void* ptr)
+int user_input_t::update(void)
 {
 	disconnect_timer_t disconnect_timer;
 	disconnect_timer.active = 0;
 
 	user_input.set_initialized(true);
 	// wait for first packet
-	while(rc_get_state()!=EXITING){
-		if(user_input.input_active) break;
-		rc_usleep(1000000/INPUT_MANAGER_HZ);
+	while (rc_get_state() != EXITING) {
+		if (user_input.input_active) break;
+		rc_usleep(1000000 / INPUT_MANAGER_HZ);
 	}
 
 	// not much to do since the DSM callbacks to most of it. Later some
 	// logic to handle other inputs such as mavlink/bluetooth/wifi
-	while(rc_get_state()!=EXITING){
+	while (rc_get_state() != EXITING) {
 		// if the core got disarmed, wait for arming sequence
-		if(user_input.requested_arm_mode != ARMED){
-			__wait_for_arming_sequence();
+		if (user_input.requested_arm_mode != ARMED) {
+			wait_for_arming_sequence();
 			// user may have pressed the pause button or shut down while waiting
 			// check before continuing
 			if (rc_get_state() != RUNNING) continue;
-			else{
+			else {
 				user_input.requested_arm_mode = ARMED;
 				//printf("\n\nDSM ARM REQUEST\n\n");
 			}
@@ -379,26 +422,65 @@ void* input_manager(__attribute__((unused)) void* ptr)
 			disconnect_timer.active = 0;
 		}
 		// wait
-		rc_usleep(1000000/INPUT_MANAGER_HZ);
+		rc_usleep(1000000 / INPUT_MANAGER_HZ);
 	}
-	return NULL;
+	return 0;
 }
 
-
+int user_input_t::init_all_filters(void)
+{
+	if (unlikely(throttle.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize throttle stick filters\n");
+		return -1;
+	}
+	if (unlikely(roll.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize roll stick filters\n");
+		return -1;
+	}
+	if (unlikely(pitch.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize pitch stick filters\n");
+		return -1;
+	}
+	if (unlikely(yaw.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize yaw stick filters\n");
+		return -1;
+	}
+	if (unlikely(requested_flight_mode.filters.init_all() == -1))
+	{
+		printf("ERROR in init_all_filters: failed to initialize requested_flight_mode stick filters\n");
+		return -1;
+	}
+	
+	return 0;
+}
 
 int user_input_t::input_manager_init(void)
 {
 	en_emergency_land = false;
 
 	initialized = false;
+	
+	
+	if (unlikely(init_all_filters() == -1))
+	{
+		fprintf(stderr, "ERROR in init: failed to initialize all filters\n");
+		return -1;
+	}
+	
 	int i;
 	// start dsm hardware
-	if(rc_dsm_init()==-1){
+	if (unlikely(rc_dsm_init() == -1))
+	{
 		fprintf(stderr, "ERROR in input_manager_init, failed to initialize dsm\n");
 		return -1;
 	}
-	rc_dsm_set_disconnect_callback(dsm_disconnect_callback);
-	rc_dsm_set_callback(new_dsm_data_callback);
+	rc_dsm_set_disconnect_callback(__dsm_disconnect_callback);
+	rc_dsm_set_callback(__new_dsm_data_callback);
+	
 	// start thread
 	if(rc_pthread_create(&thread, &input_manager, NULL,
 				SCHED_FIFO, INPUT_MANAGER_PRI)==-1){
@@ -406,8 +488,8 @@ int user_input_t::input_manager_init(void)
 		return -1;
 	}
 	// wait for thread to start
-	for(i=0;i<50;i++){
-		if(user_input.is_initialized()) return 0;
+	for (i = 0; i < 50; i++) {
+		if (user_input.is_initialized()) return 0;
 		rc_usleep(50000);
 	}
 	fprintf(stderr, "ERROR in input_manager_init, timeout waiting for thread to start\n");
@@ -419,59 +501,9 @@ int user_input_t::input_manager_init(void)
 * No other functions shold be changing sticks other
 * than input mannager. Reading can be done externally.
 */
-double user_input_t::get_thr_stick(void)
+flight_mode_t user_input_t::get_flight_mode(void)
 {
-	return thr_stick;
-}
-
-double user_input_t::get_yaw_stick(void)
-{
-	return yaw_stick;
-}
-
-double user_input_t::get_roll_stick(void)
-{
-	return roll_stick;
-}
-
-double user_input_t::get_pitch_stick(void)
-{
-	return pitch_stick;
-}
-
-double user_input_t::get_mode_stick(void)
-{
-	return mode_stick;
-}
-
-void user_input_t::set_thr_stick(double thr_st)
-{
-	thr_stick = thr_st;
-	return;
-}
-
-void user_input_t::set_yaw_stick(double yaw_st)
-{
-	yaw_stick = yaw_st;
-	return;
-}
-
-void user_input_t::set_roll_stick(double roll_st)
-{
-	roll_stick = roll_st;
-	return;
-}
-
-void user_input_t::set_pitch_stick(double pitch_st)
-{
-	pitch_stick = pitch_st;
-	return;
-}
-
-void user_input_t::set_mode_stick(double mode_st)
-{
-	mode_stick = mode_st;
-	return;
+	return flight_mode;
 }
 
 /* Arm Stick */

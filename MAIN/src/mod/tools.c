@@ -1,18 +1,42 @@
-/**
- * @file tools.c
+/*
+ * tools.c
+ *
+ * Author:	Yevhenii Kovryzhenko, Department of Aerospace Engineering, Auburn University.
+ * Contact: yzk0058@auburn.edu
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED ''AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+ * AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL I
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Last Edit:  08/29/2022 (MM/DD/YYYY)
  */
+
+
 #include "tools.h"
 
-double finddt_s(uint64_t ti)
+inline double finddt_s(uint64_t ti)
 {
-    double dt_s = (rc_nanos_since_boot() - ti) / (1e9);
-    return dt_s;
+    return (rc_nanos_since_boot() - ti) / (1e9);
 }
 
-double cubicPol(double xi, double xf, double xdoti, double xdotf, float tt_s, double dt)
+inline double cubicPol(double xi, double xf, double xdoti, double xdotf, float tt_s, double dt)
 {
-    double dX = (2 * xi - 2 * xf + tt_s * (xdotf + xdoti)) / (pow(tt_s, 3)) * pow(dt, 3) -
-        (3 * xi - 3 * xf + tt_s * (xdotf + 2 * xdoti)) / (pow(tt_s, 2)) * pow(dt, 2) +
+    return (2 * xi - 2 * xf + tt_s * (xdotf + xdoti)) / (pow(tt_s, 3)) * pow(dt, 3) -\
+        (3 * xi - 3 * xf + tt_s * (xdotf + 2 * xdoti)) / (pow(tt_s, 2)) * pow(dt, 2) +\
         xdoti * dt + xi;
     /* Cubic BVP:
     initial position and velocity is 0
@@ -20,8 +44,36 @@ double cubicPol(double xi, double xf, double xdoti, double xdotf, float tt_s, do
     tt_s is total time in seconds
     */
     // double dX = (-2*xf/(tt_s*tt_s*tt_s)) * dt*dt*dt + 3*xf/(tt_s*tt_s) * dt*dt;
-    return dX;
 }
+
+inline void omega_att2att_rates(double* att_rates, double att[3], double omega[3])
+{
+    /*
+    double att_rates[3] = {roll_dot, pitch_dot, yaw_dot};
+    double att[3] = {roll, pitch, yaw};
+    double omega[3] = {p, q, r};
+    */
+
+    att_rates[0] = omega[0] + omega[1] * sin(att[0]) * tan(att[1]) + omega[2] * cos(att[0]) * tan(att[1]);
+    att_rates[1] = omega[1] * cos(att[0]) + omega[2] * sin(att[0]);
+    att_rates[2] = omega[1] * sin(att[0]) * 1.0 / cos(att[1]) + omega[2] * cos(att[0]) * 1.0 / cos(att[1]);
+    return;
+}
+
+inline void att_rates_att2omega(double* omega, double att[3], double att_rates[3])
+{
+    /*
+    double att_rates[3] = {roll_dot, pitch_dot, yaw_dot};
+    double att[3] = {roll, pitch, yaw};
+    double omega[3] = {p, q, r};
+    */
+
+    omega[0] = att_rates[0] - att_rates[2] * sin(att[1]);
+    omega[1] = att_rates[1] * cos(att[0]) + att_rates[2] * sin(att[0]) * cos(att[1]);
+    omega[2] = -att_rates[1] * sin(att[0]) + att_rates[2] * cos(att[0]) * cos(att[1]);
+    return;
+}
+
 
 int scan_file_d(void)
 {
@@ -142,14 +194,14 @@ void rotate_i2b(double** vec)
         {0.0,                       0.0,                        1.0}};
 
     double R2[3][3] = { \
-        {cos(state_estimate.pitch), 0.0,    -sin(state_estimate.pitch)},\
+        {cos(state_estimate.get_pitch()), 0.0,    -sin(state_estimate.get_pitch())},\
         {0.0,                       1.0,                        0.0},\
-        {sin(state_estimate.pitch), 0.0,    cos(state_estimate.pitch)}};
+        {sin(state_estimate.get_pitch()), 0.0,    cos(state_estimate.get_pitch())}};
 
     double R1[3][3] = { \
         {1.0,                       0.0,                        0.0},\
-        {0.0, cos(state_estimate.roll),     sin(state_estimate.roll)},\
-        {0.0, -sin(state_estimate.roll),    cos(state_estimate.roll)}};
+        {0.0, cos(state_estimate.get_roll()),     sin(state_estimate.get_roll())},\
+        {0.0, -sin(state_estimate.get_roll()),    cos(state_estimate.get_roll())}};
 
     multiply(double mat1, double mat2, double res)
 }

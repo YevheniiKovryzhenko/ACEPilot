@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/22/2022 (MM/DD/YYYY)
+ * Last Edit:  09/03/2022 (MM/DD/YYYY)
  *
  * Object that governs all the logic related to communications.
  */
@@ -30,20 +30,26 @@
 
 #include "comms_manager.hpp"
 #include <rc/time.h>
-#include "settings.h"
-#include "benchmark.h"
-#include "gps.h"
+#include "settings.hpp"
+#include "benchmark.hpp"
+#include "gps.hpp"
 #include "telem_packet_t.h"
-#include "state_estimator.h"
+#include "state_estimator.hpp"
 #include "setpoint_manager.hpp"
 #include "input_manager.hpp"
 #include "state_machine.hpp"
 #include "tools.h"
-#include "thread_defs.h"
+#include "thread_defs.hpp"
+#include "mocap_gen.hpp"
 
 // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
@@ -139,7 +145,7 @@ char comms_manager_t::update_main_thread(void)
 {
 	
 	// MOCAP:
-	if (settings.enable_mocap) 
+	if (settings.mocap.enable) 
 	{
 		if (!mocap_thread_terminate_fl && !mocap_thread_active_fl && !mocap_thread.is_started())
 		{
@@ -295,21 +301,21 @@ char comms_manager_t::mocap_start(const char* port, const int baudRate, void* bu
 	 */
 char comms_manager_t::mocap_save_data_sp(void)
 {	
-	GS_TX.x_sp = setpoint.X;
-	GS_TX.y_sp = setpoint.Y;
-	GS_TX.z_sp = setpoint.Z;
-	GS_TX.x_dot_sp = setpoint.X_dot;
-	GS_TX.y_dot_sp = setpoint.Y_dot;
-	GS_TX.z_dot_sp = setpoint.Z_dot;
+	GS_TX.x_sp = setpoint.XY.x.value.get();
+	GS_TX.y_sp = setpoint.XY.y.value.get();
+	GS_TX.z_sp = setpoint.Z.value.get();
+	GS_TX.x_dot_sp = setpoint.XY_dot.x.value.get();
+	GS_TX.y_dot_sp = setpoint.XY_dot.y.value.get();
+	GS_TX.z_dot_sp = setpoint.Z.value.get();
 	
 	
-	GS_TX.roll_sp = setpoint.roll;
-	GS_TX.pitch_sp = setpoint.pitch;
-	GS_TX.yaw_sp = setpoint.yaw;
+	GS_TX.roll_sp = setpoint.ATT.x.value.get();
+	GS_TX.pitch_sp = setpoint.ATT.y.value.get();
+	GS_TX.yaw_sp = setpoint.ATT.z.value.get();
 	
-	GS_TX.roll_dot_sp = setpoint.roll_dot;
-	GS_TX.pitch_dot_sp = setpoint.pitch_dot;
-	GS_TX.yaw_dot_sp = setpoint.yaw_dot;
+	GS_TX.roll_dot_sp = setpoint.ATT_dot.x.value.get();
+	GS_TX.pitch_dot_sp = setpoint.ATT_dot.y.value.get();
+	GS_TX.yaw_dot_sp = setpoint.ATT_dot.z.value.get();
 
 	return 0;
 }
@@ -321,21 +327,21 @@ char comms_manager_t::mocap_save_data_sp(void)
  */
 char comms_manager_t::mocap_save_data_st(void)
 {
-	GS_TX.x = state_estimate.X;
-	GS_TX.y = state_estimate.Y;
-	GS_TX.z = state_estimate.Z;
+	GS_TX.x = state_estimate.get_X();
+	GS_TX.y = state_estimate.get_Y();
+	GS_TX.z = state_estimate.get_Z();
 	
-	GS_TX.x_dot = state_estimate.X_dot;
-	GS_TX.y_dot = state_estimate.Y_dot;
-	GS_TX.z_dot = state_estimate.Z_dot;
+	GS_TX.x_dot = state_estimate.get_X_vel();
+	GS_TX.y_dot = state_estimate.get_Y_vel();
+	GS_TX.z_dot = state_estimate.get_Z_vel();
 
-	GS_TX.roll = state_estimate.roll;
-	GS_TX.pitch = state_estimate.pitch;
-	GS_TX.yaw = state_estimate.continuous_yaw;
+	GS_TX.roll = state_estimate.get_roll();
+	GS_TX.pitch = state_estimate.get_pitch();
+	GS_TX.yaw = state_estimate.get_continuous_heading();
 
-	GS_TX.roll_dot = state_estimate.roll_dot;
-	GS_TX.pitch_dot = state_estimate.pitch_dot;
-	GS_TX.yaw_dot = state_estimate.yaw_dot;
+	GS_TX.roll_dot = state_estimate.get_roll_dot();
+	GS_TX.pitch_dot = state_estimate.get_pitch_dot();
+	GS_TX.yaw_dot = state_estimate.get_yaw_dot();
 	return 0;
 }
 
@@ -346,8 +352,8 @@ char comms_manager_t::mocap_save_data_st(void)
 */
 char comms_manager_t::mocap_save_data(void)
 {
-	GS_TX.time = rc_nanos_since_boot();
-	GS_TX.st_f = (uint8_t)user_input.flight_mode;
+	GS_TX.time = state_estimate.get_time();
+	GS_TX.st_f = (uint8_t)user_input.get_flight_mode();
 	GS_TX.st_SM = (uint8_t)waypoint_state_machine.get_current_state();
 
 
@@ -379,7 +385,7 @@ char comms_manager_t::mocap_update(void)
 		printf("ERROR in mocap_update: failed to read new data\n");
 		return -2;
 	}
-	
+
 	if (mocap_en_TX && finddt_s(TX_time) > 1.0 / MOCAP_THREAD_TX_HZ)
 	{
 		if (unlikely(mocap_transmit_line.write() < 0))
@@ -468,7 +474,7 @@ char comms_manager_t::update(void)
 */
 char comms_manager_t::cleanup(void)
 {
-	if (settings.enable_mocap)
+	if (settings.mocap.enable)
 	{
 		mocap_thread_terminate_fl = true;		
 		if (mocap_thread.stop(MOCAP_TOUT) < 0)

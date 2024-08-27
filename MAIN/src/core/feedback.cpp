@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  05/22/2022 (MM/DD/YYYY)
+ * Last Edit:  09/17/2022 (MM/DD/YYYY)
  *
  * Summary :
  * Here lies the heart and soul of the operation. feedback_init(void) pulls
@@ -48,23 +48,29 @@
 #include <rc/servo.h>
 #include <rc/time.h>
 
-#include "state_estimator.h"
-#include "rc_pilot_defs.h"
+#include "state_estimator.hpp"
+#include "rc_pilot_defs.hpp"
 #include "setpoint_manager.hpp"
-#include "settings.h"
-#include "mix.h"
-#include "thrust_map.h"
+#include "settings.hpp"
+#include "mix.hpp"
+#include "thrust_map.hpp"
 #include "tools.h"
 #include "controller.hpp"
 #include "log_manager.hpp"
 #include "input_manager.hpp"
 #include "servos.hpp"
+#include "thread_defs.hpp"
 
 #include "feedback.hpp"
 
  // preposessor macros
+#ifndef unlikely
 #define unlikely(x)	__builtin_expect (!!(x), 0)
+#endif // !unlikely
+
+#ifndef likely
 #define likely(x)	__builtin_expect (!!(x), 1)
+#endif // !likely
 
  /*
  * Invoke defaut constructor for all the built in and exernal types in the class
@@ -72,18 +78,72 @@
 feedback_state_t fstate{}; // extern variable in feedback.hpp
 
 
-int feedback_state_t::send_motor_stop_pulse(void)
+static void* __arm_thread_func(__attribute__((unused)) void* ptr)
+{
+	while (rc_get_state() != EXITING)
+	{
+		char tmp = fstate.update_arm_thread();
+		if (tmp < 0)
+		{
+			printf("ERROR in __arm_thread_func: failed to update main thread\n");
+			return NULL;
+		}
+		else if (tmp > 0) return NULL; //completed execution
+	}
+	return NULL;
+}
+
+char feedback_state_t::send_motor_stop_pulse(void)
 {
 	int i;
 	if (unlikely(settings.num_rotors > 8))
 	{
-		printf("ERROR: set_motors_to_idle: too many rotors\n");
+		printf("ERROR in send_motor_stop_pulse: too many rotors\n");
 		return -1;
 	}
 	for (i = 0; i < settings.num_rotors; i++) {
 		m[i] = -0.1;
-		rc_servo_send_esc_pulse_normalized(i + 1, -0.1);
+		if (unlikely(rc_servo_send_esc_pulse_normalized(i + 1, -0.1) < 0))
+		{
+			fprintf(stderr, "ERROR in send_motor_stop_pulse: failed to send stop pulse to motor %i\n", i + 1);
+			return -1;
+		}
 	}
+	return 0;
+}
+
+char feedback_state_t::update_arm_thread(void)
+{
+	if (finddt_s(arm_time_ns) < settings.arm_time_s)
+	{
+		started_arming_fl = true;
+		if (unlikely(send_motor_stop_pulse() < 0))
+		{
+			fprintf(stderr, "ERROR in update_arm_thread: failed to send motor stop pulse\n");
+			return -1;
+		}
+	}
+	else
+	{
+		started_arming_fl = false;
+		if (settings.warnings_en) printf("WARNING: ARMED!\n");
+
+		// set LEDs
+		rc_led_set(RC_LED_RED, 0);
+		rc_led_set(RC_LED_GREEN, 1);
+		// last thing is to flag as armed
+		arm_state = ARMED;
+
+		return 1;
+	}
+
+	double tmp = finddt_s(arm_thread_time);
+	arm_thread_time = rc_nanos_since_boot();
+	if (tmp < 1.0 / ARM_FEEDBACK_HZ)
+	{
+		rc_usleep(1000000 * (1.0 / ARM_FEEDBACK_HZ - tmp));
+	}
+
 	return 0;
 }
 
@@ -116,9 +176,16 @@ int feedback_state_t::disarm(void)
 		}
 	}
 
-	if (settings.log_only_while_armed && settings.enable_logging)
+	if (settings.enable_logging)
 	{
-		log_entry.request_reset();
+		if (settings.log_only_while_armed)
+		{
+			log_entry.request_shutdown();
+		}
+		else
+		{
+			log_entry.request_reset();
+		}		
 	}
 	return 0;
 }
@@ -153,11 +220,22 @@ int feedback_state_t::arm(void)
 		// time so do it before touching anything else
 		if (settings.enable_logging)
 		{
-			if (unlikely(log_entry.request_reset() == -1))
+			if (settings.log_only_while_armed)
 			{
-				printf("ERROR in arm: failed to request reset for log manager\n");
-				return -1;
+				if (unlikely(log_entry.start() == -1))
+				{
+					printf("ERROR in arm: failed to start log manager thread\n");
+					return -1;
+				}
 			}
+			else
+			{
+				if (unlikely(log_entry.request_reset() == -1))
+				{
+					printf("ERROR in arm: failed to request reset for log manager\n");
+					return -1;
+				}
+			}			
 		}
 
 
@@ -176,12 +254,19 @@ int feedback_state_t::arm(void)
 		loop_index = 0;
 
 		if (settings.warnings_en) printf("WARNING: Waking up the ESCs....\n");
+		/* Starting arming Thread */
+		if (unlikely(thread.start(__arm_thread_func) < 0))
+		{
+			fprintf(stderr, "ERROR in init: failed to start arming thread\n");
+			return -1;
+		}
 	}
 	
 
 	setpoint.reset_all(); //reset setpoints
 	controller.reset(); //reset control system
 
+	/*
 	if (finddt_s(arm_time_ns) < settings.arm_time_s)
 	{
 		started_arming_fl = true;
@@ -196,6 +281,7 @@ int feedback_state_t::arm(void)
 	rc_led_set(RC_LED_GREEN,1);
 	// last thing is to flag as armed
 	arm_state = ARMED;
+	*/
 	return 0;
 }
 
@@ -217,7 +303,7 @@ int feedback_state_t::init(void)
 		return 0;
 	}
 
-	arm_time_ns = 0;
+	arm_time_ns = rc_nanos_since_boot();
 
 	if (unlikely(controller.init() == -1))
 	{
@@ -229,6 +315,12 @@ int feedback_state_t::init(void)
 	if (unlikely(disarm() == -1))
 	{
 		printf("ERROR in init: failed to disarm\n");
+		return -1;
+	}
+
+	if (unlikely(thread.init(ARM_FEEDBACK_PRI, FIFO) < 0))
+	{
+		fprintf(stderr, "ERROR in init: failed to start arm thread\n");
 		return -1;
 	}
 
@@ -291,7 +383,7 @@ int feedback_state_t::march(void)
 	}
 
 	// check for a tipover
-	if (unlikely(fabs(state_estimate.roll) > TIP_ANGLE || fabs(state_estimate.pitch) > TIP_ANGLE)) 
+	if (unlikely(fabs(state_estimate.get_roll()) > TIP_ANGLE || fabs(state_estimate.get_pitch()) > TIP_ANGLE)) 
 	{
 		disarm();
 		printf("\n TIPOVER DETECTED \n");
@@ -303,10 +395,6 @@ int feedback_state_t::march(void)
 		send_motor_stop_pulse();
 		return 0;
 	}
-
-	//update_setpoints();
-	// Zero out feedforward terms so unexpected things don't happen
-	//zero_out_ff();
 
 	// We are about to start marching the individual SISO controllers forward.
 	// Start by zeroing out the motors signals then add from there.
@@ -349,7 +437,6 @@ int feedback_state_t::march(void)
 		rc_servo_send_esc_pulse_normalized(i + 1, m[i]);
 		
 	}
-
 	if (settings.enable_servos)
 	{
 		for (int i = 0; i < settings.num_servos; i++)
@@ -366,7 +453,6 @@ int feedback_state_t::march(void)
 			sstate.march_with_centering(i, tmp_s[i]);
 		}
 	}
-
 	/***************************************************************************
 	* Final cleanup, timing, and indexing
 	***************************************************************************/
@@ -418,6 +504,10 @@ uint64_t feedback_state_t::get_last_step_ns(void)
 */
 int feedback_state_t::cleanup(void)
 {
+	if (thread.stop(ARM_FEEDBACK_TOUT) < 0)
+	{
+		printf("WARNING in cleanup: failed to close arm thread\n");
+	}
 	send_motor_stop_pulse();
 
 	initialized = 0;

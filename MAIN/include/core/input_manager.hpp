@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/29/2020 (MM/DD/YYYY)
+ * Last Edit:  05/30/2022 (MM/DD/YYYY)
  * 
  * Functions to start and stop the input manager thread which is the translation
  * beween control inputs from DSM to the user_input struct which is read by the
@@ -37,8 +37,28 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "rc_pilot_defs.h"
-#include "flight_mode.h"
+#include "rc_pilot_defs.hpp"
+#include "flight_mode.hpp"
+#include "signal_filter_gen.hpp"
+
+class stick_t {
+private:
+	double value = 0.0;
+public:
+	/* Reading/Writing Control Sticks From Radio
+	* No other functions should be changing sticks other
+	* than the input mannager. Reading can be done externally.
+	*/
+	double get(void); //get stick value
+	double& get_pt(void);
+	int set(double in); //set stick value
+	int set(double* in); //set stick source
+	int reset(void); // reset value to zero
+
+	// stick filters
+	signal_filter_triplet_gen_t filters{};
+};
+
 
 /**
 	* Represents current command by the user. This is populated by the
@@ -51,38 +71,31 @@ private:
 	* Indivisual function for accessing these variables have been written.
 	*/
 	pthread_t thread;
-	bool initialized;				///< set to 1 after input_manager_init(void)
-	bool en_emergency_land;	///< on/off emergency landing procedure
-	// All sticks scaled from -1 to 1
-	double thr_stick;		///< positive forward
-	double yaw_stick;		///< positive to the right, CW yaw
-	double roll_stick;		///< positive to the right
-	double pitch_stick;		///< positive forward
+	bool initialized;					///< set to 1 after input_manager_init(void)
+	bool en_emergency_land;				///< on/off emergency landing procedure
 
-	double mode_stick;		///< flight mode stick position
-	arm_state_t arm_switch; ///< actual position of the physical switch
+	//double mode_stick;				///< flight mode stick position
+	arm_state_t arm_switch;				///< actual position of the physical switch
+	void set_arm_switch(arm_state_t val);	
+	int wait_for_arming_sequence(void);
+
+	int init_all_filters(void);
 public:
+
+	// All sticks scaled from -1 to 1
+	stick_t throttle{};					///< positive forward
+	stick_t yaw{};						///< positive to the right, CW yaw
+	stick_t roll{};						///< positive to the right
+	stick_t pitch{};					///< positive forward
+	stick_t requested_flight_mode{};	///< flight mode stick position
 	
-	flight_mode_t flight_mode;		///< this is the user commanded flight_mode.
-	int input_active;				///< nonzero indicates some user control is coming in
-	arm_state_t requested_arm_mode;	///< set to ARMED after arming sequence is entered.
+	flight_mode_t flight_mode;			///< this is the user commanded flight_mode.
+	int input_active;					///< nonzero indicates some user control is coming in
+	arm_state_t requested_arm_mode;		///< set to ARMED after arming sequence is entered.
 	
 
-	/* Reading/Writing Control Sticks From Radio
-	* No other functions shold be changing sticks other 
-	* than input mannager. Reading can be done externally. 
-	*/
-	double get_thr_stick(void);
-	double get_yaw_stick(void);
-	double get_roll_stick(void);
-	double get_pitch_stick(void);
-	double get_mode_stick(void);
 	
-	void set_thr_stick(double thr_st);
-	void set_yaw_stick(double yaw_st);
-	void set_roll_stick(double roll_st);
-	void set_pitch_stick(double pitch_st);
-	void set_mode_stick(double mode_st);
+	flight_mode_t get_flight_mode(void);
 
 	void reset_sticks(void); //sets all the sticks to their default positions
 
@@ -91,7 +104,7 @@ public:
 
 	/* Accessing the actual switch value */
 	arm_state_t get_arm_switch(void);
-	void set_arm_switch(arm_state_t val); // don'y use outside input mannager
+	
 
 	/**
 	* @brief      Starts an input manager thread.
@@ -101,20 +114,25 @@ public:
 	*
 	* @return     0 on success, -1 on failure
 	*/
-	int input_manager_init(void);
+	int input_manager_init(void);	
 	bool is_initialized(void); // a way for other functions to ask if input mannager is initialized
 	void set_initialized(bool val); // use this only inside input mannager
 
 	/**
-		* @brief      Waits for the input manager thread to exit
-		*
-		*             This should only be called after the program flow state is set to
-		*             EXITING as that's the only thing that will cause the thread to
-		*             exit on its own safely. Used in input_manager.c
-		*
-		* @return     0 on clean exit, -1 if exit timed out.
-		*/
+	* @brief      Waits for the input manager thread to exit
+	*
+	*             This should only be called after the program flow state is set to
+	*             EXITING as that's the only thing that will cause the thread to
+	*             exit on its own safely. Used in input_manager.c
+	*
+	* @return     0 on clean exit, -1 if exit timed out.
+	*/
 	int input_manager_cleanup(void);
+
+	int new_dsm_data_callback(void);
+	void dsm_disconnect_callback(void);
+
+	int update(void);
 };
 
 extern user_input_t user_input;

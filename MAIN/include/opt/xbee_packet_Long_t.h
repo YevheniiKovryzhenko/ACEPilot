@@ -9,7 +9,7 @@ extern "C"
 
     typedef struct xbee_packet_t
     {
-        uint32_t time;   ///< Unique id for the rigid body being described
+        uint64_t time;   ///< Unique time for the rigid body being described
         float x;        ///< x-position in the Optitrack frame
         float y;        ///< y-position in the Optitrack frame
         float z;        ///< z-position in the Optitrack frame
@@ -25,6 +25,8 @@ extern "C"
         float GainN0_pd;
         float GainN1_pd;
         float GainD1_pd; //< D0 is always  1
+        float GainFF;
+        float GainK;
     }__attribute__((packed)) xbee_packet_t;
 
 #ifdef __cplusplus

@@ -22,7 +22,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Last Edit:  07/03/2022 (MM/DD/YYYY)
+ * Last Edit:  08/31/2022 (MM/DD/YYYY)
  */
 
 #ifndef CONTROLLER_HPP
@@ -36,93 +36,43 @@
 #include <rc/time.h>
 #include <rc/math/filter.h>
 
-#include "mix.h"
+#include "mix.hpp"
 #include <stdbool.h>
+#include "feedback_filter_gen.hpp"
 
-
-typedef struct PID_vars_set_t 
-{
-	uint8_t GainCH; //< tunning channel 
-	float GainN1_i; //< N0 is always 0; D0 is always 1; D1 is always -1
-	float GainN0_pd;
-	float GainN1_pd;
-	float GainD1_pd; //< D0 is always  1
-} PID_vars_set_t;
-
+/* This is a class for the actual control system of the vehicle (ESC control) */
 class feedback_controller_t
 {
 private:
-	bool initialized;
+	bool initialized = false;
 
 
 	// for in-flight flight mode switching :
-	bool last_en_rpy_ctrl;
-	bool last_en_rpy_rate_ctrl;
-	bool last_en_Z_ctrl;
-	bool last_en_Zdot_ctrl;
-	bool last_en_XY_ctrl;
-	bool last_en_XYdot_ctrl;
+	bool last_en_rpy_ctrl = false;
+	bool last_en_rpy_rate_ctrl = false;
+	bool last_en_Z_ctrl = false;
+	bool last_en_Zdot_ctrl = false;
+	bool last_en_XY_ctrl = false;
+	bool last_en_XYdot_ctrl = false;
 
 	// filters:
-	rc_filter_t D_roll_rate_pd;
-	rc_filter_t D_roll_rate_i;
-	rc_filter_t D_pitch_rate_pd;
-	rc_filter_t D_pitch_rate_i;
-	rc_filter_t D_yaw_rate_pd;
-	rc_filter_t D_yaw_rate_i;
+	feedback_filter_gen_t roll_dot;
+	feedback_filter_gen_t pitch_dot;
+	feedback_filter_gen_t yaw_dot;
 
-	rc_filter_t D_roll_rate_pd_orig;
-	rc_filter_t D_roll_rate_i_orig;
-	rc_filter_t D_pitch_rate_pd_orig;
-	rc_filter_t D_pitch_rate_i_orig;
-	rc_filter_t D_yaw_rate_pd_orig;
-	rc_filter_t D_yaw_rate_i_orig;
+	feedback_filter_gen_t roll;
+	feedback_filter_gen_t pitch;
+	feedback_filter_gen_t yaw;
 
-	rc_filter_t D_roll_pd;
-	rc_filter_t D_pitch_pd;
-	rc_filter_t D_yaw_pd;
-	rc_filter_t D_roll_i;
-	rc_filter_t D_pitch_i;
-	rc_filter_t D_yaw_i;
+	feedback_filter_gen_t x_dot;
+	feedback_filter_gen_t y_dot;
+	feedback_filter_gen_t z_dot;
 
-	rc_filter_t D_roll_pd_orig;
-	rc_filter_t D_pitch_pd_orig;
-	rc_filter_t D_yaw_pd_orig;
-	rc_filter_t D_roll_i_orig;
-	rc_filter_t D_pitch_i_orig;
-	rc_filter_t D_yaw_i_orig;
-	
-	rc_filter_t D_Xdot_pd;
-	rc_filter_t D_Xdot_i;
-	rc_filter_t D_Ydot_pd;
-	rc_filter_t D_Ydot_i;
-	rc_filter_t D_Zdot_pd;
-	rc_filter_t D_Zdot_i;
+	feedback_filter_gen_t x;
+	feedback_filter_gen_t y;
+	feedback_filter_gen_t z;
 
-	rc_filter_t D_Xdot_pd_orig;
-	rc_filter_t D_Xdot_i_orig;
-	rc_filter_t D_Ydot_pd_orig;
-	rc_filter_t D_Ydot_i_orig;
-	rc_filter_t D_Zdot_pd_orig;
-	rc_filter_t D_Zdot_i_orig;
-
-	rc_filter_t D_X_pd;
-	rc_filter_t D_Y_pd;
-	rc_filter_t D_X_i;
-	rc_filter_t D_Y_i;
-
-	rc_filter_t D_X_pd_orig;
-	rc_filter_t D_Y_pd_orig;
-	rc_filter_t D_X_i_orig;
-	rc_filter_t D_Y_i_orig;
-
-	rc_filter_t D_Z_pd;
-	rc_filter_t D_Z_i;
-
-	rc_filter_t D_Z_pd_orig;
-	rc_filter_t D_Z_i_orig;
-
-	bool tune_status_fl; //indicates if gains have been updated last time 
+	bool tune_status_fl = false; //indicates if gains have been updated last time 
 	PID_vars_set_t received_gain_set;
 
 	int rpy_init(void);
@@ -142,6 +92,9 @@ private:
 	int xy_rate_init(void);
 	int xy_rate_march(void);
 	int xy_rate_reset(void);
+
+	int XY_accel_2_attitude(void);
+	int Z_accel_2_throttle(void);
 
 	int z_init(void);
 	int z_march(void);
