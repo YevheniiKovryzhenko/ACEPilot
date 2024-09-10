@@ -126,7 +126,7 @@ Check out my more recent autopilot-related works like [PX4 Simulink IO Framework
 and [Quadrotor_with_FF_Control](https://github.com/YevheniiKovryzhenko/Quadrotor_with_FF_Control.git). 
 
 Feel free to cite any of my earlier papers that directly used this work:
-*  Y. Kovryzhenko, “Application of the finite Fourier series for smooth motion planning of quadrotors,” Masters Thesis, Auburn University, 2023. Accessed: Jul. 26, 2023. [Online]. Available: https://etd.auburn.edu//handle/10415/8797
+* Kovryzhenko, Y., “Application of the Finite Fourier Series for Smooth Motion Planning of Quadrotors,” Masters Thesis. Auburn University, 2023.
   	```
 	@mastersthesis{kovryzhenko_application_2023,
 		title = {Application of the finite fourier series for smooth motion planning of quadrotors},
@@ -141,7 +141,7 @@ Feel free to cite any of my earlier papers that directly used this work:
 		year = {2023},
 	}
   	```
-*  Y. Kovryzhenko and E. Taheri, “Comparison of minimum-snap and finite Fourier series methods for multi-copter motion planning,” in AIAA SciTech 2022 Forum, San Diego, CA & Virtual: American Institute of Aeronautics and Astronautics, Jan. 2022. doi: 10.2514/6.2022-1085.
+* Kovryzhenko, Y., and Taheri, E., “Comparison of Minimum-Snap and Finite Fourier Series Methods for Multi-Copter Motion Planning,” presented at the AIAA SCITECH 2022 Forum, San Diego, CA & Virtual, 2022. https://doi.org/10.2514/6.2022-1085
   	```
 	@inproceedings{kovryzhenko_comparison_2022,
 		address = {San Diego, CA \& Virtual},
@@ -159,8 +159,7 @@ Feel free to cite any of my earlier papers that directly used this work:
 		year = {2022},
 	}
   	```
-* Y. Kovryzhenko and E. Taheri, “Development of Cascaded Control and Path-Planning Algorithms for Autonomous Aerial Vehicles,” Auburn University Journal of Undergraduate Scholarship, p. 4, 2021.
-
+* Kovryzhenko, Y., and Taheri, E., “Development of Cascaded Control and Path- Planning Algorithms for Autonomous Aerial Vehicles,” Auburn University Journal of Undergraduate Scholarship, 2021, p. 4.
 	```
 	@article{kovryzhenko_development_2021,
 		title = {Development of Cascaded Control and Path-Planning Algorithms for Autonomous Aerial Vehicles},
