@@ -127,6 +127,49 @@ and [Quadrotor_with_FF_Control](https://github.com/YevheniiKovryzhenko/Quadrotor
 
 Feel free to cite any of my earlier papers that directly used this work:
 *  Y. Kovryzhenko, “Application of the finite Fourier series for smooth motion planning of quadrotors,” Masters Thesis, Auburn University, 2023. Accessed: Jul. 26, 2023. [Online]. Available: https://etd.auburn.edu//handle/10415/8797
+  	```
+	@mastersthesis{kovryzhenko_application_2023,
+		title = {Application of the finite fourier series for smooth motion planning of quadrotors},
+		copyright = {Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License (CC-BY-NC-ND)},
+		url = {https://etd.auburn.edu//handle/10415/8797},			
+		language = {en},
+		urldate = {2023-07-26},
+		school = {Auburn University},
+		author = {Kovryzhenko, Yevhenii},
+		collaborator = {Taheri, Ehsan and Chakraborty, Imon and Li, Nan},
+		month = jul,
+		year = {2023},
+	}
+  	```
 *  Y. Kovryzhenko and E. Taheri, “Comparison of minimum-snap and finite Fourier series methods for multi-copter motion planning,” in AIAA SciTech 2022 Forum, San Diego, CA & Virtual: American Institute of Aeronautics and Astronautics, Jan. 2022. doi: 10.2514/6.2022-1085.
+  	```
+	@inproceedings{kovryzhenko_comparison_2022,
+		address = {San Diego, CA \& Virtual},
+		title = {Comparison of minimum-snap and finite fourier series methods for multi-copter motion planning},
+		copyright = {All rights reserved},
+		isbn = {978-1-62410-631-6},
+		url = {https://arc.aiaa.org/doi/10.2514/6.2022-1085},
+		doi = {10.2514/6.2022-1085},
+		language = {en},
+		urldate = {2022-09-13},
+		booktitle = {AIAA SCITECH 2022 Forum},
+		publisher = {American Institute of Aeronautics and Astronautics},
+		author = {Kovryzhenko, Yevhenii and Taheri, Ehsan},
+		month = jan,
+		year = {2022},
+	}
+  	```
 * Y. Kovryzhenko and E. Taheri, “Development of Cascaded Control and Path-Planning Algorithms for Autonomous Aerial Vehicles,” Auburn University Journal of Undergraduate Scholarship, p. 4, 2021.
 
+	```
+	@article{kovryzhenko_development_2021,
+		title = {Development of Cascaded Control and Path-Planning Algorithms for Autonomous Aerial Vehicles},
+		copyright = {All rights reserved},
+		url = {https://bpb-us-e2.wpmucdn.com/wordpress.auburn.edu/dist/a/151/files/2022/01/FINAL-2021-22-AUJUS-Issue-Working-File.pdf},
+		language = {en},
+		journal = {Auburn University Journal of Undergraduate Scholarship},
+		author = {Kovryzhenko, Yevhenii and Taheri, Ehsan},
+		year = {2021},
+		pages = {4},
+	}
+  	```
